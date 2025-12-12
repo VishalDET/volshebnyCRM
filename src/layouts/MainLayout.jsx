@@ -1,6 +1,19 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { useAuth } from '@hooks/useAuth'
+import {
+    LayoutDashboard,
+    FileText,
+    Ticket,
+    Receipt,
+    FileSignature,
+    Landmark,
+    Settings,
+    LogOut,
+    Menu,
+    Bell,
+    ChevronDown
+} from 'lucide-react'
 
 /**
  * MainLayout Component
@@ -17,13 +30,13 @@ const MainLayout = ({ children }) => {
     }
 
     const navigation = [
-        { name: 'Dashboard', href: '/dashboard', icon: '📊' },
-        { name: 'Queries', href: '/queries', icon: '📝' },
-        { name: 'Service Vouchers', href: '/vouchers', icon: '🎫' },
-        { name: 'Client Invoices', href: '/invoices/client', icon: '💰' },
-        { name: 'Supplier Invoices', href: '/invoices/supplier', icon: '📄' },
-        { name: 'Finance', href: '/finance', icon: '💵' },
-        { name: 'Masters', href: '/masters', icon: '⚙️' },
+        { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+        { name: 'Queries', href: '/queries', icon: FileText },
+        { name: 'Service Vouchers', href: '/vouchers', icon: Ticket },
+        { name: 'Client Invoices', href: '/invoices/client', icon: Receipt },
+        { name: 'Supplier Invoices', href: '/invoices/supplier', icon: FileSignature },
+        { name: 'Finance', href: '/finance', icon: Landmark },
+        { name: 'Masters', href: '/masters', icon: Settings },
     ]
 
     return (
@@ -31,45 +44,53 @@ const MainLayout = ({ children }) => {
             {/* Sidebar */}
             <aside
                 className={`
-          fixed top-0 left-0 z-40 h-screen transition-transform
+          fixed top-0 left-0 z-40 h-screen transition-transform duration-300 ease-in-out
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
           bg-white border-r border-secondary-200 w-64
         `}
             >
                 <div className="h-full flex flex-col">
                     {/* Logo */}
-                    <div className="p-6 border-b border-secondary-200">
-                        <h1 className="text-2xl font-bold text-primary-600">
-                            VolshebnyCRM
-                        </h1>
-                        <p className="text-xs text-secondary-500 mt-1">Travel Management</p>
+                    <div className="px-6 py-5 border-b border-secondary-200 flex items-center gap-2">
+                        <div className="bg-primary-600 p-1.5 rounded-lg">
+                            <span className="text-white font-bold text-lg">VC</span>
+                        </div>
+                        <div>
+                            <h1 className="text-lg font-bold text-secondary-900 leading-tight">
+                                Volshebny
+                            </h1>
+                            <p className="text-xs text-secondary-500 font-medium">CRM Suite</p>
+                        </div>
                     </div>
 
                     {/* Navigation */}
-                    <nav className="flex-1 overflow-y-auto p-4">
-                        <ul className="space-y-2">
-                            {navigation.map((item) => (
-                                <li key={item.name}>
-                                    <Link
-                                        to={item.href}
-                                        className="flex items-center gap-3 px-4 py-3 text-secondary-700 rounded-lg hover:bg-primary-50 hover:text-primary-700 transition-colors"
-                                    >
-                                        <span className="text-xl">{item.icon}</span>
-                                        <span className="font-medium">{item.name}</span>
-                                    </Link>
-                                </li>
-                            ))}
+                    <nav className="flex-1 overflow-y-auto p-4 space-y-1">
+                        <ul className="space-y-1">
+                            {navigation.map((item) => {
+                                const Icon = item.icon
+                                return (
+                                    <li key={item.name}>
+                                        <Link
+                                            to={item.href}
+                                            className="flex items-center gap-3 px-3 py-2.5 text-secondary-600 rounded-lg hover:bg-primary-50 hover:text-primary-700 transition-all duration-200 group"
+                                        >
+                                            <Icon className="w-5 h-5 text-secondary-400 group-hover:text-primary-600 transition-colors" />
+                                            <span className="font-medium text-sm">{item.name}</span>
+                                        </Link>
+                                    </li>
+                                )
+                            })}
                         </ul>
                     </nav>
 
                     {/* User Profile */}
-                    <div className="p-4 border-t border-secondary-200">
+                    <div className="p-4 border-t border-secondary-200 bg-secondary-50/50">
                         <div className="flex items-center gap-3 mb-3">
-                            <div className="w-10 h-10 rounded-full bg-primary-600 flex items-center justify-center text-white font-semibold">
+                            <div className="w-9 h-9 rounded-full bg-primary-100 border border-primary-200 flex items-center justify-center text-primary-700 font-semibold text-sm">
                                 {user?.name?.charAt(0) || 'U'}
                             </div>
                             <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-secondary-900 truncate">
+                                <p className="text-sm font-semibold text-secondary-900 truncate">
                                     {user?.name || 'User'}
                                 </p>
                                 <p className="text-xs text-secondary-500 truncate">
@@ -79,61 +100,38 @@ const MainLayout = ({ children }) => {
                         </div>
                         <button
                             onClick={handleLogout}
-                            className="w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            className="flex items-center gap-2 w-full px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                         >
-                            Logout
+                            <LogOut className="w-4 h-4" />
+                            <span>Sign out</span>
                         </button>
                     </div>
                 </div>
             </aside>
 
             {/* Main Content */}
-            <div className={`${sidebarOpen ? 'ml-64' : 'ml-0'} transition-all`}>
+            <div className={`${sidebarOpen ? 'ml-64' : 'ml-0'} transition-all duration-300 ease-in-out`}>
                 {/* Header */}
-                <header className="bg-white border-b border-secondary-200 sticky top-0 z-30">
-                    <div className="px-6 py-4 flex items-center justify-between">
+                <header className="bg-white border-b border-secondary-200 sticky top-0 z-30 px-6 py-3">
+                    <div className="flex items-center justify-between">
                         <button
                             onClick={() => setSidebarOpen(!sidebarOpen)}
-                            className="p-2 rounded-lg hover:bg-secondary-100 transition-colors"
+                            className="p-2 rounded-lg text-secondary-500 hover:bg-secondary-100 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-100"
                         >
-                            <svg
-                                className="w-6 h-6 text-secondary-600"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M4 6h16M4 12h16M4 18h16"
-                                />
-                            </svg>
+                            <Menu className="w-5 h-5" />
                         </button>
 
                         <div className="flex items-center gap-4">
-                            <button className="p-2 rounded-lg hover:bg-secondary-100 transition-colors relative">
-                                <svg
-                                    className="w-6 h-6 text-secondary-600"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                                    />
-                                </svg>
-                                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                            <button className="p-2 rounded-lg text-secondary-500 hover:bg-secondary-100 transition-colors relative group">
+                                <Bell className="w-5 h-5" />
+                                <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white"></span>
                             </button>
                         </div>
                     </div>
                 </header>
 
                 {/* Page Content */}
-                <main className="p-6">
+                <main className="p-8 max-w-7xl mx-auto">
                     {children}
                 </main>
             </div>

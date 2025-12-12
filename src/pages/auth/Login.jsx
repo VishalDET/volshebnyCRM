@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@hooks/useAuth'
 import Button from '@components/Button'
 import Input from '@components/Input'
+import { Rocket } from 'lucide-react'
 
 /**
  * Login Page
@@ -154,10 +155,11 @@ const Login = () => {
                     <Button
                         type="button"
                         variant="outline"
-                        className="w-full"
+                        className="w-full flex items-center justify-center gap-2"
                         onClick={handleBypass}
                     >
-                        🚀 Bypass Login (Demo)
+                        <Rocket className="w-4 h-4" />
+                        <span>Bypass Login (Demo)</span>
                     </Button>
                     <p className="text-xs text-secondary-500 mt-2">
                         Skip authentication to preview all UIs

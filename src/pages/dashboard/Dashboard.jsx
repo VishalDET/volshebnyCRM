@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { FileText, CheckCircle2, IndianRupee, Clock } from 'lucide-react'
 import PageHeader from '@components/PageHeader'
 import Button from '@components/Button'
 import { getQueryStats } from '@api/query.api'
@@ -38,29 +39,29 @@ const Dashboard = () => {
             title: 'Total Queries',
             value: stats?.totalQueries || 0,
             change: '+12%',
-            icon: '📝',
-            color: 'bg-blue-500',
+            icon: FileText,
+            color: 'bg-blue-100 text-blue-600',
         },
         {
             title: 'Confirmed Queries',
             value: stats?.confirmedQueries || 0,
             change: '+8%',
-            icon: '✅',
-            color: 'bg-green-500',
+            icon: CheckCircle2,
+            color: 'bg-green-100 text-green-600',
         },
         {
             title: 'Revenue (MTD)',
             value: `₹${financeData?.monthlyRevenue?.toLocaleString() || 0}`,
             change: '+15%',
-            icon: '💰',
-            color: 'bg-purple-500',
+            icon: IndianRupee,
+            color: 'bg-purple-100 text-purple-600',
         },
         {
             title: 'Pending Payments',
             value: `₹${financeData?.pendingPayments?.toLocaleString() || 0}`,
             change: '-5%',
-            icon: '⏳',
-            color: 'bg-orange-500',
+            icon: Clock,
+            color: 'bg-orange-100 text-orange-600',
         },
     ]
 
@@ -84,26 +85,29 @@ const Dashboard = () => {
                 <>
                     {/* Stats Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                        {statCards.map((stat, index) => (
-                            <div key={index} className="card">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-sm font-medium text-secondary-600 mb-1">
-                                            {stat.title}
-                                        </p>
-                                        <p className="text-2xl font-bold text-secondary-900">
-                                            {stat.value}
-                                        </p>
-                                        <p className="text-sm text-green-600 mt-1">
-                                            {stat.change} from last month
-                                        </p>
-                                    </div>
-                                    <div className={`w-12 h-12 ${stat.color} rounded-lg flex items-center justify-center text-2xl`}>
-                                        {stat.icon}
+                        {statCards.map((stat, index) => {
+                            const Icon = stat.icon
+                            return (
+                                <div key={index} className="card">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-sm font-medium text-secondary-600 mb-1">
+                                                {stat.title}
+                                            </p>
+                                            <p className="text-2xl font-bold text-secondary-900">
+                                                {stat.value}
+                                            </p>
+                                            <p className="text-sm text-green-600 mt-1">
+                                                {stat.change} from last month
+                                            </p>
+                                        </div>
+                                        <div className={`w-12 h-12 ${stat.color} rounded-lg flex items-center justify-center`}>
+                                            <Icon className="w-6 h-6" />
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            )
+                        })}
                     </div>
 
                     {/* Recent Activity */}

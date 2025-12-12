@@ -36,10 +36,15 @@ import AddSupplierPayment from '@pages/supplierInvoices/AddSupplierPayment'
 import FinanceSummary from '@pages/finance/FinanceSummary'
 
 // Masters
+import MastersDashboard from '@pages/masters/MastersDashboard'
+import CountryMaster from '@pages/masters/CountryMaster'
 import DestinationMaster from '@pages/masters/DestinationMaster'
-import HotelMaster from '@pages/masters/HotelMaster'
-import SightseeingMaster from '@pages/masters/SightseeingMaster'
-import RateMaster from '@pages/masters/RateMaster'
+import CurrencyMaster from '@pages/masters/CurrencyMaster'
+import CreditCardMaster from '@pages/masters/CreditCardMaster'
+import ServiceTypeMaster from '@pages/masters/ServiceTypeMaster'
+import SupplierMaster from '@pages/masters/SupplierMaster'
+import ClientMaster from '@pages/masters/ClientMaster'
+import HandlerMaster from '@pages/masters/HandlerMaster'
 
 /**
  * Protected Route Component
@@ -112,11 +117,15 @@ const AppRoutes = () => {
             <Route path="/finance" element={<ProtectedRoute><FinanceSummary /></ProtectedRoute>} />
 
             {/* Masters */}
-            <Route path="/masters" element={<ProtectedRoute><DestinationMaster /></ProtectedRoute>} />
+            <Route path="/masters" element={<ProtectedRoute><MastersDashboard /></ProtectedRoute>} />
+            <Route path="/masters/countries" element={<ProtectedRoute><CountryMaster /></ProtectedRoute>} />
             <Route path="/masters/destinations" element={<ProtectedRoute><DestinationMaster /></ProtectedRoute>} />
-            <Route path="/masters/hotels" element={<ProtectedRoute><HotelMaster /></ProtectedRoute>} />
-            <Route path="/masters/sightseeing" element={<ProtectedRoute><SightseeingMaster /></ProtectedRoute>} />
-            <Route path="/masters/rates" element={<ProtectedRoute><RateMaster /></ProtectedRoute>} />
+            <Route path="/masters/currencies" element={<ProtectedRoute><CurrencyMaster /></ProtectedRoute>} />
+            <Route path="/masters/credit-cards" element={<ProtectedRoute><CreditCardMaster /></ProtectedRoute>} />
+            <Route path="/masters/service-types" element={<ProtectedRoute><ServiceTypeMaster /></ProtectedRoute>} />
+            <Route path="/masters/suppliers" element={<ProtectedRoute><SupplierMaster /></ProtectedRoute>} />
+            <Route path="/masters/clients" element={<ProtectedRoute><ClientMaster /></ProtectedRoute>} />
+            <Route path="/masters/handlers" element={<ProtectedRoute><HandlerMaster /></ProtectedRoute>} />
 
             {/* Default Route */}
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
