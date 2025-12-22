@@ -1,12 +1,22 @@
 import axiosInstance from '@config/axiosConfig'
 
+// ============ COUNTRIES ============
+
+/**
+ * Manage Country (Create, Read, Update, Delete)
+ * @param {Object} data - Payload with spType (C, R, U, D)
+ */
+export const manageCountry = async (data) => {
+    return await axiosInstance.post('/api/Country/ManageCountryMaster', data)
+}
+
 // ============ DESTINATIONS ============
 
 /**
  * Get all destinations
  */
 export const getAllDestinations = async () => {
-    return await axiosInstance.get('/masters/destinations')
+    return await axiosInstance.get('/ManageDestinationMaster')
 }
 
 /**
