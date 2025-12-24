@@ -18,7 +18,7 @@ const Table = ({
         )
     }
 
-    if (!data || data.length === 0) {
+    if (!Array.isArray(data) || data.length === 0) {
         return (
             <div className="text-center py-12 text-secondary-500">
                 {emptyMessage}

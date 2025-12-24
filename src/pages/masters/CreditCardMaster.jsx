@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import PageHeader from '@components/PageHeader'
 import Button from '@components/Button'
 import Table from '@components/Table'
@@ -8,18 +8,56 @@ import { Pencil, Trash2 } from 'lucide-react'
 
 import MastersNavigation from '@components/MastersNavigation'
 import ConfirmModal from '@components/ConfirmModal'
+import { manageCreditcards } from '@api/masters.api'
+import { toast } from 'react-hot-toast'
 
 const CreditCardMaster = () => {
-    const [cards, setCards] = useState([
-        { id: 1, bankName: 'HDFC Bank' },
-        { id: 2, bankName: 'ICICI Bank' },
-        { id: 3, bankName: 'SBI' }
-    ])
+    const [cards, setCards] = useState([])
+    const [isLoading, setIsLoading] = useState(false)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
     const [formData, setFormData] = useState({ bankName: '' })
     const [editingId, setEditingId] = useState(null)
     const [deleteId, setDeleteId] = useState(null)
+
+    useEffect(() => {
+        fetchCards()
+    }, [])
+
+    const fetchCards = async () => {
+        setIsLoading(true)
+        try {
+            const payload = {
+                bankId: 0,
+                bankName: "string",
+                isActive: true,
+                isDeleted: false,
+                spType: "R"
+            }
+            const response = await manageCreditcards(payload)
+            console.log('Cards Response:', response.data)
+
+            if (response.data) {
+                if (Array.isArray(response.data)) {
+                    setCards(response.data)
+                } else if (response.data.data && Array.isArray(response.data.data)) {
+                    setCards(response.data.data)
+                } else if (response.data.success && response.data.data) {
+                    setCards(response.data.data)
+                } else {
+                    console.log('Unexpected response structure:', response.data)
+                    toast.error('Unexpected response format')
+                }
+            } else {
+                toast.error('Failed to fetch credit cards')
+            }
+        } catch (error) {
+            console.error('Error fetching cards:', error)
+            toast.error('Error loading credit cards')
+        } finally {
+            setIsLoading(false)
+        }
+    }
 
     const columns = [
         { key: 'bankName', label: 'Bank Name' },
@@ -31,7 +69,7 @@ const CreditCardMaster = () => {
                     <button onClick={() => handleEdit(row)} className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 transition-colors" title="Edit">
                         <Pencil className="w-4 h-4" />
                     </button>
-                    <button onClick={() => confirmDelete(row.id)} className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 transition-colors" title="Delete">
+                    <button onClick={() => confirmDelete(row.bankId)} className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 transition-colors" title="Delete">
                         <Trash2 className="w-4 h-4" />
                     </button>
                 </div>
@@ -41,20 +79,45 @@ const CreditCardMaster = () => {
 
     const handleEdit = (row) => {
         setFormData({ bankName: row.bankName })
-        setEditingId(row.id)
+        setEditingId(row.bankId)
         setIsModalOpen(true)
     }
 
-    const handleSave = () => {
-        if (!formData.bankName) return
-
-        if (editingId) {
-            setCards(cards.map(c => c.id === editingId ? { ...c, ...formData } : c))
-        } else {
-            setCards([...cards, { id: Date.now(), ...formData }])
+    const handleSave = async () => {
+        if (!formData.bankName) {
+            toast.error('Please enter bank name')
+            return
         }
 
-        closeModal()
+        try {
+            const payload = {
+                bankId: editingId || 0,
+                bankName: formData.bankName,
+                isActive: true,
+                isDeleted: false,
+                spType: editingId ? "U" : "C"
+            }
+
+            const response = await manageCreditcards(payload)
+            console.log('Save Response:', response.data)
+
+            const isSuccess = response.data && (
+                response.data.success === true ||
+                response.status === 200 ||
+                response.data.isValid === true
+            )
+
+            if (isSuccess) {
+                toast.success(editingId ? 'Bank updated successfully' : 'Bank added successfully')
+                fetchCards()
+                closeModal()
+            } else {
+                toast.error(response.data?.message || 'Failed to save bank')
+            }
+        } catch (error) {
+            console.error('Error saving bank:', error)
+            toast.error('Error saving bank')
+        }
     }
 
     const confirmDelete = (id) => {
@@ -62,11 +125,38 @@ const CreditCardMaster = () => {
         setIsDeleteModalOpen(true)
     }
 
-    const handleDelete = () => {
+    const handleDelete = async () => {
         if (deleteId) {
-            setCards(cards.filter(c => c.id !== deleteId))
-            setDeleteId(null)
-            setIsDeleteModalOpen(false)
+            try {
+                const payload = {
+                    bankId: deleteId,
+                    bankName: "",
+                    isActive: true,
+                    isDeleted: true,
+                    spType: "D"
+                }
+
+                const response = await manageCreditcards(payload)
+                console.log('Delete Response:', response.data)
+
+                const isSuccess = response.data && (
+                    response.data.success === true ||
+                    response.status === 200 ||
+                    response.data.isValid === true
+                )
+
+                if (isSuccess) {
+                    toast.success('Bank deleted successfully')
+                    fetchCards()
+                    setDeleteId(null)
+                    setIsDeleteModalOpen(false)
+                } else {
+                    toast.error(response.data?.message || 'Failed to delete bank')
+                }
+            } catch (error) {
+                console.error('Error deleting bank:', error)
+                toast.error('Error deleting bank')
+            }
         }
     }
 

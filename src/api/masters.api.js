@@ -10,34 +10,50 @@ export const manageCountry = async (data) => {
     return await axiosInstance.post('/api/Country/ManageCountryMaster', data)
 }
 
+export const manageCity = async (data) => {
+    return await axiosInstance.post('/api/Country/ManageCityMaster', data)
+}
 // ============ DESTINATIONS ============
 
 /**
- * Get all destinations
+ * Manage Destination (Create, Read, Update, Delete)
+ * @param {Object} data - Payload with spType (C, R, U, D)
  */
-export const getAllDestinations = async () => {
-    return await axiosInstance.get('/ManageDestinationMaster')
+export const manageDestination = async (data) => {
+    return await axiosInstance.post('/ManageDestinationMaster', data)
+}
+
+
+/**
+ * Manage Creditcards (Create, Read, Update, Delete)
+ * @param {Object} data - Payload with spType (C, R, U, D)
+ */
+export const manageCreditcards = async (data) => {
+    return await axiosInstance.post('/api/CreditCardBank/ManageCreditCardBank', data)
 }
 
 /**
- * Create destination
+ * Manage ServiceType (Create, Read, Update, Delete)
+ * @param {Object} data - Payload with spType (C, R, U, D)
  */
-export const createDestination = async (data) => {
-    return await axiosInstance.post('/masters/destinations', data)
+export const manageServiceType = async (data) => {
+    return await axiosInstance.post('/ManageServiceMaster', data)
 }
 
 /**
- * Update destination
+ * Manage Supplier (Create, Read, Update, Delete)
+ * @param {Object} data - Payload with spType (C, R, U, D)
  */
-export const updateDestination = async (id, data) => {
-    return await axiosInstance.put(`/masters/destinations/${id}`, data)
+export const manageSupplier = async (data) => {
+    return await axiosInstance.post('/ManageSupplierMaster', data)
 }
 
 /**
- * Delete destination
+ * Manage Currency (Create, Read, Update, Delete)
+ * @param {Object} data - Payload with spType (C, R, U, D)
  */
-export const deleteDestination = async (id) => {
-    return await axiosInstance.delete(`/masters/destinations/${id}`)
+export const manageCurrency = async (data) => {
+    return await axiosInstance.post('/api/Country/ManageCurrencyMaster', data)
 }
 
 // ============ HOTELS ============
@@ -47,113 +63,4 @@ export const deleteDestination = async (id) => {
  */
 export const getAllHotels = async (filters = {}) => {
     return await axiosInstance.get('/masters/hotels', { params: filters })
-}
-
-/**
- * Get hotel by ID
- */
-export const getHotelById = async (id) => {
-    return await axiosInstance.get(`/masters/hotels/${id}`)
-}
-
-/**
- * Create hotel
- */
-export const createHotel = async (data) => {
-    return await axiosInstance.post('/masters/hotels', data)
-}
-
-/**
- * Update hotel
- */
-export const updateHotel = async (id, data) => {
-    return await axiosInstance.put(`/masters/hotels/${id}`, data)
-}
-
-/**
- * Delete hotel
- */
-export const deleteHotel = async (id) => {
-    return await axiosInstance.delete(`/masters/hotels/${id}`)
-}
-
-// ============ SIGHTSEEING ============
-
-/**
- * Get all sightseeing options
- */
-export const getAllSightseeing = async (filters = {}) => {
-    return await axiosInstance.get('/masters/sightseeing', { params: filters })
-}
-
-/**
- * Create sightseeing
- */
-export const createSightseeing = async (data) => {
-    return await axiosInstance.post('/masters/sightseeing', data)
-}
-
-/**
- * Update sightseeing
- */
-export const updateSightseeing = async (id, data) => {
-    return await axiosInstance.put(`/masters/sightseeing/${id}`, data)
-}
-
-/**
- * Delete sightseeing
- */
-export const deleteSightseeing = async (id) => {
-    return await axiosInstance.delete(`/masters/sightseeing/${id}`)
-}
-
-// ============ RATES ============
-
-/**
- * Get all rates
- */
-export const getAllRates = async (filters = {}) => {
-    return await axiosInstance.get('/masters/rates', { params: filters })
-}
-
-/**
- * Get rate by ID
- */
-export const getRateById = async (id) => {
-    return await axiosInstance.get(`/masters/rates/${id}`)
-}
-
-/**
- * Create rate
- */
-export const createRate = async (data) => {
-    return await axiosInstance.post('/masters/rates', data)
-}
-
-/**
- * Update rate
- */
-export const updateRate = async (id, data) => {
-    return await axiosInstance.put(`/masters/rates/${id}`, data)
-}
-
-/**
- * Delete rate
- */
-export const deleteRate = async (id) => {
-    return await axiosInstance.delete(`/masters/rates/${id}`)
-}
-
-/**
- * Get rates by destination
- */
-export const getRatesByDestination = async (destinationId) => {
-    return await axiosInstance.get(`/masters/rates/destination/${destinationId}`)
-}
-
-/**
- * Get rates by hotel
- */
-export const getRatesByHotel = async (hotelId) => {
-    return await axiosInstance.get(`/masters/rates/hotel/${hotelId}`)
 }

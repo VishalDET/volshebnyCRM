@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import PageHeader from '@components/PageHeader'
 import Button from '@components/Button'
 import Table from '@components/Table'
@@ -8,22 +8,50 @@ import { Pencil, Trash2 } from 'lucide-react'
 
 import MastersNavigation from '@components/MastersNavigation'
 import ConfirmModal from '@components/ConfirmModal'
+import { manageCurrency } from '@api/masters.api'
+import { toast } from 'react-hot-toast'
 
 const CurrencyMaster = () => {
-    const [currencies, setCurrencies] = useState([
-        { id: 1, name: 'US Dollar', sign: '$' },
-        { id: 2, name: 'Indian Rupee', sign: '₹' },
-        { id: 3, name: 'Euro', sign: '€' }
-    ])
+    const [currencies, setCurrencies] = useState([])
+    const [isLoading, setIsLoading] = useState(false)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
-    const [formData, setFormData] = useState({ name: '', sign: '' })
+    const [formData, setFormData] = useState({ currencyName: '', currencySign: '' })
     const [editingId, setEditingId] = useState(null)
     const [deleteId, setDeleteId] = useState(null)
 
+    useEffect(() => {
+        fetchCurrencies()
+    }, [])
+
+    const fetchCurrencies = async () => {
+        setIsLoading(true)
+        try {
+            const payload = {
+                id: 0,
+                currencyName: "string",
+                currencySign: "string",
+                isActive: true,
+                isDeleted: false,
+                spType: "R"
+            }
+            const response = await manageCurrency(payload)
+            if (response.data && response.data.data) {
+                setCurrencies(response.data.data)
+            } else if (Array.isArray(response.data)) {
+                setCurrencies(response.data)
+            }
+        } catch (error) {
+            console.error('Error fetching currencies:', error)
+            toast.error('Error loading currencies')
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
     const columns = [
-        { key: 'name', label: 'Currency Name' },
-        { key: 'sign', label: 'Currency Sign' },
+        { key: 'currencyName', label: 'Currency Name' },
+        { key: 'currencySign', label: 'Currency Sign' },
         {
             key: 'actions',
             label: 'Actions',
@@ -41,21 +69,45 @@ const CurrencyMaster = () => {
     ]
 
     const handleEdit = (row) => {
-        setFormData({ name: row.name, sign: row.sign })
+        setFormData({ currencyName: row.currencyName, currencySign: row.currencySign })
         setEditingId(row.id)
         setIsModalOpen(true)
     }
 
-    const handleSave = () => {
-        if (!formData.name || !formData.sign) return
-
-        if (editingId) {
-            setCurrencies(currencies.map(c => c.id === editingId ? { ...c, ...formData } : c))
-        } else {
-            setCurrencies([...currencies, { id: Date.now(), ...formData }])
+    const handleSave = async () => {
+        if (!formData.currencyName || !formData.currencySign) {
+            toast.error('Please fill required fields')
+            return
         }
 
-        closeModal()
+        try {
+            const payload = {
+                id: editingId || 0,
+                currencyName: formData.currencyName,
+                currencySign: formData.currencySign,
+                isActive: true,
+                isDeleted: false,
+                spType: editingId ? "U" : "C"
+            }
+
+            const response = await manageCurrency(payload)
+            const isSuccess = response.data && (
+                response.data.isValid === true ||
+                response.data.success === true ||
+                response.status === 200
+            )
+
+            if (isSuccess) {
+                toast.success(editingId ? 'Currency updated successfully' : 'Currency added successfully')
+                fetchCurrencies()
+                closeModal()
+            } else {
+                toast.error(response.data?.message || 'Failed to save currency')
+            }
+        } catch (error) {
+            console.error('Error saving currency:', error)
+            toast.error('Error saving currency')
+        }
     }
 
     const confirmDelete = (id) => {
@@ -63,16 +115,42 @@ const CurrencyMaster = () => {
         setIsDeleteModalOpen(true)
     }
 
-    const handleDelete = () => {
+    const handleDelete = async () => {
         if (deleteId) {
-            setCurrencies(currencies.filter(c => c.id !== deleteId))
-            setDeleteId(null)
-            setIsDeleteModalOpen(false)
+            try {
+                const payload = {
+                    id: deleteId,
+                    currencyName: "",
+                    currencySign: "",
+                    isActive: true,
+                    isDeleted: true,
+                    spType: "D"
+                }
+
+                const response = await manageCurrency(payload)
+                const isSuccess = response.data && (
+                    response.data.isValid === true ||
+                    response.data.success === true ||
+                    response.status === 200
+                )
+
+                if (isSuccess) {
+                    toast.success('Currency deleted successfully')
+                    fetchCurrencies()
+                    setDeleteId(null)
+                    setIsDeleteModalOpen(false)
+                } else {
+                    toast.error(response.data?.message || 'Failed to delete currency')
+                }
+            } catch (error) {
+                console.error('Error deleting currency:', error)
+                toast.error('Error deleting currency')
+            }
         }
     }
 
     const closeModal = () => {
-        setFormData({ name: '', sign: '' })
+        setFormData({ currencyName: '', currencySign: '' })
         setEditingId(null)
         setIsModalOpen(false)
     }
@@ -94,14 +172,14 @@ const CurrencyMaster = () => {
                 <div className="space-y-4">
                     <Input
                         label="Currency Name"
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        value={formData.currencyName}
+                        onChange={(e) => setFormData({ ...formData, currencyName: e.target.value })}
                         placeholder="E.g. US Dollar"
                     />
                     <Input
                         label="Currency Sign"
-                        value={formData.sign}
-                        onChange={(e) => setFormData({ ...formData, sign: e.target.value })}
+                        value={formData.currencySign}
+                        onChange={(e) => setFormData({ ...formData, currencySign: e.target.value })}
                         placeholder="E.g. $"
                     />
                 </div>

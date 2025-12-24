@@ -95,7 +95,7 @@ const querySlice = createSlice({
             })
             .addCase(fetchQueries.fulfilled, (state, action) => {
                 state.loading = false
-                state.queries = action.payload
+                state.queries = Array.isArray(action.payload) ? action.payload : (action.payload?.data || [])
             })
             .addCase(fetchQueries.rejected, (state, action) => {
                 state.loading = false

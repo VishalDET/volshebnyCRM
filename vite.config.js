@@ -29,6 +29,22 @@ export default defineConfig({
                 target: 'http://volcrmapi.digitaledgetech.in',
                 changeOrigin: true,
                 secure: false
+            },
+            '/ManageServiceMaster': {
+                target: 'http://volcrmapi.digitaledgetech.in',
+                changeOrigin: true,
+                secure: false
+            },
+
+            '/ManageDestinationMaster': {
+                target: 'http://volcrmapi.digitaledgetech.in',
+                changeOrigin: true,
+                secure: false
+            },
+            '/ManageSupplierMaster': {
+                target: 'http://volcrmapi.digitaledgetech.in',
+                changeOrigin: true,
+                secure: false
             }
         }
     }

@@ -6,7 +6,7 @@ const Input = ({
     label,
     name,
     type = 'text',
-    value,
+    value = '',
     onChange,
     onBlur,
     placeholder,

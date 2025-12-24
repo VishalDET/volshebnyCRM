@@ -5,7 +5,7 @@
 const Select = ({
     label,
     name,
-    value,
+    value = '',
     onChange,
     onBlur,
     options = [],

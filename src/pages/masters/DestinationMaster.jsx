@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import PageHeader from '@components/PageHeader'
 import Button from '@components/Button'
 import Table from '@components/Table'
@@ -9,29 +9,141 @@ import { Pencil, Trash2 } from 'lucide-react'
 
 import MastersNavigation from '@components/MastersNavigation'
 import ConfirmModal from '@components/ConfirmModal'
+import { manageDestination, manageCountry, manageCity } from '@api/masters.api'
+import { toast } from 'react-hot-toast'
 
 const DestinationMaster = () => {
-    // Mock API Data
-    const existingCountries = [
-        { value: 'India', label: 'India' },
-        { value: 'UAE', label: 'UAE' },
-        { value: 'Thailand', label: 'Thailand' }
-    ]
-
-    const [destinations, setDestinations] = useState([
-        { id: 1, country: 'India', city: 'Mumbai', places: ['Gateway of India', 'Marine Drive'] },
-        { id: 2, country: 'UAE', city: 'Dubai', places: ['Burj Khalifa', 'Dubai Mall'] }
-    ])
+    const [destinations, setDestinations] = useState([])
+    const [countries, setCountries] = useState([])
+    const [cityOptions, setCityOptions] = useState([])
+    const [isLoading, setIsLoading] = useState(false)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
-    const [formData, setFormData] = useState({ country: '', city: '', places: '' })
+    const [formData, setFormData] = useState({ countryId: '', cityId: '', destinationName: '', places: '' })
     const [editingId, setEditingId] = useState(null)
     const [deleteId, setDeleteId] = useState(null)
 
+    useEffect(() => {
+        fetchDestinations()
+        fetchCountries()
+    }, [])
+
+    const fetchCountries = async () => {
+        try {
+            const payload = {
+                countryId: 0,
+                countryName: "string",
+                isActive: true,
+                isDeleted: false,
+                spType: "R"
+            }
+            const response = await manageCountry(payload)
+            if (response.data && response.data.data) {
+                setCountries(response.data.data.map(c => ({
+                    value: c.countryId,
+                    label: c.countryName
+                })))
+            }
+        } catch (error) {
+            console.error('Error fetching countries:', error)
+        }
+    }
+
+    const fetchCities = async (countryId) => {
+        if (!countryId) {
+            setCityOptions([])
+            return
+        }
+
+        try {
+            const payload = {
+                cityId: 0,
+                cityName: "string",
+                countryId: parseInt(countryId),
+                stateId: 0,
+                isActive: true,
+                isDeleted: false,
+                spType: "R"
+            }
+            const response = await manageCity(payload)
+            if (response.data) {
+                let fetchedCities = []
+                if (Array.isArray(response.data)) {
+                    fetchedCities = response.data
+                } else if (response.data.data && Array.isArray(response.data.data)) {
+                    fetchedCities = response.data.data
+                } else if (response.data.success && response.data.data) {
+                    fetchedCities = response.data.data
+                }
+
+                setCityOptions(fetchedCities.map(c => ({
+                    value: c.cityId,
+                    label: c.cityName
+                })))
+            }
+        } catch (error) {
+            console.error('Error fetching cities:', error)
+            toast.error('Error loading cities')
+        }
+    }
+
+    const fetchDestinations = async () => {
+        setIsLoading(true)
+        try {
+            const payload = {
+                destinationId: 0,
+                destinationName: "string",
+                countryId: 0,
+                cityId: 0,
+                places: "string",
+                createdBy: 0,
+                modifyBy: 0,
+                isActive: true,
+                isDeleted: false,
+                spType: "R"
+            }
+            console.log('Fetching destinations with payload:', payload)
+            const response = await manageDestination(payload)
+            console.log('Destinations Response:', response)
+            console.log('Response data:', response.data)
+            console.log('Response status:', response.status)
+
+            if (response.data) {
+                if (Array.isArray(response.data)) {
+                    console.log('Setting destinations from direct array')
+                    setDestinations(response.data)
+                } else if (response.data.data && Array.isArray(response.data.data)) {
+                    console.log('Setting destinations from response.data.data')
+                    setDestinations(response.data.data)
+                } else if (response.data.success && response.data.data) {
+                    console.log('Setting destinations from success response')
+                    setDestinations(response.data.data)
+                } else {
+                    console.log('Unexpected response structure:', response.data)
+                    toast.error('Unexpected response format')
+                }
+            } else {
+                toast.error('Failed to fetch destinations')
+            }
+        } catch (error) {
+            console.error('Error fetching destinations:', error)
+            console.error('Error details:', {
+                message: error.message,
+                response: error.response,
+                status: error.response?.status,
+                data: error.response?.data
+            })
+            toast.error('Error loading destinations: ' + (error.response?.data?.message || error.message))
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
     const columns = [
-        { key: 'country', label: 'Country' },
-        { key: 'city', label: 'City' },
-        { key: 'places', label: 'Places', render: (val) => val?.join(', ') || '-' },
+        { key: 'countryId', label: 'Country ID' },
+        { key: 'cityId', label: 'City ID' },
+        { key: 'destinationName', label: 'Destination Name' },
+        { key: 'places', label: 'Places' },
         {
             key: 'actions',
             label: 'Actions',
@@ -40,7 +152,7 @@ const DestinationMaster = () => {
                     <button onClick={() => handleEdit(row)} className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 transition-colors" title="Edit">
                         <Pencil className="w-4 h-4" />
                     </button>
-                    <button onClick={() => confirmDelete(row.id)} className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 transition-colors" title="Delete">
+                    <button onClick={() => confirmDelete(row.destinationId)} className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 transition-colors" title="Delete">
                         <Trash2 className="w-4 h-4" />
                     </button>
                 </div>
@@ -48,33 +160,61 @@ const DestinationMaster = () => {
         }
     ]
 
-    const handleEdit = (row) => {
+    const handleEdit = async (row) => {
+        // Fetch cities for the country being edited before opening modal
+        if (row.countryId) {
+            await fetchCities(row.countryId)
+        }
+
         setFormData({
-            country: row.country,
-            city: row.city,
-            places: row.places.join(', ')
+            countryId: row.countryId,
+            cityId: row.cityId,
+            destinationName: row.destinationName,
+            places: row.places || ''
         })
-        setEditingId(row.id)
+        setEditingId(row.destinationId)
         setIsModalOpen(true)
     }
 
-    const handleSave = () => {
-        if (!formData.country || !formData.city) return
-        const placesArray = formData.places.split(',').map(p => p.trim()).filter(p => p)
-
-        const newRecord = {
-            country: formData.country,
-            city: formData.city,
-            places: placesArray
+    const handleSave = async () => {
+        if (!formData.countryId || !formData.cityId || !formData.destinationName) {
+            toast.error('Please fill all required fields')
+            return
         }
 
-        if (editingId) {
-            setDestinations(destinations.map(d => d.id === editingId ? { ...newRecord, id: editingId } : d))
-        } else {
-            setDestinations([...destinations, { ...newRecord, id: Date.now() }])
-        }
+        try {
+            const payload = {
+                destinationId: editingId || 0,
+                destinationName: formData.destinationName,
+                countryId: parseInt(formData.countryId),
+                cityId: parseInt(formData.cityId),
+                places: formData.places || '',
+                createdBy: 0,
+                modifyBy: 0,
+                isActive: true,
+                isDeleted: false,
+                spType: editingId ? "U" : "C"
+            }
 
-        closeModal()
+            const response = await manageDestination(payload)
+            console.log('Save Response:', response.data)
+
+            const isSuccess = response.data && (
+                response.data.success === true ||
+                response.status === 200
+            )
+
+            if (isSuccess) {
+                toast.success(editingId ? 'Destination updated successfully' : 'Destination added successfully')
+                fetchDestinations()
+                closeModal()
+            } else {
+                toast.error(response.data?.message || 'Failed to save destination')
+            }
+        } catch (error) {
+            console.error('Error saving destination:', error)
+            toast.error('Error saving destination')
+        }
     }
 
     const confirmDelete = (id) => {
@@ -82,16 +222,48 @@ const DestinationMaster = () => {
         setIsDeleteModalOpen(true)
     }
 
-    const handleDelete = () => {
+    const handleDelete = async () => {
         if (deleteId) {
-            setDestinations(destinations.filter(d => d.id !== deleteId))
-            setDeleteId(null)
-            setIsDeleteModalOpen(false)
+            try {
+                const payload = {
+                    destinationId: deleteId,
+                    destinationName: "",
+                    countryId: 0,
+                    cityId: 0,
+                    places: "",
+                    createdBy: 0,
+                    modifyBy: 0,
+                    isActive: true,
+                    isDeleted: true,
+                    spType: "D"
+                }
+
+                const response = await manageDestination(payload)
+                console.log('Delete Response:', response.data)
+
+                const isSuccess = response.data && (
+                    response.data.success === true ||
+                    response.status === 200
+                )
+
+                if (isSuccess) {
+                    toast.success('Destination deleted successfully')
+                    fetchDestinations()
+                    setDeleteId(null)
+                    setIsDeleteModalOpen(false)
+                } else {
+                    toast.error(response.data?.message || 'Failed to delete destination')
+                }
+            } catch (error) {
+                console.error('Error deleting destination:', error)
+                toast.error('Error deleting destination')
+            }
         }
     }
 
     const closeModal = () => {
-        setFormData({ country: '', city: '', places: '' })
+        setFormData({ countryId: '', cityId: '', destinationName: '', places: '' })
+        setCityOptions([])
         setEditingId(null)
         setIsModalOpen(false)
     }
@@ -112,18 +284,31 @@ const DestinationMaster = () => {
             <Modal isOpen={isModalOpen} onClose={closeModal} title={editingId ? "Edit Destination" : "Add Destination"}>
                 <div className="space-y-4">
                     <Select
-                        label="Country"
-                        name="country"
-                        value={formData.country}
-                        onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                        options={existingCountries}
+                        label="Country *"
+                        name="countryId"
+                        value={formData.countryId}
+                        onChange={(e) => {
+                            const newCountryId = e.target.value;
+                            setFormData({ ...formData, countryId: newCountryId, cityId: '' }) // Reset city when country changes
+                            fetchCities(newCountryId)
+                        }}
+                        options={countries}
                         placeholder="Select Country"
                     />
+                    <Select
+                        label="City *"
+                        name="cityId"
+                        value={formData.cityId}
+                        onChange={(e) => setFormData({ ...formData, cityId: e.target.value })}
+                        options={cityOptions}
+                        placeholder="Select City"
+                        disabled={!formData.countryId}
+                    />
                     <Input
-                        label="City Name"
-                        value={formData.city}
-                        onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                        placeholder="Enter city name"
+                        label="Destination Name *"
+                        value={formData.destinationName}
+                        onChange={(e) => setFormData({ ...formData, destinationName: e.target.value })}
+                        placeholder="Enter destination name"
                     />
                     <div>
                         <Input

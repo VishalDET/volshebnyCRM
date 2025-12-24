@@ -49,6 +49,7 @@ export const useForm = (initialValues = {}, onSubmit, validate) => {
     }, [values, validate])
 
     const handleSubmit = useCallback(async (e) => {
+        console.log('useForm handleSubmit triggered')
         e.preventDefault()
 
         // Validate all fields
@@ -57,6 +58,12 @@ export const useForm = (initialValues = {}, onSubmit, validate) => {
             setErrors(validationErrors)
 
             if (Object.keys(validationErrors).length > 0) {
+                // Mark all fields as touched to show errors in UI
+                const allTouched = {}
+                Object.keys(values).forEach(key => {
+                    allTouched[key] = true
+                })
+                setTouched(allTouched)
                 return
             }
         }

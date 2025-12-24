@@ -8,6 +8,7 @@ import Input from '@components/Input'
 import Select from '@components/Select'
 import DestinationSelector from '@components/DestinationSelector'
 import { useForm } from '@hooks/useForm'
+import { toast } from 'react-hot-toast'
 
 const CreateQuery = () => {
     const navigate = useNavigate()
@@ -27,26 +28,32 @@ const CreateQuery = () => {
         budget: '',
         requirements: '',
         totalDays: 0,
+        queryNo: '',
+        handler: '',
+        queryStatus: 'pending',
     }
 
     const validate = (values) => {
+        console.log('Validating values:', values)
         const errors = {}
         if (!values.clientName) errors.clientName = 'Client name is required'
-        if (!values.email) errors.email = 'Email is required'
-        if (!values.phone) errors.phone = 'Phone is required'
         if (!values.destinations || values.destinations.length === 0) {
             errors.destinations = 'At least one destination is required'
         }
         if (!values.travelDate) errors.travelDate = 'Travel date is required'
+        if (Object.keys(errors).length > 0) console.log('Validation errors:', errors)
         return errors
     }
 
     const handleSubmit = async (values) => {
+        console.log('Submitting form with values:', values)
         try {
             await dispatch(createQuery(values)).unwrap()
+            toast.success('Query created successfully!')
             navigate('/queries')
         } catch (error) {
             console.error('Failed to create query:', error)
+            toast.error(error || 'Failed to create query')
         }
     }
 
@@ -130,6 +137,10 @@ const CreateQuery = () => {
                                 touched={touched.handler}
                                 required
                                 className="w-48"
+                                options={[
+                                    { value: 'vishal', label: 'Vishal' },
+                                    { value: 'rohit', label: 'Rohit' },
+                                ]}
                             />
                         </div>
                     </div>
@@ -147,33 +158,37 @@ const CreateQuery = () => {
                             onBlur={handleBlur}
                             error={errors.clientName}
                             touched={touched.clientName}
+                            options={[
+                                { value: 'vishal', label: 'Vishal' },
+                                { value: 'rohit', label: 'Rohit' },
+                            ]}
                             required
                         />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-0 mt-0 border border-secondary-300 rounded-lg p-2 bg-secondary-50">
+                            <Select
+                                label="Origin Country"
+                                name="originCountry"
+                                type="originCountry"
+                                value={values.originCountry}
+                                onChange={handleChange}
+                                onBlur={handleBlur}
+                                error={errors.originCountry}
+                                touched={touched.originCountry}
+                                required
+                            />
 
-                        {/* <Input
-                        label="Email"
-                        name="email"
-                        type="email"
-                        value={values.email}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        error={errors.email}
-                        touched={touched.email}
-                        required
-                    />
-
-                    <Input
-                        label="Phone"
-                        name="phone"
-                        type="tel"
-                        value={values.phone}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        error={errors.phone}
-                        touched={touched.phone}
-                        required
-                    /> */}
-
+                            <Select
+                                label="Origin City"
+                                name="originCity"
+                                type="originCity"
+                                value={values.originCity}
+                                onChange={handleChange}
+                                onBlur={handleBlur}
+                                error={errors.originCity}
+                                touched={touched.originCity}
+                                required
+                            />
+                        </div>
                         <div className="md:col-span-2">
                             <DestinationSelector
                                 label="Destinations"
