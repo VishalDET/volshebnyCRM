@@ -5,10 +5,11 @@ import Table from '@components/Table'
 import Modal from '@components/Modal'
 import Input from '@components/Input'
 import Select from '@components/Select'
-import { Pencil, Trash2 } from 'lucide-react'
+import { Pencil, Trash2, Eye } from 'lucide-react'
 
 import MastersNavigation from '@components/MastersNavigation'
 import ConfirmModal from '@components/ConfirmModal'
+import SupplierViewModal from '@components/SupplierViewModal'
 import { manageSupplier, manageCountry, manageCity, manageServiceType } from '@api/masters.api'
 import { toast } from 'react-hot-toast'
 
@@ -21,6 +22,8 @@ const SupplierMaster = () => {
 
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+    const [isViewModalOpen, setIsViewModalOpen] = useState(false)
+    const [viewSupplier, setViewSupplier] = useState(null)
 
     const initialFormState = {
         fullName: '',
@@ -193,6 +196,9 @@ const SupplierMaster = () => {
             label: 'Actions',
             render: (_, row) => (
                 <div className="flex gap-2">
+                    <button onClick={() => handleView(row)} className="text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-50 transition-colors" title="View">
+                        <Eye className="w-4 h-4" />
+                    </button>
                     <button onClick={() => handleEdit(row)} className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 transition-colors" title="Edit">
                         <Pencil className="w-4 h-4" />
                     </button>
@@ -203,6 +209,11 @@ const SupplierMaster = () => {
             )
         }
     ]
+
+    const handleView = (row) => {
+        setViewSupplier(row)
+        setIsViewModalOpen(true)
+    }
 
     const handleEdit = async (row) => {
         if (row.countryId) {
@@ -569,6 +580,14 @@ const SupplierMaster = () => {
                     <Button variant="primary" onClick={handleSave}>{editingId ? 'Update' : 'Add'}</Button>
                 </div>
             </Modal>
+
+            <SupplierViewModal
+                isOpen={isViewModalOpen}
+                onClose={() => setIsViewModalOpen(false)}
+                supplier={viewSupplier}
+                countries={countries}
+                serviceTypes={serviceTypes}
+            />
 
             <ConfirmModal
                 isOpen={isDeleteModalOpen}

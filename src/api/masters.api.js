@@ -56,6 +56,17 @@ export const manageCurrency = async (data) => {
     return await axiosInstance.post('/api/Country/ManageCurrencyMaster', data)
 }
 
+
+/**
+ * Manage Handler (Create, Read, Update, Delete)
+ * @param {Object} data - Payload with spType (C, R, U, D)
+ */
+export const manageHandler = async (data) => {
+    return await axiosInstance.post('/api/Handler/ManageHandler', data)
+}
+
+
+
 // ============ HOTELS ============
 
 /**
