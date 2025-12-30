@@ -65,6 +65,15 @@ export const manageHandler = async (data) => {
     return await axiosInstance.post('/api/Handler/ManageHandler', data)
 }
 
+/**
+ * Manage Client (Create, Read, Update, Delete)
+ * @param {Object} data - Payload with spType (C, R, U, D)
+ */
+export const manageClient = async (data) => {
+    return await axiosInstance.post('/api/Client/ManageClient', data)
+}
+
+
 
 
 // ============ HOTELS ============

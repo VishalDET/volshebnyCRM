@@ -1,12 +1,17 @@
 import Modal from '@components/Modal'
 import Button from '@components/Button'
 
-const SupplierViewModal = ({ isOpen, onClose, supplier, countries, serviceTypes }) => {
+const SupplierViewModal = ({ isOpen, onClose, supplier, countries, cities, serviceTypes }) => {
     if (!supplier) return null
 
     const getCountryName = (countryId) => {
         const country = countries.find(c => c.value === countryId)
         return country ? country.label : 'N/A'
+    }
+
+    const getCityName = (cityId) => {
+        const city = cities?.find(c => c.value === cityId)
+        return city ? city.label : cityId || 'N/A'
     }
 
     const getServiceNames = (serviceIds) => {
@@ -55,8 +60,8 @@ const SupplierViewModal = ({ isOpen, onClose, supplier, countries, serviceTypes 
                             <p className="text-secondary-900">{getCountryName(supplier.countryId)}</p>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-secondary-600 mb-1">City ID</label>
-                            <p className="text-secondary-900">{supplier.cityId || 'N/A'}</p>
+                            <label className="block text-sm font-medium text-secondary-600 mb-1">City</label>
+                            <p className="text-secondary-900">{getCityName(supplier.cityId)}</p>
                         </div>
                         <div className="col-span-2">
                             <label className="block text-sm font-medium text-secondary-600 mb-1">Address</label>
@@ -117,7 +122,12 @@ const SupplierViewModal = ({ isOpen, onClose, supplier, countries, serviceTypes 
                 <div>
                     <h3 className="text-lg font-semibold text-secondary-800 mb-3">Services Provided</h3>
                     <div className="p-3 bg-gray-50 rounded-lg border">
-                        <p className="text-secondary-900">{getServiceNames(supplier.serviceIds)}</p>
+                        <p className="text-secondary-900">
+                            {supplier.services && supplier.services.length > 0
+                                ? supplier.services.map(s => s.serviceName).join(', ')
+                                : getServiceNames(supplier.serviceIds)
+                            }
+                        </p>
                     </div>
                 </div>
             </div>

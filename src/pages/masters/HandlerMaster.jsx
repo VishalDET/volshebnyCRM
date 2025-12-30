@@ -18,11 +18,14 @@ const HandlerMaster = () => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
 
     const initialFormState = {
-        name: '',
-        mail: '',
-        phone: '',
+        handlerName: '',
+        emailId: '',
+        mobileNo: '',
         handlerId: '',
-        roleId: 2
+        roleId: 0,
+        createdBy: 0,
+        modifiedBy: 0,
+        isActive: true
     }
 
     const [formData, setFormData] = useState(initialFormState)
@@ -38,38 +41,44 @@ const HandlerMaster = () => {
         try {
             const payload = {
                 id: 0,
-                name: "string",
-                mail: "string",
-                phone: "string",
                 handlerId: "string",
+                handlerName: "string",
+                emailId: "string",
+                mobileNo: "string",
                 roleId: 0,
+                createdBy: 0,
+                modifiedBy: 0,
                 isActive: true,
                 spType: "R"
             }
-            const response = await manageHandler(payload)
-            console.log('Handler Response:', response.data)
 
-            if (response.data) {
-                if (Array.isArray(response.data)) {
-                    setHandlers(response.data)
-                } else if (response.data.data && Array.isArray(response.data.data)) {
-                    setHandlers(response.data.data)
-                } else if (response.data.success && response.data.data) {
-                    setHandlers(response.data.data)
-                }
+            const res = await manageHandler(payload)
+            console.log("RAW RES:", res)
+
+            const apiData =
+                res?.data?.data ||   // axios full response
+                res?.data ||         // interceptor response
+                []
+
+            if (Array.isArray(apiData)) {
+                setHandlers(apiData)
+                console.log("SET HANDLERS:", apiData)
             }
-        } catch (error) {
-            console.error('Error fetching handlers:', error)
-            toast.error('Error loading handlers')
+        } catch (err) {
+            console.error(err)
+            toast.error("Error loading handlers")
         } finally {
             setIsLoading(false)
         }
     }
 
+
+
+
     const columns = [
-        { key: 'name', label: 'Handler Name' },
-        { key: 'mail', label: 'Email Address' },
-        { key: 'phone', label: 'Phone Number' },
+        { key: 'handlerName', label: 'Handler Name' },
+        { key: 'emailId', label: 'Email Address' },
+        { key: 'mobileNo', label: 'Phone Number' },
         { key: 'handlerId', label: 'Handler ID' },
         {
             key: 'actions',
@@ -89,18 +98,21 @@ const HandlerMaster = () => {
 
     const handleEdit = (row) => {
         setFormData({
-            name: row.name || '',
-            mail: row.mail || '',
-            phone: row.phone || '',
+            handlerName: row.handlerName || '',
+            emailId: row.emailId || '',
+            mobileNo: row.mobileNo || '',
             handlerId: row.handlerId || '',
-            roleId: row.roleId || 2
+            roleId: row.roleId || 0,
+            createdBy: row.createdBy || 0,
+            modifiedBy: row.modifiedBy || 0,
+            isActive: row.isActive ?? true
         })
         setEditingId(row.id)
         setIsModalOpen(true)
     }
 
     const handleSave = async () => {
-        if (!formData.name || !formData.mail || !formData.handlerId) {
+        if (!formData.handlerName || !formData.emailId || !formData.handlerId) {
             toast.error('Please fill required fields (Name, Email, Handler ID)')
             return
         }
@@ -108,11 +120,13 @@ const HandlerMaster = () => {
         try {
             const payload = {
                 id: editingId || 0,
-                name: formData.name,
-                mail: formData.mail,
-                phone: formData.phone || "",
+                handlerName: formData.handlerName,
+                emailId: formData.emailId,
+                mobileNo: formData.mobileNo || "",
                 handlerId: formData.handlerId,
-                roleId: parseInt(formData.roleId) || 2,
+                roleId: parseInt(formData.roleId) || 0,
+                createdBy: 0,
+                modifiedBy: 0,
                 isActive: true,
                 spType: editingId ? "U" : "C"
             }
@@ -155,35 +169,39 @@ const HandlerMaster = () => {
     }
 
     const handleDelete = async () => {
-        if (deleteId) {
-            try {
-                const payload = {
-                    id: deleteId,
-                    spType: "D"
-                }
+        if (!deleteId) return
 
-                const response = await manageHandler(payload)
-
-                const isSuccess = response.data && (
-                    response.data.success === true ||
-                    response.status === 200 ||
-                    response.data.isValid === true
-                )
-
-                if (isSuccess) {
-                    toast.success('Handler deleted successfully')
-                    fetchHandlers()
-                    setDeleteId(null)
-                    setIsDeleteModalOpen(false)
-                } else {
-                    toast.error(response.data?.message || 'Failed to delete handler')
-                }
-            } catch (error) {
-                console.error('Error deleting handler:', error)
-                toast.error('Error deleting handler')
+        try {
+            const payload = {
+                id: deleteId,
+                handlerId: "NA",
+                handlerName: "NA",
+                emailId: "na@na.com",
+                mobileNo: "",
+                roleId: 0,
+                createdBy: 0,
+                modifiedBy: 0,
+                isActive: false,
+                spType: "D"
             }
+
+            const res = await manageHandler(payload)
+            console.log("DELETE RES:", res)
+
+            if (res?.data?.success || res?.data?.isValid) {
+                toast.success("Handler deleted successfully")
+                fetchHandlers()
+                setDeleteId(null)
+                setIsDeleteModalOpen(false)
+            } else {
+                toast.error(res?.data?.message || "Failed to delete handler")
+            }
+        } catch (err) {
+            console.error("Error deleting handler:", err)
+            toast.error("Error deleting handler")
         }
     }
+
 
     const closeModal = () => {
         setFormData(initialFormState)
@@ -209,23 +227,23 @@ const HandlerMaster = () => {
                 <div className="space-y-4">
                     <Input
                         label="Handler Name *"
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        value={formData.handlerName}
+                        onChange={(e) => setFormData({ ...formData, handlerName: e.target.value })}
                         placeholder="Enter full name"
                     />
                     <div className="grid grid-cols-2 gap-4">
                         <Input
                             label="Email Address *"
                             type="email"
-                            value={formData.mail}
-                            onChange={(e) => setFormData({ ...formData, mail: e.target.value })}
+                            value={formData.emailId}
+                            onChange={(e) => setFormData({ ...formData, emailId: e.target.value })}
                             placeholder="john@example.com"
                         />
                         <Input
                             label="Phone Number"
                             type="tel"
-                            value={formData.phone}
-                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                            value={formData.mobileNo}
+                            onChange={(e) => setFormData({ ...formData, mobileNo: e.target.value })}
                             placeholder="1234567890"
                         />
                     </div>
@@ -240,7 +258,7 @@ const HandlerMaster = () => {
                         type="number"
                         value={formData.roleId}
                         onChange={(e) => setFormData({ ...formData, roleId: e.target.value })}
-                        placeholder="2"
+                        placeholder="0"
                     />
                 </div>
                 <div className="flex gap-3 justify-end mt-6">

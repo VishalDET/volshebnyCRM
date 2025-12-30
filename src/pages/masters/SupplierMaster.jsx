@@ -46,7 +46,6 @@ const SupplierMaster = () => {
                 contactName: '',
                 contactNumber: '',
                 contactEmail: '',
-                spType: ''
             }
         ],
         serviceIds: []
@@ -163,9 +162,7 @@ const SupplierMaster = () => {
                 createdBy: 0,
                 modifiedBy: 0,
                 isActive: true,
-                spType: "R",
-                contacts: [],
-                serviceIds: []
+                spType: "R"
             }
             const response = await manageSupplier(payload)
             console.log('Supplier Response:', response.data)
@@ -210,41 +207,96 @@ const SupplierMaster = () => {
         }
     ]
 
-    const handleView = (row) => {
-        setViewSupplier(row)
-        setIsViewModalOpen(true)
+    const handleView = async (row) => {
+        setIsLoading(true)
+        try {
+            const payload = {
+                id: row.id,
+                spType: "E"
+            }
+            const response = await manageSupplier(payload)
+
+            let supplierData = row
+            if (response.data && response.data.data && response.data.data[0]) {
+                supplierData = response.data.data[0]
+            } else if (Array.isArray(response.data) && response.data[0]) {
+                supplierData = response.data[0]
+            }
+
+            if (supplierData.countryId) {
+                await fetchCities(supplierData.countryId)
+            }
+
+            setViewSupplier(supplierData)
+            setIsViewModalOpen(true)
+        } catch (error) {
+            console.error("Error fetching supplier details:", error)
+            toast.error("Error loading supplier details")
+        } finally {
+            setIsLoading(false)
+        }
     }
 
     const handleEdit = async (row) => {
-        if (row.countryId) {
-            await fetchCities(row.countryId)
-        }
+        setIsLoading(true)
+        try {
+            // Fetch detailed supplier info
+            const payload = {
+                id: row.id,
+                spType: "E"
+            }
+            const response = await manageSupplier(payload)
+            console.log("EDIT FETCH RES:", response)
 
-        setFormData({
-            fullName: row.fullName || '',
-            companyContactNo: row.companyContactNo || '',
-            companyEmailId: row.companyEmailId || '',
-            companyName: row.companyName || '',
-            gstCertificate: row.gstCertificate || '',
-            isGSTIN: row.isGSTIN || false,
-            gstNumber: row.gstNumber || '',
-            address: row.address || '',
-            countryId: row.countryId || '',
-            stateId: row.stateId || 0,
-            cityId: row.cityId || '',
-            isActive: row.isActive || true,
-            spType: 'U',
-            contacts: row.contacts && row.contacts.length > 0 ? row.contacts : [{ contactId: 0, supplierId: row.id || 0, contactName: '', contactNumber: '', contactEmail: '', spType: '' }],
-            serviceIds: row.serviceIds || []
-        })
-        setEditingId(row.id)
-        setIsModalOpen(true)
+            let supplierData = row
+            if (response.data && response.data.data && response.data.data[0]) {
+                supplierData = response.data.data[0]
+            } else if (Array.isArray(response.data) && response.data[0]) {
+                supplierData = response.data[0]
+            }
+
+            if (supplierData.countryId) {
+                await fetchCities(supplierData.countryId)
+            }
+
+            // Map services to IDs
+            const currentServiceIds = supplierData.services
+                ? supplierData.services.map(s => s.serviceId)
+                : (supplierData.serviceIds || [])
+
+            setFormData({
+                fullName: supplierData.fullName || '',
+                companyContactNo: supplierData.companyContactNo || '',
+                companyEmailId: supplierData.companyEmailId || '',
+                companyName: supplierData.companyName || '',
+                gstCertificate: supplierData.gstCertificate || '',
+                isGSTIN: supplierData.isGSTIN || false,
+                gstNumber: supplierData.gstNumber || '',
+                address: supplierData.address || '',
+                countryId: supplierData.countryId || '',
+                stateId: supplierData.stateId || 0,
+                cityId: supplierData.cityId || '',
+                isActive: supplierData.isActive ?? true,
+                spType: 'U',
+                contacts: supplierData.contacts && supplierData.contacts.length > 0
+                    ? supplierData.contacts
+                    : [{ contactId: 0, supplierId: supplierData.id || 0, contactName: '', contactNumber: '', contactEmail: '' }],
+                serviceIds: currentServiceIds
+            })
+            setEditingId(supplierData.id)
+            setIsModalOpen(true)
+        } catch (error) {
+            console.error("Error fetching supplier details:", error)
+            toast.error("Error loading supplier details")
+        } finally {
+            setIsLoading(false)
+        }
     }
 
     const handleAddContact = () => {
         setFormData({
             ...formData,
-            contacts: [...formData.contacts, { contactId: 0, supplierId: editingId || 0, contactName: '', contactNumber: '', contactEmail: '', spType: '' }]
+            contacts: [...formData.contacts, { contactId: 0, supplierId: editingId || 0, contactName: '', contactNumber: '', contactEmail: '' }]
         })
     }
 
@@ -297,18 +349,19 @@ const SupplierMaster = () => {
                     contactName: c.contactName || "",
                     contactNumber: c.contactNumber || "",
                     contactEmail: c.contactEmail || "",
-                    spType: editingId && c.contactId ? "U" : "C" // If editing and contactId exists, it's an update, otherwise create
+                    spType: editingId && c.contactId ? "U" : "C"
                 })),
-                serviceIds: formData.serviceIds || [],
-                // Legacy fields fallbacks in case backend still expects them
-                firstName: finalFullName,
-                lastName: "",
-                mobileNo: formData.companyContactNo || "",
-                emailId: formData.companyEmailId || "",
-                type: "Supplier"
+                serviceIds: (formData.serviceIds || []).map(id => parseInt(id))
             }
 
+            console.log("--------------- SAVE PAYLOAD DEBUG ---------------")
+            console.log("Full Payload:", payload)
+            console.log("Contacts:", payload.contacts)
+            console.log("ServiceIDs:", payload.serviceIds)
+            console.log("--------------------------------------------------")
+
             const response = await manageSupplier(payload)
+            console.log("SAVE RESPONSE:", response)
 
             const isSuccess = response.data && (
                 response.data.success === true ||
@@ -539,13 +592,6 @@ const SupplierMaster = () => {
                                             type="email"
                                             className="bg-white"
                                         />
-                                        <Input
-                                            label="Type"
-                                            value={contact.spType}
-                                            onChange={(e) => handleContactChange(index, 'spType', e.target.value)}
-                                            placeholder="e.g. Sales, Support"
-                                            className="bg-white"
-                                        />
                                     </div>
                                 </div>
                             ))}
@@ -579,13 +625,14 @@ const SupplierMaster = () => {
                     <Button variant="secondary" onClick={closeModal}>Cancel</Button>
                     <Button variant="primary" onClick={handleSave}>{editingId ? 'Update' : 'Add'}</Button>
                 </div>
-            </Modal>
+            </Modal >
 
             <SupplierViewModal
                 isOpen={isViewModalOpen}
                 onClose={() => setIsViewModalOpen(false)}
                 supplier={viewSupplier}
                 countries={countries}
+                cities={cityOptions}
                 serviceTypes={serviceTypes}
             />
 
@@ -596,7 +643,7 @@ const SupplierMaster = () => {
                 title="Delete Supplier"
                 message="Are you sure you want to delete this supplier?"
             />
-        </div>
+        </div >
     )
 }
 
