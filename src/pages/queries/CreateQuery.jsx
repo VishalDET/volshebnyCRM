@@ -1,289 +1,458 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useDispatch } from 'react-redux'
-import { createQuery } from '@redux/querySlice'
+import { useNavigate, useParams } from 'react-router-dom'
 import PageHeader from '@components/PageHeader'
 import Button from '@components/Button'
 import Input from '@components/Input'
 import Select from '@components/Select'
-import DestinationSelector from '@components/DestinationSelector'
-import { useForm } from '@hooks/useForm'
 import { toast } from 'react-hot-toast'
+import { manageQuery } from '@api/query.api'
+import { manageClient, manageHandler, manageCountry, manageCity } from '@api/masters.api'
 
 const CreateQuery = () => {
     const navigate = useNavigate()
-    const dispatch = useDispatch()
+    const [isLoading, setIsLoading] = useState(false)
 
-    const initialValues = {
-        clientName: '',
-        email: '',
-        phone: '',
-        destinations: [],
+    // Master Data States
+    const [clients, setClients] = useState([])
+    const [handlers, setHandlers] = useState([])
+    const [countries, setCountries] = useState([])
+    const [cityOptions, setCityOptions] = useState({}) // Cache cities by countryId
+
+    // Form State
+    const initialFormState = {
+        queryNo: '',
+        handlerId: '',
+        clientId: '',
+        clientName: '', // For display/search if needed, but ID is key
+        originCountryId: '',
+        originCityId: '',
+        destinations: [{ countryId: '', cityId: '', spType: 'C' }],
         travelDate: '',
         returnDate: '',
+        totalDays: 0,
         adults: 1,
         children: 0,
-        childrenAges: [],
         infants: 0,
+        childAges: [], // [{ childAge: 0, spType: "C" }]
         budget: '',
-        requirements: '',
-        totalDays: 0,
-        queryNo: '',
-        handler: '',
         queryStatus: 'pending',
+        specialRequirements: ''
     }
+    const [formData, setFormData] = useState(initialFormState)
 
-    const validate = (values) => {
-        console.log('Validating values:', values)
-        const errors = {}
-        if (!values.clientName) errors.clientName = 'Client name is required'
-        if (!values.destinations || values.destinations.length === 0) {
-            errors.destinations = 'At least one destination is required'
-        }
-        if (!values.travelDate) errors.travelDate = 'Travel date is required'
-        if (Object.keys(errors).length > 0) console.log('Validation errors:', errors)
-        return errors
-    }
-
-    const handleSubmit = async (values) => {
-        console.log('Submitting form with values:', values)
-        try {
-            await dispatch(createQuery(values)).unwrap()
-            toast.success('Query created successfully!')
-            navigate('/queries')
-        } catch (error) {
-            console.error('Failed to create query:', error)
-            toast.error(error || 'Failed to create query')
-        }
-    }
-
-    const { values, errors, touched, isSubmitting, handleChange, handleBlur, handleSubmit: onSubmit } = useForm(
-        initialValues,
-        handleSubmit,
-        validate
-    )
-
-    // Calculate total travel days when dates change
     useEffect(() => {
-        if (values.travelDate && values.returnDate) {
-            const travel = new Date(values.travelDate)
-            const returnD = new Date(values.returnDate)
-            const diffTime = Math.abs(returnD - travel)
+        fetchMasters()
+    }, [])
+
+    useEffect(() => {
+        if (formData.travelDate && formData.returnDate) {
+            const start = new Date(formData.travelDate)
+            const end = new Date(formData.returnDate)
+            const diffTime = Math.abs(end - start)
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-
-            // Update totalDays if it's different
-            if (diffDays !== values.totalDays) {
-                handleChange({ target: { name: 'totalDays', value: diffDays } })
-            }
+            setFormData(prev => ({ ...prev, totalDays: diffDays }))
         }
-    }, [values.travelDate, values.returnDate])
+    }, [formData.travelDate, formData.returnDate])
 
-    // Update childrenAges array when children count changes
+    // Update childAges array when children count changes
     useEffect(() => {
-        const childrenCount = parseInt(values.children) || 0
-        const currentAges = values.childrenAges || []
+        const count = parseInt(formData.children) || 0
+        setFormData(prev => {
+            const currentAges = prev.childAges || []
+            if (currentAges.length === count) return prev
 
-        if (childrenCount !== currentAges.length) {
-            const newAges = Array(childrenCount).fill('').map((_, index) =>
-                currentAges[index] !== undefined ? currentAges[index] : ''
+            const newAges = Array(count).fill(null).map((_, i) =>
+                currentAges[i] || { childAge: 0, spType: 'C' }
             )
-            handleChange({ target: { name: 'childrenAges', value: newAges } })
-        }
-    }, [values.children])
+            return { ...prev, childAges: newAges }
+        })
+    }, [formData.children])
 
-    // Handle individual child age change
-    const handleChildAgeChange = (index, age) => {
-        const newAges = [...(values.childrenAges || [])]
-        newAges[index] = age
-        handleChange({ target: { name: 'childrenAges', value: newAges } })
+    const fetchMasters = async () => {
+        try {
+            // Fetch Clients
+            const clientPayload = {
+                id: 0,
+                firstName: "string",
+                lastName: "string",
+                mobileNo: "string",
+                companyName: "string",
+                emailId: "string",
+                isGSTIN: true,
+                gstNumber: "string",
+                gstCertificate: "string",
+                address: "string",
+                landmark: "string",
+                countryId: 0,
+                stateId: 0,
+                cityId: 0,
+                pincode: "string",
+                contacts: [],
+                createdBy: 0,
+                modifiedBy: 0,
+                isActive: true,
+                spType: "R"
+            }
+            const clientRes = await manageClient(clientPayload)
+            const clientData = clientRes.data?.data || (Array.isArray(clientRes.data) ? clientRes.data : [])
+            if (clientData) {
+                setClients(clientData.map(c => ({
+                    value: c.id,
+                    label: `${c.firstName} ${c.lastName} (${c.companyName})`
+                })))
+            }
+
+            // Fetch Handlers
+            const handlerPayload = {
+                id: 0,
+                handlerId: "string",
+                handlerName: "string",
+                emailId: "string",
+                mobileNo: "string",
+                roleId: 0,
+                createdBy: 0,
+                modifiedBy: 0,
+                isActive: true,
+                spType: "R"
+            }
+            const handlerRes = await manageHandler(handlerPayload)
+            const handlerData = handlerRes.data?.data || handlerRes.data || []
+            if (Array.isArray(handlerData)) {
+                setHandlers(handlerData.map(h => ({
+                    value: h.id,
+                    label: h.handlerName
+                })))
+            }
+
+            // Fetch Countries
+            const countryPayload = {
+                countryId: 0,
+                countryName: "string",
+                isActive: true,
+                isDeleted: false,
+                spType: "R"
+            }
+            const countryRes = await manageCountry(countryPayload)
+            if (countryRes.data?.data) {
+                setCountries(countryRes.data.data.map(c => ({
+                    value: c.countryId,
+                    label: c.countryName
+                })))
+            }
+        } catch (error) {
+            console.error("Error fetching masters:", error)
+            toast.error("Failed to load master data")
+        }
+    }
+
+    const fetchCitiesForCountry = async (countryId) => {
+        if (!countryId || cityOptions[countryId]) return
+
+        try {
+            const payload = {
+                cityId: 0,
+                cityName: "string",
+                countryId: parseInt(countryId),
+                stateId: 0,
+                isActive: true,
+                isDeleted: false,
+                spType: "R"
+            }
+            const res = await manageCity(payload)
+            if (res.data?.data) {
+                setCityOptions(prev => ({
+                    ...prev,
+                    [countryId]: res.data.data.map(c => ({ value: c.cityId, label: c.cityName }))
+                }))
+            }
+        } catch (error) {
+            console.error(`Error fetching cities for country ${countryId}:`, error)
+        }
+    }
+
+    const handleInputChange = (e) => {
+        const { name, value } = e.target
+        setFormData(prev => ({ ...prev, [name]: value }))
+
+        if (name === 'originCountryId') {
+            fetchCitiesForCountry(value)
+            setFormData(prev => ({ ...prev, originCountryId: value, originCityId: '' }))
+        }
+    }
+
+    const handleDestinationChange = (index, field, value) => {
+        const newDestinations = [...formData.destinations]
+        newDestinations[index][field] = value
+        setFormData(prev => ({ ...prev, destinations: newDestinations }))
+
+        if (field === 'countryId') {
+            fetchCitiesForCountry(value)
+            newDestinations[index].cityId = ''
+            setFormData(prev => ({ ...prev, destinations: newDestinations }))
+        }
+    }
+
+    const addDestination = () => {
+        setFormData(prev => ({
+            ...prev,
+            destinations: [...prev.destinations, { countryId: '', cityId: '', spType: 'C' }]
+        }))
+    }
+
+    const removeDestination = (index) => {
+        if (formData.destinations.length === 1) return
+        setFormData(prev => ({
+            ...prev,
+            destinations: prev.destinations.filter((_, i) => i !== index)
+        }))
+    }
+
+    const handleChildAgeChange = (index, value) => {
+        const newAges = [...formData.childAges]
+        newAges[index] = { ...newAges[index], childAge: parseInt(value) || 0 }
+        setFormData(prev => ({ ...prev, childAges: newAges }))
+    }
+
+    const handleSubmit = async (e) => {
+        e.preventDefault()
+        if (!formData.clientId || !formData.queryNo || !formData.handlerId) {
+            toast.error("Please fill required fields")
+            return
+        }
+
+        setIsLoading(true)
+        try {
+            const payload = {
+                id: 0,
+                queryNo: formData.queryNo,
+                handlerId: parseInt(formData.handlerId),
+                clientId: parseInt(formData.clientId),
+                originCountryId: parseInt(formData.originCountryId) || 0,
+                originCityId: parseInt(formData.originCityId) || 0,
+                travelDate: formData.travelDate ? new Date(formData.travelDate).toISOString() : null,
+                returnDate: formData.returnDate ? new Date(formData.returnDate).toISOString() : null,
+                totalDays: parseInt(formData.totalDays) || 0,
+                adults: parseInt(formData.adults) || 0,
+                children: parseInt(formData.children) || 0,
+                infants: parseInt(formData.infants) || 0,
+                budget: parseFloat(formData.budget) || 0,
+                queryStatus: formData.queryStatus || 'Pending',
+                specialRequirements: formData.specialRequirements,
+                createdBy: 0,
+                modifiedBy: 0,
+                isActive: true,
+                spType: "C",
+                destinations: formData.destinations.map(d => ({
+                    mappingId: 0,
+                    queryId: 0,
+                    countryId: parseInt(d.countryId) || 0,
+                    cityId: parseInt(d.cityId) || 0,
+                    countryName: "", // Optional, backend likely resolves or ignores
+                    cityName: "",
+                    spType: "C"
+                })),
+                childAges: formData.childAges.map(c => ({
+                    ageId: 0,
+                    queryId: 0,
+                    childAge: parseInt(c.childAge) || 0,
+                    spType: "C"
+                }))
+            }
+
+            console.log("Query Payload:", payload)
+
+            const response = await manageQuery(payload)
+            if (response.data && (response.data.success || response.status === 200)) {
+                toast.success("Query created successfully!")
+                navigate('/queries') // Assuming there is a list page
+            } else {
+                toast.error(response.data?.message || "Failed to create query")
+            }
+        } catch (error) {
+            console.error("Error creating query:", error)
+            toast.error("Failed to create query")
+        } finally {
+            setIsLoading(false)
+        }
     }
 
     return (
         <div>
             <PageHeader
                 title="Create New Query"
-                subtitle="Add a new travel query"
-                breadcrumbs={[
-                    { label: 'Dashboard', href: '/dashboard' },
-                    { label: 'Queries', href: '/queries' },
-                    { label: 'Create' }
-                ]}
+                breadcrumbs={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Queries' }, { label: 'Create' }]}
             />
 
-            <form onSubmit={onSubmit} className="card max-w-4xl p-0">
-                <div className='card-header bg-gray-200 p-4 rounded-t-lg'>
-                    <div className='flex justify-between items-center'>
-                        <h3 className="text-lg font-semibold mb-6">Client Information</h3>
-                        <div className='flex items-center gap-4'>
-                            <Input
-                                label="QueryNo"
-                                name="queryNo"
-                                value={values.queryNo}
-                                onChange={handleChange}
-                                onBlur={handleBlur}
-                                error={errors.queryNo}
-                                touched={touched.queryNo}
-                                required
-                                className="w-44 "
-                            />
-
-                            <Select
-                                label="Handler"
-                                name="handler"
-                                value={values.handler}
-                                onChange={handleChange}
-                                onBlur={handleBlur}
-                                error={errors.handler}
-                                touched={touched.handler}
-                                required
-                                className="w-48"
-                                options={[
-                                    { value: 'vishal', label: 'Vishal' },
-                                    { value: 'rohit', label: 'Rohit' },
-                                ]}
-                            />
-                        </div>
+            <form onSubmit={handleSubmit} className="card max-w-4xl p-0 mt-4">
+                <div className='card-header bg-gray-50 p-4 border-b rounded-t-lg'>
+                    <div className='flex flex-nowrap gap-4 items-end'>
+                        <Input
+                            label="Query No"
+                            name="queryNo"
+                            value={formData.queryNo}
+                            onChange={handleInputChange}
+                            placeholder="e.g. Q-2025-001"
+                            required
+                            className="w-48"
+                        />
+                        <Select
+                            label="Handler"
+                            name="handlerId"
+                            value={formData.handlerId}
+                            onChange={handleInputChange}
+                            options={handlers}
+                            required
+                            className="w-48"
+                            placeholder="Select Handler"
+                        />
+                        <Select
+                            label="Client"
+                            name="clientId"
+                            value={formData.clientId}
+                            onChange={handleInputChange}
+                            options={clients}
+                            required
+                            className="w-64"
+                            placeholder="Select Client"
+                        />
                     </div>
                 </div>
 
-                <div className='card-body p-4'>
-
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 mt-4">
-                        <Select
-                            label="Client Name"
-                            name="clientName"
-                            value={values.clientName}
-                            onChange={handleChange}
-                            onBlur={handleBlur}
-                            error={errors.clientName}
-                            touched={touched.clientName}
-                            options={[
-                                { value: 'vishal', label: 'Vishal' },
-                                { value: 'rohit', label: 'Rohit' },
-                            ]}
-                            required
-                        />
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-0 mt-0 border border-secondary-300 rounded-lg p-2 bg-secondary-50">
-                            <Select
-                                label="Origin Country"
-                                name="originCountry"
-                                type="originCountry"
-                                value={values.originCountry}
-                                onChange={handleChange}
-                                onBlur={handleBlur}
-                                error={errors.originCountry}
-                                touched={touched.originCountry}
-                                required
-                            />
-
-                            <Select
-                                label="Origin City"
-                                name="originCity"
-                                type="originCity"
-                                value={values.originCity}
-                                onChange={handleChange}
-                                onBlur={handleBlur}
-                                error={errors.originCity}
-                                touched={touched.originCity}
-                                required
-                            />
+                <div className='card-body p-6 space-y-6'>
+                    {/* Origin & Destinations */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="p-4 border rounded-lg bg-gray-50">
+                            <h4 className="font-semibold mb-3">Origin</h4>
+                            <div className="space-y-3">
+                                <Select
+                                    label="Country"
+                                    name="originCountryId"
+                                    value={formData.originCountryId}
+                                    onChange={handleInputChange}
+                                    options={countries}
+                                    placeholder="Select Country"
+                                />
+                                <Select
+                                    label="City"
+                                    name="originCityId"
+                                    value={formData.originCityId}
+                                    onChange={handleInputChange}
+                                    options={cityOptions[formData.originCountryId] || []}
+                                    disabled={!formData.originCountryId}
+                                    placeholder="Select City"
+                                />
+                            </div>
                         </div>
-                        <div className="md:col-span-2">
-                            <DestinationSelector
-                                label="Destinations"
-                                name="destinations"
-                                value={values.destinations}
-                                onChange={handleChange}
-                                onBlur={handleBlur}
-                                error={errors.destinations}
-                                touched={touched.destinations}
-                                required
-                            />
-                        </div>
-                    </div>
 
-                    <h3 className="text-lg font-semibold mb-6">Travel Details</h3>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                        <Input
-                            label="Travel Date"
-                            name="travelDate"
-                            type="date"
-                            value={values.travelDate}
-                            onChange={handleChange}
-                            onBlur={handleBlur}
-                            error={errors.travelDate}
-                            touched={touched.travelDate}
-                            required
-                        />
-
-                        <Input
-                            label="Return Date"
-                            name="returnDate"
-                            type="date"
-                            value={values.returnDate}
-                            onChange={handleChange}
-                            onBlur={handleBlur}
-                        />
-
-                        <div>
-                            <label className="block text-sm font-medium text-secondary-700 mb-1">
-                                Total Days
-                            </label>
-                            <div className="input bg-gray-50 flex items-center justify-center font-semibold text-primary-600">
-                                {values.totalDays > 0 ? `${values.totalDays} ${values.totalDays === 1 ? 'Day' : 'Days'}` : '-'}
+                        <div className="p-4 border rounded-lg bg-gray-50">
+                            <div className="flex justify-between items-center mb-3">
+                                <h4 className="font-semibold">Destinations</h4>
+                                <button type="button" onClick={addDestination} className="text-primary-600 text-sm font-bold">+ Add</button>
+                            </div>
+                            <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+                                {formData.destinations.map((dest, index) => (
+                                    <div key={index} className="flex gap-2 items-end border-b pb-2">
+                                        <div className="flex-1">
+                                            <Select
+                                                label={index === 0 ? "Country" : ""}
+                                                value={dest.countryId}
+                                                onChange={(e) => handleDestinationChange(index, "countryId", e.target.value)}
+                                                options={countries}
+                                                placeholder="Country"
+                                            />
+                                        </div>
+                                        <div className="flex-1">
+                                            <Select
+                                                label={index === 0 ? "City" : ""}
+                                                value={dest.cityId}
+                                                onChange={(e) => handleDestinationChange(index, "cityId", e.target.value)}
+                                                options={cityOptions[dest.countryId] || []}
+                                                disabled={!dest.countryId}
+                                                placeholder="City"
+                                            />
+                                        </div>
+                                        {formData.destinations.length > 1 && (
+                                            <button type="button" onClick={() => removeDestination(index)} className="text-red-500 pb-2">&times;</button>
+                                        )}
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    {/* Travel Dates */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <Input
+                            label="Travel Date"
+                            name="travelDate"
+                            type="date"
+                            value={formData.travelDate}
+                            onChange={handleInputChange}
+                            required
+                        />
+                        <Input
+                            label="Return Date"
+                            name="returnDate"
+                            type="date"
+                            value={formData.returnDate}
+                            onChange={handleInputChange}
+                            required
+                        />
+                        <div className="flex flex-col justify-end">
+                            <label className="text-sm font-bold text-gray-500 mb-1">Total Days</label>
+                            <div className="p-2 bg-gray-100 rounded text-center font-bold">{formData.totalDays} Days</div>
+                        </div>
+                    </div>
+
+                    {/* Pax Details */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <Input
                             label="Adults"
                             name="adults"
                             type="number"
                             min="1"
-                            value={values.adults}
-                            onChange={handleChange}
+                            value={formData.adults}
+                            onChange={handleInputChange}
                         />
-
                         <Input
                             label="Children"
                             name="children"
                             type="number"
                             min="0"
-                            value={values.children}
-                            onChange={handleChange}
+                            value={formData.children}
+                            onChange={handleInputChange}
                         />
-
                         <Input
                             label="Infants"
                             name="infants"
                             type="number"
                             min="0"
-                            value={values.infants}
-                            onChange={handleChange}
+                            value={formData.infants}
+                            onChange={handleInputChange}
+                        />
+                        <Input
+                            label="Budget"
+                            name="budget"
+                            type="number"
+                            value={formData.budget}
+                            onChange={handleInputChange}
+                            placeholder="Budget"
                         />
                     </div>
 
-                    {/* Children Ages Section */}
-                    {values.children > 0 && (
-                        <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                            <h4 className="text-md font-semibold mb-4 text-blue-900">Children Ages</h4>
-                            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                                {Array.from({ length: parseInt(values.children) || 0 }).map((_, index) => (
-                                    <div key={index}>
-                                        <label className="block text-sm font-medium text-secondary-700 mb-1">
-                                            Child {index + 1}
-                                        </label>
-                                        <input
+                    {/* Child Ages */}
+                    {formData.children > 0 && (
+                        <div className="p-4 bg-blue-50 rounded border border-blue-100">
+                            <h5 className="text-sm font-bold text-blue-800 mb-2">Children Ages</h5>
+                            <div className="flex flex-wrap gap-4">
+                                {formData.childAges.map((ageObj, index) => (
+                                    <div key={index} className="w-24">
+                                        <label className="text-xs text-gray-600 block mb-1">Child {index + 1}</label>
+                                        <Input
                                             type="number"
-                                            min="0"
-                                            max="17"
-                                            value={values.childrenAges[index] || ''}
+                                            value={ageObj.childAge}
                                             onChange={(e) => handleChildAgeChange(index, e.target.value)}
-                                            className="input w-full"
-                                            placeholder="Age"
+                                            className="h-8 text-sm"
                                         />
                                     </div>
                                 ))}
@@ -291,45 +460,35 @@ const CreateQuery = () => {
                         </div>
                     )}
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                        <Input
-                            label="Budget"
-                            name="budget"
-                            type="number"
-                            value={values.budget}
-                            onChange={handleChange}
-                            placeholder="Estimated budget"
-                        />
+                    {/* Other Details */}
+                    <div>
                         <Select
-                            label="Query Status"
+                            label="Status"
                             name="queryStatus"
-                            type="text"
-                            value={values.queryStatus}
-                            onChange={handleChange}
-                            placeholder="Query Status"
+                            value={formData.queryStatus}
+                            onChange={handleInputChange}
                             options={[
-                                { value: 'pending', label: 'Pending' },
-                                { value: 'completed', label: 'Completed' },
-                                { value: 'cancelled', label: 'Cancelled' },
+                                { value: 'Pending', label: 'Pending' },
+                                { value: 'Confirmed', label: 'Confirmed' },
+                                { value: 'Cancelled', label: 'Cancelled' }
                             ]}
                         />
                     </div>
-
-                    <div className="mb-6">
+                    <div>
                         <label className="block text-sm font-medium text-secondary-700 mb-1">
                             Special Requirements
                         </label>
                         <textarea
-                            name="requirements"
-                            value={values.requirements}
-                            onChange={handleChange}
+                            name="specialRequirements"
+                            value={formData.specialRequirements}
+                            onChange={handleInputChange}
                             rows="4"
                             className="input"
                             placeholder="Any special requirements or notes..."
                         />
                     </div>
 
-                    <div className="flex gap-3 justify-end">
+                    <div className="flex gap-3 justify-end pt-4 border-t">
                         <Button
                             type="button"
                             variant="secondary"
@@ -340,8 +499,8 @@ const CreateQuery = () => {
                         <Button
                             type="submit"
                             variant="primary"
-                            loading={isSubmitting}
-                            disabled={isSubmitting}
+                            loading={isLoading}
+                            disabled={isLoading}
                         >
                             Create Query
                         </Button>

@@ -1,8 +1,22 @@
 import axiosInstance from '@config/axiosConfig'
+import { data } from 'autoprefixer'
 
 /**
  * Get all queries with optional filters
  */
+/**
+ * Manage Country (Create, Read, Update, Delete)
+ * @param {Object} data - Payload with spType (C, R, U, D)
+ */
+export const manageQuery = async (data) => {
+    return await axiosInstance.post('/api/Query/ManageQuery', data)
+}
+
+/**
+ * Get all queries with optional filters
+ */
+
+
 export const getAllQueries = async (filters = {}) => {
     return await axiosInstance.get('/queries', { params: filters })
 }
