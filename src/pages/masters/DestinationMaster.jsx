@@ -39,10 +39,18 @@ const DestinationMaster = () => {
             }
             const response = await manageCountry(payload)
             if (response.data && response.data.data) {
-                setCountries(response.data.data.map(c => ({
-                    value: c.countryId,
-                    label: c.countryName
-                })))
+                const uniqueCountries = []
+                const seenIds = new Set()
+                response.data.data.forEach(c => {
+                    if (!seenIds.has(c.countryId)) {
+                        seenIds.add(c.countryId)
+                        uniqueCountries.push({
+                            value: c.countryId,
+                            label: c.countryName
+                        })
+                    }
+                })
+                setCountries(uniqueCountries)
             }
         } catch (error) {
             console.error('Error fetching countries:', error)
@@ -72,14 +80,21 @@ const DestinationMaster = () => {
                     fetchedCities = response.data
                 } else if (response.data.data && Array.isArray(response.data.data)) {
                     fetchedCities = response.data.data
-                } else if (response.data.success && response.data.data) {
-                    fetchedCities = response.data.data
                 }
 
-                setCityOptions(fetchedCities.map(c => ({
-                    value: c.cityId,
-                    label: c.cityName
-                })))
+                const uniqueCities = []
+                const seenIds = new Set()
+                fetchedCities.forEach(c => {
+                    const matchesCountry = c.countryId === parseInt(countryId)
+                    if (matchesCountry && !seenIds.has(c.cityId)) {
+                        seenIds.add(c.cityId)
+                        uniqueCities.push({
+                            value: c.cityId,
+                            label: c.cityName
+                        })
+                    }
+                })
+                setCityOptions(uniqueCities)
             }
         } catch (error) {
             console.error('Error fetching cities:', error)

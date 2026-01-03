@@ -134,10 +134,19 @@ const SupplierMaster = () => {
                     fetchedServices = response.data.data
                 }
             }
-            setServiceTypes(fetchedServices.map(s => ({
-                value: s.serviceId,
-                label: s.serviceName
-            })))
+            // Filter duplicates
+            const uniqueServices = []
+            const seenIds = new Set()
+            fetchedServices.forEach(s => {
+                if (!seenIds.has(s.serviceId)) {
+                    seenIds.add(s.serviceId)
+                    uniqueServices.push({
+                        value: s.serviceId,
+                        label: s.serviceName
+                    })
+                }
+            })
+            setServiceTypes(uniqueServices)
         } catch (error) {
             console.error('Error fetching service types:', error)
         }

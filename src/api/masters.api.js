@@ -20,11 +20,11 @@ export const manageCity = async (data) => {
  * @param {Object} data - Payload with spType (C, R, U, D)
  */
 export const manageDestination = async (data) => {
-    return await axiosInstance.post('/ManageDestinationMaster', data)
+    return await axiosInstance.post('api/SupplierService/ManageDestinationMaster', data)
 }
 
 
-/**
+/** 
  * Manage Creditcards (Create, Read, Update, Delete)
  * @param {Object} data - Payload with spType (C, R, U, D)
  */
@@ -37,7 +37,7 @@ export const manageCreditcards = async (data) => {
  * @param {Object} data - Payload with spType (C, R, U, D)
  */
 export const manageServiceType = async (data) => {
-    return await axiosInstance.post('/ManageServiceMaster', data)
+    return await axiosInstance.post('/api/SupplierService/ManageServiceMaster', data)
 }
 
 /**
@@ -45,7 +45,7 @@ export const manageServiceType = async (data) => {
  * @param {Object} data - Payload with spType (C, R, U, D)
  */
 export const manageSupplier = async (data) => {
-    return await axiosInstance.post('/ManageSupplierMaster', data)
+    return await axiosInstance.post('/api/SupplierService/ManageSupplierMaster', data)
 }
 
 /**

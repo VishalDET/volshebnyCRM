@@ -198,7 +198,7 @@ const CountryMaster = () => {
             const payload = {
                 cityId: 0,
                 cityName: "string",
-                countryId: countryId, // Passing countryId hoping backend filters by it
+                countryId: parseInt(countryId), // Passing countryId for server-side filtering
                 stateId: 0,
                 isActive: true,
                 isDeleted: false,
@@ -217,13 +217,9 @@ const CountryMaster = () => {
                     fetchedCities = response.data.data
                 }
 
-                // Client side filter if API returns all
-                // If API filters by countryId in payload, this filter is redundant but safe
-                // setCities(fetchedCities) 
-                // However, often specific 'GetCitiesByCountry' exists. Here we use generic 'R'. 
-                // We'll trust the payload countryId or filter if we see all cities.
-                // For now, assuming API respects countryId in payload or we just show what we get.
-                setCities(fetchedCities)
+                // Client-side filter as a safeguard if API returns all cities
+                const filteredCities = fetchedCities.filter(c => c.countryId === parseInt(countryId))
+                setCities(filteredCities)
 
             }
         } catch (error) {

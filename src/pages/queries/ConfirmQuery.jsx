@@ -1,37 +1,655 @@
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import PageHeader from '@components/PageHeader'
 import Button from '@components/Button'
+import Input from '@components/Input'
+import Select from '@components/Select'
+import { manageQuery, manageConfirmQuery } from '@api/query.api'
+import { manageClient, manageHandler, manageSupplier, manageCurrency, manageCountry, manageCity } from '@api/masters.api'
+import { toast } from 'react-hot-toast'
+import Loader from '@components/Loader'
+import { Calendar, User, Building, Users, Banknote, FileText, Briefcase } from 'lucide-react'
 
 const ConfirmQuery = () => {
     const { id } = useParams()
     const navigate = useNavigate()
+    const [loading, setLoading] = useState(true)
+    const [submitting, setSubmitting] = useState(false)
 
-    const handleConfirm = () => {
-        // Confirmation logic here
-        navigate(`/queries/${id}`)
+    // Master Data
+    const [query, setQuery] = useState(null)
+    const [client, setClient] = useState(null)
+    const [suppliers, setSuppliers] = useState([])
+    const [currencies, setCurrencies] = useState([])
+    const [locationNames, setLocationNames] = useState({}) // map ID to name
+
+    // Form State
+    const [tourLeads, setTourLeads] = useState([
+        { leadName: '', gender: '', age: '', visaStatus: '' }
+    ])
+
+    // Group services by destination index for UI, flatten on submit
+    // Structure: { [destIndex]: [ { serviceType: '', ... } ] }
+    const [servicesByDest, setServicesByDest] = useState({})
+
+    const [guides, setGuides] = useState([
+        { supplierId: '', supplierName: '', guideName: '', gender: '', contactNumber: '', language: '' }
+    ])
+
+    const [generalInfo, setGeneralInfo] = useState({
+        isVisaIncluded: false,
+        finalItinerary: '',
+        miscellaneous: '' // Note: Payload doesn't have misc, but user asked. Will keep in state, maybe append to itinerary?
+    })
+
+    useEffect(() => {
+        fetchInitialData()
+    }, [id])
+
+    const fetchInitialData = async () => {
+        setLoading(true)
+        try {
+            // 1. Fetch Query
+            const qPayload = {
+                id: parseInt(id),
+                queryNo: "",
+                handlerId: 0,
+                clientId: 0,
+                originCountryId: 0,
+                originCityId: 0,
+                travelDate: new Date().toISOString(), // User provided specific date format, but for fetch payload usually dummy or null is fine if API accepts it. User showed specific date in logged payload, but "string" in request structure usually implies type. Let's stick to the structure provided.
+                // Wait, user provided request payload has ISO strings for dates. Let's use null which worked before or dummy ISO if strict.
+                // Re-reading user request: "this is how we need to send req to fetch data... travelDate: "2026-01-02T..."
+                // It seems it blindly sends current state or defaults.
+                // Let's use the exact structure provided.
+                travelDate: null,
+                returnDate: null,
+                totalDays: 0,
+                adults: 0,
+                children: 0,
+                infants: 0,
+                budget: 0,
+                queryStatus: "string",
+                specialRequirements: "string",
+                createdBy: 0,
+                modifiedBy: 0,
+                isActive: true,
+                spType: "E",
+                destinations: [
+                    {
+                        mappingId: 0,
+                        queryId: 0,
+                        countryId: 0,
+                        cityId: 0,
+                        countryName: "string",
+                        cityName: "string",
+                        spType: "string"
+                    }
+                ],
+                childAges: [
+                    {
+                        ageId: 0,
+                        queryId: 0,
+                        childAge: 0,
+                        spType: "string"
+                    }
+                ]
+            }
+            const qRes = await manageQuery(qPayload)
+            const qData = qRes.data?.data || (Array.isArray(qRes.data) ? qRes.data[0] : qRes.data)
+
+            if (!qData) {
+                toast.error("Query not found")
+                navigate('/queries')
+                return
+            }
+            setQuery(qData)
+
+            // 2. Fetch Full Client Details
+            if (qData.clientId) {
+                fetchClientDetails(qData.clientId)
+            }
+
+            // 3. Fetch Location Maps
+            fetchCountriesAndMap()
+
+            // 4. Fetch Suppliers
+            const sPayload = {
+                id: 0, spType: "R",
+                serviceIds: [], contacts: []
+            }
+            const sRes = await manageSupplier(sPayload)
+            const sData = sRes.data?.data || (Array.isArray(sRes.data) ? sRes.data : []) || []
+            // Filter duplicates
+            const uniqueSuppliers = []
+            const sIds = new Set()
+            sData.forEach(s => {
+                if (!sIds.has(s.id)) {
+                    sIds.add(s.id)
+                    uniqueSuppliers.push({
+                        value: s.id,
+                        label: s.supplierName
+                    })
+                }
+            })
+            setSuppliers(uniqueSuppliers)
+
+            // 3. Fetch Currencies
+            const cPayload = { currencyId: 0, spType: "R" }
+            const cRes = await manageCurrency(cPayload)
+            const cData = cRes.data?.data || (Array.isArray(cRes.data) ? cRes.data : []) || []
+            const uniqueCurrencies = []
+            const cIds = new Set()
+            cData.forEach(c => {
+                if (!cIds.has(c.currencyId)) {
+                    cIds.add(c.currencyId)
+                    uniqueCurrencies.push({
+                        value: c.currencyId,
+                        label: `${c.currencyName} (${c.currencyCode})`
+                    })
+                }
+            })
+            setCurrencies(uniqueCurrencies)
+
+            // 4. Fetch additional details for display (Client Name, Handler Name)
+            // Note: manageQuery might return names, but if not we fetch.
+            // Based on CreateQuery/ViewQuery, let's fetch lists or specific if needed.
+            // For now, let's trust we can get names if we fetch lists or if manageQuery has them.
+            // Actually, ViewQuery uses fetchClientDetails(id). Let's do that if clientName missing.
+
+            if (qData.clientId && !qData.clientName) {
+                const clRes = await manageClient({ id: qData.clientId, spType: "E" })
+                const clData = clRes.data?.data || (Array.isArray(clRes.data) ? clRes.data[0] : clRes.data)
+                if (clData) qData.clientName = `${clData.firstName} ${clData.lastName} (${clData.companyName})`
+            }
+
+            if (qData.handlerId && !qData.handlerName) {
+                const hlRes = await manageHandler({ id: qData.handlerId, spType: "E" })
+                const hlData = hlRes.data?.data || (Array.isArray(hlRes.data) ? hlRes.data[0] : hlRes.data)
+                if (hlData) qData.handlerName = hlData.handlerName
+            }
+
+            // Re-set query with potential extra names
+            setQuery({ ...qData })
+
+            // 5. Fetch Location Names (Countries)
+            const locRes = await manageCountry({ spType: "R" })
+            if (locRes.data?.data) {
+                const map = {}
+                locRes.data.data.forEach(c => map[`country_${c.countryId}`] = c.countryName)
+                setLocationNames(map)
+            }
+
+        } catch (error) {
+            console.error(error)
+            toast.error("Failed to load data")
+        } finally {
+            setLoading(false)
+        }
     }
 
+    const fetchClientDetails = async (clientId) => {
+        try {
+            const payload = {
+                id: clientId,
+                firstName: "",
+                lastName: "",
+                mobileNo: "",
+                companyName: "",
+                emailId: "",
+                isGSTIN: true,
+                gstNumber: "",
+                gstCertificate: "",
+                address: "",
+                landmark: "",
+                countryId: 0,
+                stateId: 0,
+                cityId: 0,
+                pincode: "",
+                contacts: [],
+                createdBy: 0,
+                modifiedBy: 0,
+                isActive: true,
+                spType: "E"
+            }
+            const res = await manageClient(payload)
+            const data = res.data?.data || []
+            const clientData = Array.isArray(data) ? data[0] : data
+            if (clientData) {
+                setClient(clientData)
+            }
+        } catch (e) {
+            console.error("Error fetching client details:", e)
+        }
+    }
+
+    const fetchCountriesAndMap = async () => {
+        try {
+            const res = await manageCountry({ spType: "R", isDeleted: false })
+            if (res.data?.data) {
+                const updatedLocs = {}
+                res.data.data.forEach(c => {
+                    updatedLocs[`country_${c.countryId}`] = c.countryName
+                })
+                setLocationNames(prev => ({ ...prev, ...updatedLocs }))
+            }
+        } catch (e) { console.error(e) }
+    }
+
+    // --- Tour Leads Handlers ---
+    const addTourLead = () => {
+        setTourLeads([...tourLeads, { leadName: '', gender: '', age: '', visaStatus: '' }])
+    }
+    const removeTourLead = (index) => {
+        if (tourLeads.length > 1) {
+            setTourLeads(tourLeads.filter((_, i) => i !== index))
+        }
+    }
+    const updateTourLead = (index, field, value) => {
+        const updated = [...tourLeads]
+        updated[index][field] = value
+        setTourLeads(updated)
+    }
+
+    // --- Services Handlers ---
+    const addService = (destIndex) => {
+        setServicesByDest(prev => ({
+            ...prev,
+            [destIndex]: [
+                ...(prev[destIndex] || []),
+                {
+                    serviceType: 'Transportation', // Default
+                    supplierId: '',
+                    serviceCharge: '',
+                    currencyId: '',
+                    description: '',
+                    serviceDate: '',
+                    // Type specific
+                    pickupLocation: '', dropLocation: '',
+                    checkInDate: '', checkOutDate: '',
+                    mealType: ''
+                }
+            ]
+        }))
+    }
+    const removeService = (destIndex, sIndex) => {
+        setServicesByDest(prev => ({
+            ...prev,
+            [destIndex]: prev[destIndex].filter((_, i) => i !== sIndex)
+        }))
+    }
+    const updateService = (destIndex, sIndex, field, value) => {
+        setServicesByDest(prev => {
+            const destServices = [...(prev[destIndex] || [])]
+            destServices[sIndex] = { ...destServices[sIndex], [field]: value }
+            return { ...prev, [destIndex]: destServices }
+        })
+    }
+
+    // --- Guides Handlers ---
+    const addGuide = () => {
+        setGuides([...guides, { supplierId: '', supplierName: '', guideName: '', gender: '', contactNumber: '', language: '' }])
+    }
+    const removeGuide = (index) => {
+        if (guides.length > 1) setGuides(guides.filter((_, i) => i !== index))
+    }
+    const updateGuide = (index, field, value) => {
+        const updated = [...guides]
+        updated[index][field] = value
+        // If supplierId changes, update supplierName too
+        if (field === 'supplierId') {
+            const sup = suppliers.find(s => s.value == value)
+            updated[index].supplierName = sup ? sup.label : ''
+        }
+        setGuides(updated)
+    }
+
+
+    const handleSubmit = async () => {
+        setSubmitting(true)
+        try {
+            // Flatten services
+            const flatServices = []
+            if (query && query.destinations) {
+                query.destinations.forEach((dest, dIdx) => {
+                    const destServices = servicesByDest[dIdx] || []
+                    destServices.forEach(srv => {
+                        const sup = suppliers.find(s => s.value == srv.supplierId)
+                        flatServices.push({
+                            countryId: dest.countryId,
+                            cityId: dest.cityId,
+                            serviceType: srv.serviceType,
+                            serviceCharge: parseFloat(srv.serviceCharge) || 0,
+                            currencyId: parseInt(srv.currencyId) || 0,
+                            supplierId: parseInt(srv.supplierId) || 0,
+                            supplierName: sup ? sup.label : "",
+                            description: srv.description || "",
+
+                            // Dates - ensure ISO if present
+                            serviceDate: srv.serviceDate ? new Date(srv.serviceDate).toISOString() : null,
+                            checkInDate: srv.checkInDate ? new Date(srv.checkInDate).toISOString() : null,
+                            checkOutDate: srv.checkOutDate ? new Date(srv.checkOutDate).toISOString() : null,
+
+                            pickupLocation: srv.pickupLocation || "",
+                            dropLocation: srv.dropLocation || "",
+                            mealType: srv.mealType || ""
+                        })
+                    })
+                })
+            }
+
+            const payload = {
+                queryId: parseInt(id),
+                isVisaIncluded: generalInfo.isVisaIncluded,
+                finalItinerary: generalInfo.finalItinerary || "",
+                spType: "C", // Confirming usually creates a confirmed record
+                tourLeads: tourLeads.map(tl => ({
+                    leadName: tl.leadName || "",
+                    gender: tl.gender || "",
+                    age: parseInt(tl.age) || 0,
+                    visaStatus: tl.visaStatus || ""
+                })),
+                services: flatServices,
+                guides: guides.map(g => ({
+                    supplierId: parseInt(g.supplierId) || 0,
+                    supplierName: g.supplierName || "",
+                    guideName: g.guideName || "",
+                    gender: g.gender || "",
+                    contactNumber: g.contactNumber || "",
+                    language: g.language || ""
+                }))
+            }
+
+            // Append miscellaneous to itinerary if needed, or ignore if API strictly forbids extra fields
+            if (generalInfo.miscellaneous) {
+                payload.finalItinerary += `\n\nMiscellaneous:\n${generalInfo.miscellaneous}`
+            }
+
+            console.log("Confirm Payload:", payload)
+            const res = await manageConfirmQuery(payload)
+            if (res.data?.success || res.status === 200) {
+                toast.success("Query Confirmed Successfully!")
+                navigate('/queries')
+            } else {
+                toast.error(res.data?.message || "Failed to confirm query")
+            }
+
+        } catch (error) {
+            console.error(error)
+            toast.error("Error confirming query")
+        } finally {
+            setSubmitting(false)
+        }
+    }
+
+    if (loading) return <Loader fullScreen text="Loading details..." />
+    if (!query) return null
+
     return (
-        <div>
+        <div className="pb-10">
             <PageHeader
-                title="Confirm Query"
+                title={`Confirm Query #${query.queryNo || id}`}
                 breadcrumbs={[
-                    { label: 'Dashboard', href: '/dashboard' },
                     { label: 'Queries', href: '/queries' },
-                    { label: `Query #${id}`, href: `/queries/${id}` },
                     { label: 'Confirm' }
                 ]}
             />
-            <div className="card max-w-2xl">
-                <h3 className="text-lg font-semibold mb-4">Confirm Query Details</h3>
-                <p className="text-secondary-600 mb-6">Review and confirm the query before proceeding.</p>
-                <div className="flex gap-3 justify-end">
-                    <Button variant="secondary" onClick={() => navigate(`/queries/${id}`)}>Cancel</Button>
-                    <Button variant="primary" onClick={handleConfirm}>Confirm Query</Button>
+
+            <div className="space-y-6 mt-4">
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Client Information */}
+                    <div className="card">
+                        <h3 className="text-lg font-semibold mb-4 border-b pb-2">Client Information</h3>
+                        {client ? (
+                            <dl className="grid grid-cols-1 gap-2">
+                                <div>
+                                    <dt className="text-sm text-secondary-600">Full Name</dt>
+                                    <dd className="font-medium">{client.firstName} {client.lastName}</dd>
+                                </div>
+                                <div>
+                                    <dt className="text-sm text-secondary-600">Company</dt>
+                                    <dd className="font-medium">{client.companyName || '-'}</dd>
+                                </div>
+                                <div>
+                                    <dt className="text-sm text-secondary-600">Contact</dt>
+                                    <dd className="font-medium">{client.mobileNo || '-'} / {client.emailId || '-'}</dd>
+                                </div>
+                            </dl>
+                        ) : (
+                            <div className="text-secondary-600">Loading client details...</div>
+                        )}
+                    </div>
+
+                    {/* Travel Details */}
+                    <div className="card">
+                        <h3 className="text-lg font-semibold mb-4 border-b pb-2">Travel Details</h3>
+                        <dl className="grid grid-cols-2 gap-2">
+                            <div>
+                                <dt className="text-sm text-secondary-600">Dates</dt>
+                                <dd className="font-medium">
+                                    {query.travelDate && new Date(query.travelDate).toLocaleDateString()} - {query.returnDate && new Date(query.returnDate).toLocaleDateString()}
+                                </dd>
+                            </div>
+                            <div>
+                                <dt className="text-sm text-secondary-600">Total Days</dt>
+                                <dd className="font-medium">{query.totalDays || 0}</dd>
+                            </div>
+                            <div>
+                                <dt className="text-sm text-secondary-600">Pax</dt>
+                                <dd className="font-medium">
+                                    {query.adults} Ad, {query.children} Ch, {query.infants} In
+                                </dd>
+                            </div>
+                            <div>
+                                <dt className="text-sm text-secondary-600">Budget</dt>
+                                <dd className="font-medium">₹{query.budget?.toLocaleString()}</dd>
+                            </div>
+                            {query.specialRequirements && (
+                                <div className="col-span-2 mt-2">
+                                    <dt className="text-sm text-secondary-600">Special Req</dt>
+                                    <dd className="text-sm bg-gray-50 p-2 rounded italic">{query.specialRequirements}</dd>
+                                </div>
+                            )}
+                        </dl>
+                    </div>
+                </div>
+
+                {/* Destinations & Children (if any) */}
+                <div className="card">
+                    <h3 className="text-lg font-semibold mb-4 border-b pb-2">Destinations</h3>
+                    <div className="space-y-2">
+                        {query.destinations && query.destinations.map((dest, idx) => (
+                            <div key={idx} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                                <span className="font-bold text-gray-500 w-6">{idx + 1}.</span>
+                                <span>{locationNames[`country_${dest.countryId}`] || dest.countryName || 'Unknown Country'}</span>
+                                {dest.cityName && (
+                                    <>
+                                        <span className="text-gray-400 mx-2">/</span>
+                                        <span>{dest.cityName}</span>
+                                    </>
+                                )}
+                            </div>
+                        ))}
+                        {(!query.destinations || query.destinations.length === 0) && <p className="text-gray-500 italic">No destinations found.</p>}
+                    </div>
+
+                    {query.childAges && query.childAges.length > 0 && (
+                        <div className="mt-4 pt-4 border-t">
+                            <h4 className="text-sm font-semibold mb-2">Children Ages</h4>
+                            <div className="flex gap-2">
+                                {query.childAges.map((age, i) => (
+                                    <span key={i} className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                                        Age: {age.childAge}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* 1. Tour Leads */}
+                <div className="card">
+                    <div className="flex justify-between items-center mb-4 border-b pb-2">
+                        <h3 className="text-lg font-semibold">Tour Leads / Travellers</h3>
+                        <Button size="sm" onClick={addTourLead}>+ Add Lead</Button>
+                    </div>
+                    {tourLeads.map((lead, idx) => (
+                        <div key={idx} className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4 items-end bg-gray-50 p-3 rounded">
+                            <Input label="Name" value={lead.leadName} onChange={e => updateTourLead(idx, 'leadName', e.target.value)} />
+                            <Select label="Gender" value={lead.gender} onChange={e => updateTourLead(idx, 'gender', e.target.value)}
+                                options={[{ value: 'Male', label: 'Male' }, { value: 'Female', label: 'Female' }]} />
+                            <Input type="number" label="Age" value={lead.age} onChange={e => updateTourLead(idx, 'age', e.target.value)} />
+                            <Input label="Visa Status" value={lead.visaStatus} onChange={e => updateTourLead(idx, 'visaStatus', e.target.value)} />
+                            {tourLeads.length > 1 && (
+                                <button onClick={() => removeTourLead(idx)} className="text-red-500 pb-2">Remove</button>
+                            )}
+                        </div>
+                    ))}
+                </div>
+
+                {/* 2. Services by Destination */}
+                <div className="card">
+                    <h3 className="text-lg font-semibold mb-4 border-b pb-2">Destinations & Services</h3>
+                    {(!query.destinations || query.destinations.length === 0) && <p className="text-gray-500">No destinations found in query.</p>}
+
+                    {query.destinations && query.destinations.map((dest, dIdx) => (
+                        <div key={dIdx} className="mb-8 border rounded-lg p-4">
+                            <div className="flex justify-between items-center mb-4 bg-blue-50 p-2 rounded">
+                                <h4 className="font-bold text-blue-900">
+                                    {dIdx + 1}. {locationNames[`country_${dest.countryId}`] || dest.countryName || 'Unknown Country'} - {dest.cityName}
+                                </h4>
+                                <Button size="sm" variant="outline" onClick={() => addService(dIdx)}>+ Add Service</Button>
+                            </div>
+
+                            {/* Services List for this destination */}
+                            <div className="space-y-4">
+                                {(servicesByDest[dIdx] || []).map((srv, sIdx) => (
+                                    <div key={sIdx} className="border p-4 rounded bg-gray-50 relative">
+                                        <button onClick={() => removeService(dIdx, sIdx)} className="absolute top-2 right-2 text-red-500 font-bold">&times;</button>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                                            <Select label="Service Type" value={srv.serviceType}
+                                                onChange={e => updateService(dIdx, sIdx, 'serviceType', e.target.value)}
+                                                options={[
+                                                    { value: 'Transportation', label: 'Transportation' },
+                                                    { value: 'Hotels', label: 'Hotels' },
+                                                    { value: 'Restaurants', label: 'Restaurants' }
+                                                ]}
+                                            />
+                                            <Select label="Supplier" value={srv.supplierId}
+                                                onChange={e => updateService(dIdx, sIdx, 'supplierId', e.target.value)}
+                                                options={suppliers}
+                                                placeholder="Select Supplier"
+                                            />
+                                            <Select label="Currency" value={srv.currencyId}
+                                                onChange={e => updateService(dIdx, sIdx, 'currencyId', e.target.value)}
+                                                options={currencies}
+                                            />
+                                            <Input type="number" label="Charge" value={srv.serviceCharge}
+                                                onChange={e => updateService(dIdx, sIdx, 'serviceCharge', e.target.value)}
+                                            />
+                                        </div>
+
+                                        {/* Type Specific Fields */}
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                                            {srv.serviceType === 'Transportation' && (
+                                                <>
+                                                    <Input label="From (Pickup)" value={srv.pickupLocation} onChange={e => updateService(dIdx, sIdx, 'pickupLocation', e.target.value)} />
+                                                    <Input label="To (Drop)" value={srv.dropLocation} onChange={e => updateService(dIdx, sIdx, 'dropLocation', e.target.value)} />
+                                                    <Input type="datetime-local" label="Service Date" value={srv.serviceDate} onChange={e => updateService(dIdx, sIdx, 'serviceDate', e.target.value)} />
+                                                </>
+                                            )}
+                                            {srv.serviceType === 'Hotels' && (
+                                                <>
+                                                    <Input type="datetime-local" label="Check-In" value={srv.checkInDate} onChange={e => updateService(dIdx, sIdx, 'checkInDate', e.target.value)} />
+                                                    <Input type="datetime-local" label="Check-Out" value={srv.checkOutDate} onChange={e => updateService(dIdx, sIdx, 'checkOutDate', e.target.value)} />
+                                                </>
+                                            )}
+                                            {srv.serviceType === 'Restaurants' && (
+                                                <>
+                                                    <Input type="datetime-local" label="Date" value={srv.serviceDate} onChange={e => updateService(dIdx, sIdx, 'serviceDate', e.target.value)} />
+                                                    <Select label="Meal Type" value={srv.mealType} onChange={e => updateService(dIdx, sIdx, 'mealType', e.target.value)}
+                                                        options={[{ value: 'Lunch', label: 'Lunch' }, { value: 'Dinner', label: 'Dinner' }]} />
+                                                </>
+                                            )}
+                                        </div>
+
+                                        <div className="w-full">
+                                            <label className="text-sm font-medium text-gray-700">Description / Extras</label>
+                                            <textarea className="input w-full mt-1" rows="2"
+                                                value={srv.description} onChange={e => updateService(dIdx, sIdx, 'description', e.target.value)}
+                                            ></textarea>
+                                        </div>
+                                    </div>
+                                ))}
+                                {(!servicesByDest[dIdx] || servicesByDest[dIdx].length === 0) && (
+                                    <p className="text-sm text-gray-400 italic pl-2">No services added for this destination yet.</p>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* 3. Guides */}
+                <div className="card">
+                    <div className="flex justify-between items-center mb-4 border-b pb-2">
+                        <h3 className="text-lg font-semibold">Guides</h3>
+                        <Button size="sm" onClick={addGuide}>+ Add Guide</Button>
+                    </div>
+                    {guides.map((guide, idx) => (
+                        <div key={idx} className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 p-3 bg-gray-50 rounded relative">
+                            {guides.length > 1 && <button onClick={() => removeGuide(idx)} className="absolute top-2 right-2 text-red-500 font-bold">&times;</button>}
+
+                            <Select label="Supplier" value={guide.supplierId}
+                                onChange={e => updateGuide(idx, 'supplierId', e.target.value)}
+                                options={suppliers}
+                            />
+                            <Input label="Guide Name" value={guide.guideName} onChange={e => updateGuide(idx, 'guideName', e.target.value)} />
+                            <Select label="Gender" value={guide.gender} onChange={e => updateGuide(idx, 'gender', e.target.value)}
+                                options={[{ value: 'Male', label: 'Male' }, { value: 'Female', label: 'Female' }]} />
+                            <Input label="Contact Number" value={guide.contactNumber} onChange={e => updateGuide(idx, 'contactNumber', e.target.value)} />
+                            <Input label="Language" value={guide.language} onChange={e => updateGuide(idx, 'language', e.target.value)} />
+                        </div>
+                    ))}
+                </div>
+
+                {/* 4. General / Visa / Itinerary */}
+                <div className="card">
+                    <h3 className="text-lg font-semibold mb-4 border-b pb-2">Final Details</h3>
+                    <div className="mb-4">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" className="w-5 h-5"
+                                checked={generalInfo.isVisaIncluded}
+                                onChange={e => setGeneralInfo({ ...generalInfo, isVisaIncluded: e.target.checked })}
+                            />
+                            <span className="font-medium">Visa Included</span>
+                        </label>
+                    </div>
+                    <div className="mb-4">
+                        <label className="block text-sm font-medium mb-1">Final Itinerary</label>
+                        <textarea className="input w-full" rows="4"
+                            value={generalInfo.finalItinerary}
+                            onChange={e => setGeneralInfo({ ...generalInfo, finalItinerary: e.target.value })}
+                        ></textarea>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Miscellaneous / Notes</label>
+                        <textarea className="input w-full" rows="3"
+                            value={generalInfo.miscellaneous}
+                            onChange={e => setGeneralInfo({ ...generalInfo, miscellaneous: e.target.value })}
+                        ></textarea>
+                    </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-4 justify-end">
+                    <Button variant="secondary" onClick={() => navigate('/queries')}>Cancel</Button>
+                    <Button variant="primary" onClick={handleSubmit} loading={submitting}>Confirm Query</Button>
                 </div>
             </div>
         </div>
     )
 }
 
-export default ConfirmQuery
+export default ConfirmQuery 

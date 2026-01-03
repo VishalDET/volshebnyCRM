@@ -45,7 +45,7 @@ const ViewQuery = () => {
                 createdBy: 0,
                 modifiedBy: 0,
                 isActive: true,
-                spType: "R",
+                spType: "E",
                 destinations: [],
                 childAges: []
             }
@@ -96,7 +96,7 @@ const ViewQuery = () => {
                 createdBy: 0,
                 modifiedBy: 0,
                 isActive: true,
-                spType: "R"
+                spType: "E"
             }
             const res = await manageClient(payload)
             const data = res.data?.data || []

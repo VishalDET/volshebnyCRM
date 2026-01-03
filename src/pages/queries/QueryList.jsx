@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import PageHeader from '@components/PageHeader'
 import Button from '@components/Button'
 import Table from '@components/Table'
-import { Eye, Pencil, Trash2 } from 'lucide-react'
+import { Eye, Pencil, Trash2, CheckCircle } from 'lucide-react'
 import ConfirmModal from '@components/ConfirmModal'
 import { manageQuery } from '@api/query.api'
 import { toast } from 'react-hot-toast'
@@ -169,6 +169,15 @@ const QueryList = () => {
                     >
                         <Trash2 className="w-4 h-4" />
                     </button>
+                    {(!row.queryStatus || row.queryStatus === 'Pending') && (
+                        <button
+                            onClick={() => navigate(`/queries/${row.id}/confirm`)}
+                            className="text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-50 transition-colors"
+                            title="Confirm Query"
+                        >
+                            <CheckCircle className="w-4 h-4" />
+                        </button>
+                    )}
                 </div>
             )
         },
@@ -191,7 +200,7 @@ const QueryList = () => {
             />
 
             <div className="card mt-4">
-                <div className="mb-4 flex gap-4 p-4 border-b">
+                <div className="mb-4 flex gap-4 pt-0 pb-4 border-b">
                     <select
                         value={filters.status}
                         onChange={(e) => setFilters({ ...filters, status: e.target.value })}

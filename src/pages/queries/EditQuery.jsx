@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import PageHeader from '@components/PageHeader'
 import Button from '@components/Button'
 import Input from '@components/Input'
@@ -8,8 +8,9 @@ import { toast } from 'react-hot-toast'
 import { manageQuery } from '@api/query.api'
 import { manageClient, manageHandler, manageCountry, manageCity } from '@api/masters.api'
 
-const CreateQuery = () => {
+const EditQuery = () => {
     const navigate = useNavigate()
+    const { id } = useParams()
     const [isLoading, setIsLoading] = useState(false)
 
     // Master Data States
@@ -26,7 +27,7 @@ const CreateQuery = () => {
         clientName: '',
         originCountryId: '',
         originCityId: '',
-        destinations: [{ countryId: '', cityId: '', spType: 'C' }],
+        destinations: [],
         travelDate: '',
         returnDate: '',
         totalDays: 0,
@@ -41,8 +42,12 @@ const CreateQuery = () => {
     const [formData, setFormData] = useState(initialFormState)
 
     useEffect(() => {
-        fetchMasters()
-    }, [])
+        const init = async () => {
+            await fetchMasters()
+            fetchQueryDetails()
+        }
+        init()
+    }, [id])
 
     useEffect(() => {
         if (formData.travelDate && formData.returnDate) {
@@ -172,6 +177,116 @@ const CreateQuery = () => {
         }
     }
 
+    const fetchQueryDetails = async () => {
+        setIsLoading(true)
+        try {
+            const payload = {
+                id: parseInt(id),
+                queryNo: "string",
+                handlerId: 0,
+                clientId: 0,
+                originCountryId: 0,
+                originCityId: 0,
+                travelDate: new Date().toISOString(),
+                returnDate: new Date().toISOString(),
+                totalDays: 0,
+                adults: 0,
+                children: 0,
+                infants: 0,
+                budget: 0,
+                queryStatus: "string",
+                specialRequirements: "string",
+                createdBy: 0,
+                modifiedBy: 0,
+                isActive: true,
+                spType: "E",
+                destinations: [
+                    {
+                        mappingId: 0,
+                        queryId: 0,
+                        countryId: 0,
+                        cityId: 0,
+                        countryName: "string",
+                        cityName: "string",
+                        spType: "U"
+                    }
+                ],
+                childAges: [
+                    {
+                        ageId: 0,
+                        queryId: 0,
+                        childAge: 0,
+                        spType: "string"
+                    }
+                ]
+            }
+            const res = await manageQuery(payload)
+            const queryDataList = res.data?.data || []
+            const queryData = Array.isArray(queryDataList) ? queryDataList[0] : queryDataList
+
+            if (queryData) {
+                // Pre-fetch cities for origin country
+                if (queryData.originCountryId) {
+                    fetchCitiesForCountry(queryData.originCountryId)
+                }
+
+                // Pre-fetch cities for destination countries
+                if (queryData.destinations) {
+                    queryData.destinations.forEach(dest => {
+                        if (dest.countryId) fetchCitiesForCountry(dest.countryId)
+                    })
+                }
+
+                // Map Dates to YYYY-MM-DD using local time to prevent off-by-one errors
+                const formatDate = (dateStr) => {
+                    if (!dateStr) return ''
+                    const date = new Date(dateStr)
+                    const year = date.getFullYear()
+                    const month = String(date.getMonth() + 1).padStart(2, '0')
+                    const day = String(date.getDate()).padStart(2, '0')
+                    return `${year}-${month}-${day}`
+                }
+
+                setFormData({
+                    queryNo: queryData.queryNo || '',
+                    handlerId: queryData.handlerId || '',
+                    clientId: queryData.clientId || '',
+                    clientName: queryData.clientName || '',
+                    originCountryId: queryData.originCountryId || '',
+                    originCityId: queryData.originCityId || '',
+                    destinations: queryData.destinations?.length > 0
+                        ? queryData.destinations.map(d => ({
+                            ...d,
+                            spType: 'U',
+                            id: d.id || d.mappingId || 0
+                        }))
+                        : [{ countryId: '', cityId: '', spType: 'C' }],
+                    travelDate: formatDate(queryData.travelDate),
+                    returnDate: formatDate(queryData.returnDate),
+                    totalDays: queryData.totalDays || 0,
+                    adults: queryData.adults || 1,
+                    children: queryData.children || 0,
+                    infants: queryData.infants || 0,
+                    childAges: queryData.childAges?.length > 0
+                        ? queryData.childAges.map(c => ({
+                            ...c,
+                            spType: 'U',
+                            id: c.id || c.ageId || 0
+                        }))
+                        : [],
+                    budget: queryData.budget || '',
+                    queryStatus: queryData.queryStatus || 'Pending',
+                    specialRequirements: queryData.specialRequirements || ''
+                })
+            }
+        } catch (error) {
+            console.error("Error fetching query details:", error)
+            toast.error("Failed to load query details")
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
     const fetchCitiesForCountry = async (countryId) => {
         if (!countryId || cityOptions[countryId]) return
 
@@ -238,10 +353,20 @@ const CreateQuery = () => {
 
     const removeDestination = (index) => {
         if (formData.destinations.length === 1) return
-        setFormData(prev => ({
-            ...prev,
-            destinations: prev.destinations.filter((_, i) => i !== index)
-        }))
+        const destToRemove = formData.destinations[index]
+
+        if (destToRemove.id) {
+            // Mark for deletion if it exists on backend
+            const newDestinations = [...formData.destinations]
+            newDestinations[index] = { ...destToRemove, spType: 'D' }
+            setFormData(prev => ({ ...prev, destinations: newDestinations }))
+            toast.success("Destination marked for removal")
+        } else {
+            setFormData(prev => ({
+                ...prev,
+                destinations: prev.destinations.filter((_, i) => i !== index)
+            }))
+        }
     }
 
     const handleChildAgeChange = (index, value) => {
@@ -260,7 +385,7 @@ const CreateQuery = () => {
         setIsLoading(true)
         try {
             const payload = {
-                id: 0,
+                id: parseInt(id),
                 queryNo: formData.queryNo,
                 handlerId: parseInt(formData.handlerId),
                 clientId: parseInt(formData.clientId),
@@ -278,34 +403,36 @@ const CreateQuery = () => {
                 createdBy: 0,
                 modifiedBy: 0,
                 isActive: true,
-                spType: "C",
+                spType: "U",
                 destinations: formData.destinations.map(d => ({
-                    mappingId: 0,
-                    queryId: 0,
+                    id: d.id || 0,
+                    mappingId: d.id || 0,
+                    queryId: parseInt(id),
                     countryId: parseInt(d.countryId) || 0,
                     cityId: parseInt(d.cityId) || 0,
                     countryName: "",
                     cityName: "",
-                    spType: "C"
+                    spType: d.spType || "U"
                 })),
                 childAges: formData.childAges.map(c => ({
-                    ageId: 0,
-                    queryId: 0,
+                    id: c.id || 0,
+                    ageId: c.id || 0,
+                    queryId: parseInt(id),
                     childAge: parseInt(c.childAge) || 0,
-                    spType: "C"
+                    spType: c.spType || "U"
                 }))
             }
 
             const response = await manageQuery(payload)
             if (response.data && (response.data.success || response.status === 200)) {
-                toast.success("Query created successfully!")
+                toast.success("Query updated successfully!")
                 navigate('/queries')
             } else {
-                toast.error(response.data?.message || "Failed to create query")
+                toast.error(response.data?.message || "Failed to update query")
             }
         } catch (error) {
-            console.error("Error creating query:", error)
-            toast.error("Failed to create query")
+            console.error("Error updating query:", error)
+            toast.error("Failed to update query")
         } finally {
             setIsLoading(false)
         }
@@ -314,16 +441,16 @@ const CreateQuery = () => {
     return (
         <div>
             <PageHeader
-                title="Create New Query"
+                title="Edit Query"
                 breadcrumbs={[
                     { label: 'Dashboard', href: '/dashboard' },
                     { label: 'Queries', href: '/queries' },
-                    { label: 'Create' }
+                    { label: 'Edit' }
                 ]}
             />
 
             <form onSubmit={handleSubmit} className="card max-w-4xl p-0 mt-4">
-                <div className='card-header bg-blue-50 p-4 border border-blue-200 rounded-t-lg'>
+                <div className='card-header bg-gray-50 p-4 border-b rounded-t-lg'>
                     <div className='flex flex-nowrap gap-4 items-end'>
                         <Input
                             label="Query No"
@@ -333,6 +460,7 @@ const CreateQuery = () => {
                             placeholder="e.g. Q-2025-001"
                             required
                             className="w-48"
+                            disabled
                         />
                         <Select
                             label="Handler"
@@ -351,7 +479,7 @@ const CreateQuery = () => {
                             onChange={handleInputChange}
                             options={clients}
                             required
-                            className="w-64"
+                            className="w-72"
                             placeholder="Select Client"
                         />
                     </div>
@@ -361,7 +489,7 @@ const CreateQuery = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="p-4 border rounded-lg bg-gray-50">
                             <h4 className="font-semibold mb-3">Origin</h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-3">
                                 <Select
                                     label="Country"
                                     name="originCountryId"
@@ -388,7 +516,7 @@ const CreateQuery = () => {
                                 <button type="button" onClick={addDestination} className="text-primary-600 text-sm font-bold">+ Add</button>
                             </div>
                             <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
-                                {formData.destinations.map((dest, index) => (
+                                {formData.destinations.filter(d => d.spType !== 'D').map((dest, index) => (
                                     <div key={index} className="flex gap-2 items-end border-b pb-2">
                                         <div className="flex-1">
                                             <Select
@@ -409,7 +537,7 @@ const CreateQuery = () => {
                                                 placeholder="City"
                                             />
                                         </div>
-                                        {formData.destinations.length > 1 && (
+                                        {formData.destinations.filter(d => d.spType !== 'D').length > 1 && (
                                             <button type="button" onClick={() => removeDestination(index)} className="text-red-500 pb-2">&times;</button>
                                         )}
                                     </div>
@@ -536,7 +664,7 @@ const CreateQuery = () => {
                             loading={isLoading}
                             disabled={isLoading}
                         >
-                            Create Query
+                            Update Query
                         </Button>
                     </div>
                 </div>
@@ -545,4 +673,4 @@ const CreateQuery = () => {
     )
 }
 
-export default CreateQuery
+export default EditQuery

@@ -11,6 +11,13 @@ import { data } from 'autoprefixer'
 export const manageQuery = async (data) => {
     return await axiosInstance.post('/api/Query/ManageQuery', data)
 }
+/** 
+ * Manage Country (Create, Read, Update, Delete)
+ * @param {Object} data - Payload with spType (C, R, U, D)
+ */
+export const manageConfirmQuery = async (data) => {
+    return await axiosInstance.post('/api/Query/ConfirmQuery', data)
+}
 
 /**
  * Get all queries with optional filters

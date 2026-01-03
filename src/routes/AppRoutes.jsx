@@ -12,6 +12,7 @@ import Dashboard from '@pages/dashboard/Dashboard'
 // Queries
 import QueryList from '@pages/queries/QueryList'
 import CreateQuery from '@pages/queries/CreateQuery'
+import EditQuery from '@pages/queries/EditQuery'
 import ViewQuery from '@pages/queries/ViewQuery'
 import ConfirmQuery from '@pages/queries/ConfirmQuery'
 
@@ -96,7 +97,7 @@ const AppRoutes = () => {
             <Route path="/queries" element={<ProtectedRoute><QueryList /></ProtectedRoute>} />
             <Route path="/queries/create" element={<ProtectedRoute><CreateQuery /></ProtectedRoute>} />
             <Route path="/queries/viewQuery/:id" element={<ProtectedRoute><ViewQuery /></ProtectedRoute>} />
-            <Route path="/queries/edit/:id" element={<ProtectedRoute><CreateQuery /></ProtectedRoute>} />
+            <Route path="/queries/edit/:id" element={<ProtectedRoute><EditQuery /></ProtectedRoute>} />
             <Route path="/queries/:id" element={<ProtectedRoute><ViewQuery /></ProtectedRoute>} />
             <Route path="/queries/:id/confirm" element={<ProtectedRoute><ConfirmQuery /></ProtectedRoute>} />
             <Route path="/queries/:id/details" element={<ProtectedRoute><DetailsForm /></ProtectedRoute>} />

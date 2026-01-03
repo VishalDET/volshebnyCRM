@@ -43,9 +43,9 @@ const Select = ({
                 {...props}
             >
                 <option value="">{placeholder}</option>
-                {options.map((option) => (
+                {options.map((option, index) => (
                     <option
-                        key={option.value || option.id}
+                        key={`${option.value || option.id}-${index}`}
                         value={option.value || option.id}
                     >
                         {option.label || option.name}

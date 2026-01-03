@@ -99,10 +99,20 @@ const ClientMaster = () => {
             }
             const response = await manageCity(payload)
             if (response.data && response.data.data) {
-                setCityOptions(response.data.data.map(c => ({
-                    value: c.cityId,
-                    label: c.cityName
-                })))
+                // Filter by countryId (client-side safeguard) and then filter duplicates
+                const uniqueCities = []
+                const seenIds = new Set()
+                response.data.data.forEach(c => {
+                    const matchesCountry = c.countryId === parseInt(countryId)
+                    if (matchesCountry && !seenIds.has(c.cityId)) {
+                        seenIds.add(c.cityId)
+                        uniqueCities.push({
+                            value: c.cityId,
+                            label: c.cityName
+                        })
+                    }
+                })
+                setCityOptions(uniqueCities)
             }
         } catch (error) {
             console.error('Error fetching cities:', error)
