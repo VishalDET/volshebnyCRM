@@ -49,7 +49,6 @@ const ConfirmQuery = () => {
     const fetchInitialData = async () => {
         setLoading(true)
         try {
-            // 1. Fetch Query
             const qPayload = {
                 id: parseInt(id),
                 queryNo: "",
@@ -57,11 +56,6 @@ const ConfirmQuery = () => {
                 clientId: 0,
                 originCountryId: 0,
                 originCityId: 0,
-                travelDate: new Date().toISOString(), // User provided specific date format, but for fetch payload usually dummy or null is fine if API accepts it. User showed specific date in logged payload, but "string" in request structure usually implies type. Let's stick to the structure provided.
-                // Wait, user provided request payload has ISO strings for dates. Let's use null which worked before or dummy ISO if strict.
-                // Re-reading user request: "this is how we need to send req to fetch data... travelDate: "2026-01-02T..."
-                // It seems it blindly sends current state or defaults.
-                // Let's use the exact structure provided.
                 travelDate: null,
                 returnDate: null,
                 totalDays: 0,
@@ -69,34 +63,18 @@ const ConfirmQuery = () => {
                 children: 0,
                 infants: 0,
                 budget: 0,
-                queryStatus: "string",
-                specialRequirements: "string",
+                queryStatus: "",
+                specialRequirements: "",
                 createdBy: 0,
                 modifiedBy: 0,
                 isActive: true,
                 spType: "E",
-                destinations: [
-                    {
-                        mappingId: 0,
-                        queryId: 0,
-                        countryId: 0,
-                        cityId: 0,
-                        countryName: "string",
-                        cityName: "string",
-                        spType: "string"
-                    }
-                ],
-                childAges: [
-                    {
-                        ageId: 0,
-                        queryId: 0,
-                        childAge: 0,
-                        spType: "string"
-                    }
-                ]
+                destinations: [],
+                childAges: []
             }
             const qRes = await manageQuery(qPayload)
-            const qData = qRes.data?.data || (Array.isArray(qRes.data) ? qRes.data[0] : qRes.data)
+            const data = qRes.data?.data || (Array.isArray(qRes.data) ? qRes.data : [])
+            const qData = Array.isArray(data) ? data[0] : data
 
             if (!qData) {
                 toast.error("Query not found")
@@ -115,8 +93,22 @@ const ConfirmQuery = () => {
 
             // 4. Fetch Suppliers
             const sPayload = {
-                id: 0, spType: "R",
-                serviceIds: [], contacts: []
+                id: 0,
+                fullName: "string",
+                companyContactNo: "string",
+                companyEmailId: "string",
+                companyName: "string",
+                gstCertificate: "string",
+                isGSTIN: true,
+                gstNumber: "string",
+                address: "string",
+                countryId: 0,
+                stateId: 0,
+                cityId: 0,
+                createdBy: 0,
+                modifiedBy: 0,
+                isActive: true,
+                spType: "R"
             }
             const sRes = await manageSupplier(sPayload)
             const sData = sRes.data?.data || (Array.isArray(sRes.data) ? sRes.data : []) || []
@@ -158,15 +150,56 @@ const ConfirmQuery = () => {
             // Actually, ViewQuery uses fetchClientDetails(id). Let's do that if clientName missing.
 
             if (qData.clientId && !qData.clientName) {
-                const clRes = await manageClient({ id: qData.clientId, spType: "E" })
+                const clPayload = {
+                    id: qData.clientId,
+                    firstName: "string",
+                    lastName: "string",
+                    mobileNo: "string",
+                    companyName: "string",
+                    emailId: "string",
+                    isGSTIN: true,
+                    gstNumber: "string",
+                    gstCertificate: "string",
+                    address: "string",
+                    landmark: "string",
+                    countryId: 0,
+                    stateId: 0,
+                    cityId: 0,
+                    pincode: "string",
+                    contacts: [],
+                    createdBy: 0,
+                    modifiedBy: 0,
+                    isActive: true,
+                    spType: "R"
+                }
+                const clRes = await manageClient(clPayload)
                 const clData = clRes.data?.data || (Array.isArray(clRes.data) ? clRes.data[0] : clRes.data)
-                if (clData) qData.clientName = `${clData.firstName} ${clData.lastName} (${clData.companyName})`
+                // If specific fetch returns array of 1 or filtered list, handle it.
+                // If API ignores ID and returns all, we might need to find by ID. 
+                // But usually R with ID returns that item. Let's assume it returns items.
+                const actualClient = Array.isArray(clData) ? clData.find(c => c.id === qData.clientId) || clData[0] : clData
+
+                if (actualClient) qData.clientName = `${actualClient.firstName} ${actualClient.lastName} (${actualClient.companyName})`
             }
 
             if (qData.handlerId && !qData.handlerName) {
-                const hlRes = await manageHandler({ id: qData.handlerId, spType: "E" })
+                const hlPayload = {
+                    id: qData.handlerId,
+                    handlerId: "string",
+                    handlerName: "string",
+                    emailId: "string",
+                    mobileNo: "string",
+                    roleId: 0,
+                    createdBy: 0,
+                    modifiedBy: 0,
+                    isActive: true,
+                    spType: "R"
+                }
+                const hlRes = await manageHandler(hlPayload)
                 const hlData = hlRes.data?.data || (Array.isArray(hlRes.data) ? hlRes.data[0] : hlRes.data)
-                if (hlData) qData.handlerName = hlData.handlerName
+                const actualHandler = Array.isArray(hlData) ? hlData.find(h => h.id === qData.handlerId) || hlData[0] : hlData
+
+                if (actualHandler) qData.handlerName = actualHandler.handlerName
             }
 
             // Re-set query with potential extra names
@@ -604,6 +637,7 @@ const ConfirmQuery = () => {
                             <Select label="Supplier" value={guide.supplierId}
                                 onChange={e => updateGuide(idx, 'supplierId', e.target.value)}
                                 options={suppliers}
+                                placeholder={guide.supplierName || "Select Supplier"}
                             />
                             <Input label="Guide Name" value={guide.guideName} onChange={e => updateGuide(idx, 'guideName', e.target.value)} />
                             <Select label="Gender" value={guide.gender} onChange={e => updateGuide(idx, 'gender', e.target.value)}
