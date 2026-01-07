@@ -2,10 +2,14 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import PageHeader from '@components/PageHeader'
 import Button from '@components/Button'
+import { Eye, Pencil, Trash2, CheckCircle } from 'lucide-react'
 import Loader from '@components/Loader'
-import { manageQuery } from '@api/query.api'
-import { manageClient, manageCity, manageCountry } from '@api/masters.api'
+import { manageQuery, manageConfirmQuery } from '@api/query.api'
+import { manageClient, manageCity, manageCountry, manageSupplier, manageCurrency } from '@api/masters.api'
+
 import { toast } from 'react-hot-toast'
+
+import { Calendar, User, Building, Users, Banknote, FileText, Briefcase, Printer } from 'lucide-react'
 
 const ViewQuery = () => {
     const { id } = useParams()
@@ -16,6 +20,16 @@ const ViewQuery = () => {
     // Additional details for display
     const [client, setClient] = useState(null)
     const [locationNames, setLocationNames] = useState({}) // map ID to name
+
+    // Confirmed query details
+    const [confirmedQuery, setConfirmedQuery] = useState(null)
+    const [suppliers, setSuppliers] = useState([])
+    const [currencies, setCurrencies] = useState([])
+
+    // --- Voucher Handlers ---
+    const handleGenerateVoucher = () => {
+        navigate(`/service-voucher/${id}`)
+    }
 
     useEffect(() => {
         if (id) {
@@ -61,8 +75,15 @@ const ViewQuery = () => {
                     fetchClientDetails(queryData.clientId)
                 }
 
-                // ... rest of the location name fetching logic ...
+                // Fetch location names
                 fetchCountriesAndMap(queryData)
+
+                // Fetch confirmed query details if status is Confirmed
+                if (queryData.queryStatus?.toLowerCase() === 'confirmed') {
+                    await fetchConfirmedQueryDetails(queryData.id)
+                    await fetchSuppliers()
+                    await fetchCurrencies()
+                }
             } else {
                 toast.error("Query not found")
             }
@@ -123,13 +144,144 @@ const ViewQuery = () => {
         } catch (e) { console.error(e) }
     }
 
+    const fetchConfirmedQueryDetails = async (queryId) => {
+        try {
+            const payload = {
+                queryId: parseInt(queryId),
+                isVisaIncluded: true,
+                finalItinerary: "string",
+                miscellaneous: "string",
+                spType: "R",
+                tourLeads: [
+                    {
+                        leadName: "string",
+                        gender: "string",
+                        age: 0,
+                        visaStatus: "string"
+                    }
+                ],
+                services: [
+                    {
+                        countryId: 0,
+                        cityId: 0,
+                        serviceType: "string",
+                        serviceCharge: 0,
+                        currencyId: 0,
+                        supplierId: 0,
+                        supplierName: "string",
+                        serviceDate: new Date().toISOString(),
+                        description: "string",
+                        checkInDate: new Date().toISOString(),
+                        checkOutDate: new Date().toISOString(),
+                        pickupLocation: "string",
+                        dropLocation: "string",
+                        mealType: "string"
+                    }
+                ],
+                guides: [
+                    {
+                        supplierId: 0,
+                        supplierName: "string",
+                        guideName: "string",
+                        gender: "string",
+                        contactNumber: "string",
+                        language: "string"
+                    }
+                ]
+            }
+            const res = await manageConfirmQuery(payload)
+            console.log("Confirmed Query Response:", res.data)
+
+            // The API returns data directly in res.data.data, potentially as an array
+            const rawData = res.data?.data
+            const confirmedData = Array.isArray(rawData) ? rawData[0] : rawData
+
+            if (confirmedData) {
+                console.log("Setting confirmed query data:", confirmedData)
+                setConfirmedQuery(confirmedData)
+            }
+        } catch (error) {
+            console.error("Error fetching confirmed query details:", error)
+        }
+    }
+
+    const fetchSuppliers = async () => {
+        try {
+            const payload = {
+                id: 0,
+                fullName: "string",
+                companyContactNo: "string",
+                companyEmailId: "string",
+                companyName: "string",
+                gstCertificate: "string",
+                isGSTIN: true,
+                gstNumber: "string",
+                address: "string",
+                countryId: 0,
+                stateId: 0,
+                cityId: 0,
+                createdBy: 0,
+                modifiedBy: 0,
+                isActive: true,
+                spType: "R"
+            }
+            const res = await manageSupplier(payload)
+            const data = res.data?.data || (Array.isArray(res.data) ? res.data : []) || []
+
+            const uniqueSuppliers = []
+            const sIds = new Set()
+            data.forEach(s => {
+                if (!sIds.has(s.id)) {
+                    sIds.add(s.id)
+                    uniqueSuppliers.push({
+                        value: s.id,
+                        label: s.companyName || s.supplierName || s.fullName || 'Unknown Supplier'
+                    })
+                }
+            })
+            setSuppliers(uniqueSuppliers)
+        } catch (error) {
+            console.error("Error fetching suppliers:", error)
+        }
+    }
+
+    const fetchCurrencies = async () => {
+        try {
+            const payload = {
+                id: 0,
+                currencyName: "string",
+                currencySign: "string",
+                isActive: true,
+                isDeleted: false,
+                spType: "R"
+            }
+            const res = await manageCurrency(payload)
+            const data = res.data?.data || (Array.isArray(res.data) ? res.data : []) || []
+
+            const uniqueCurrencies = []
+            const cIds = new Set()
+            data.forEach(c => {
+                if (!cIds.has(c.id)) {
+                    cIds.add(c.id)
+                    uniqueCurrencies.push({
+                        value: c.id,
+                        label: `${c.currencyName} (${c.currencySign})`
+                    })
+                }
+            })
+            setCurrencies(uniqueCurrencies)
+        } catch (error) {
+            console.error("Error fetching currencies:", error)
+        }
+    }
+
     if (loading) return <Loader fullScreen text="Loading query..." />
     if (!query) return <div className="p-8 text-center">Query not found</div>
 
     const clientName = client ? `${client.firstName} ${client.lastName}` : (query.clientName || 'Unknown')
 
     return (
-        <div>
+        <div className="pb-10">
             <PageHeader
                 title={`Query #${query.queryNo || query.id}`}
                 subtitle={`Client: ${clientName}`}
@@ -140,17 +292,29 @@ const ViewQuery = () => {
                 ]}
                 actions={
                     <div className="flex gap-3">
+                        {query.queryStatus?.toLowerCase() === 'confirmed' && (
+                            <Button
+                                variant="outline"
+                                onClick={handleGenerateVoucher}
+                                disabled={false}
+                                icon={<Printer size={18} />}
+                            >
+                                Generate Service Voucher
+                            </Button>
+                        )}
                         <Button variant="outline" onClick={() => navigate(`/queries/edit/${id}`)}>
                             Edit Details
                         </Button>
-                        <Button variant="primary" onClick={() => navigate(`/queries/${id}/confirm`)}>
-                            Confirm Query
-                        </Button>
+                        {query.queryStatus?.toLowerCase() !== 'confirmed' && (
+                            <Button variant="primary" onClick={() => navigate(`/queries/${id}/confirm`)}>
+                                Confirm Query
+                            </Button>
+                        )}
                     </div>
                 }
             />
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="lg:col-span-2 space-y-6">
                     <div className="card">
                         <h3 className="text-lg font-semibold mb-4 border-b pb-2">Client Information</h3>
@@ -252,9 +416,237 @@ const ViewQuery = () => {
                             <p className="text-gray-500 italic">No destinations specified</p>
                         )}
                     </div>
+
+                    {/* Confirmed Query Details - Show only if status is Confirmed */}
+                    {query.queryStatus?.toLowerCase() === 'confirmed' && confirmedQuery && (
+                        <>
+                            {/* Tour Leads */}
+                            {confirmedQuery.tourLeads && confirmedQuery.tourLeads.length > 0 && (
+                                <div className="card">
+                                    <h3 className="text-lg font-semibold mb-4 border-b pb-2">Tour Leads / Travellers</h3>
+                                    <div className="space-y-3">
+                                        {confirmedQuery.tourLeads.map((lead, idx) => (
+                                            <div key={idx} className="grid grid-cols-4 gap-4 p-3 bg-gray-50 rounded">
+                                                <div>
+                                                    <dt className="text-xs text-secondary-600">Name</dt>
+                                                    <dd className="font-medium">{lead.leadName || '-'}</dd>
+                                                </div>
+                                                <div>
+                                                    <dt className="text-xs text-secondary-600">Gender</dt>
+                                                    <dd className="font-medium">{lead.gender || '-'}</dd>
+                                                </div>
+                                                <div>
+                                                    <dt className="text-xs text-secondary-600">Age</dt>
+                                                    <dd className="font-medium">{lead.age || '-'}</dd>
+                                                </div>
+                                                <div>
+                                                    <dt className="text-xs text-secondary-600">Visa Status</dt>
+                                                    <dd className="font-medium">{lead.visaStatus || '-'}</dd>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Services by Destination */}
+                            {confirmedQuery.services && confirmedQuery.services.length > 0 && (
+                                <div className="card">
+                                    <h3 className="text-lg font-semibold mb-4 border-b pb-2">Services</h3>
+                                    <div className="space-y-4">
+                                        {/* Group services by destination */}
+                                        {query.destinations && query.destinations.map((dest, dIdx) => {
+                                            const destServices = confirmedQuery.services.filter(
+                                                srv => srv.countryId === dest.countryId && srv.cityId === dest.cityId
+                                            )
+
+                                            if (destServices.length === 0) return null
+
+                                            return (
+                                                <div key={dIdx} className="border rounded-lg p-4 bg-gray-50">
+                                                    <h4 className="font-bold text-blue-900 mb-3">
+                                                        {locationNames[`country_${dest.countryId}`] || dest.countryName} - {dest.cityName}
+                                                    </h4>
+                                                    <div className="space-y-3">
+                                                        {destServices.map((srv, sIdx) => {
+                                                            const supplier = suppliers.find(s => s.value === srv.supplierId)
+                                                            const currency = currencies.find(c => c.value === srv.currencyId)
+
+                                                            return (
+                                                                <div key={sIdx} className="bg-white p-3 rounded border">
+                                                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-2">
+                                                                        <div>
+                                                                            <dt className="text-xs text-secondary-600">Service Type</dt>
+                                                                            <dd className="font-medium text-sm">{srv.serviceType}</dd>
+                                                                        </div>
+                                                                        <div>
+                                                                            <dt className="text-xs text-secondary-600">Supplier</dt>
+                                                                            <dd className="font-medium text-sm">{srv.supplierName || supplier?.label || '-'}</dd>
+                                                                        </div>
+                                                                        <div>
+                                                                            <dt className="text-xs text-secondary-600">Charge</dt>
+                                                                            <dd className="font-medium text-sm">{srv.serviceCharge || 0}</dd>
+                                                                        </div>
+                                                                        <div>
+                                                                            <dt className="text-xs text-secondary-600">Currency</dt>
+                                                                            <dd className="font-medium text-sm">{currency?.label || '-'}</dd>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    {/* Type-specific details */}
+                                                                    {srv.serviceType === 'Transportation' && (srv.pickupLocation || srv.dropLocation) && (
+                                                                        <div className="grid grid-cols-3 gap-3 mt-2 pt-2 border-t">
+                                                                            <div>
+                                                                                <dt className="text-xs text-secondary-600">From</dt>
+                                                                                <dd className="text-sm">{srv.pickupLocation || '-'}</dd>
+                                                                            </div>
+                                                                            <div>
+                                                                                <dt className="text-xs text-secondary-600">To</dt>
+                                                                                <dd className="text-sm">{srv.dropLocation || '-'}</dd>
+                                                                            </div>
+                                                                            <div>
+                                                                                <dt className="text-xs text-secondary-600">Date</dt>
+                                                                                <dd className="text-sm">{srv.serviceDate ? new Date(srv.serviceDate).toLocaleString() : '-'}</dd>
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
+
+                                                                    {srv.serviceType === 'Hotels' && (srv.checkInDate || srv.checkOutDate) && (
+                                                                        <div className="grid grid-cols-2 gap-3 mt-2 pt-2 border-t">
+                                                                            <div>
+                                                                                <dt className="text-xs text-secondary-600">Check-In</dt>
+                                                                                <dd className="text-sm">{srv.checkInDate ? new Date(srv.checkInDate).toLocaleString() : '-'}</dd>
+                                                                            </div>
+                                                                            <div>
+                                                                                <dt className="text-xs text-secondary-600">Check-Out</dt>
+                                                                                <dd className="text-sm">{srv.checkOutDate ? new Date(srv.checkOutDate).toLocaleString() : '-'}</dd>
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
+
+                                                                    {srv.serviceType === 'Restaurants' && (
+                                                                        <div className="grid grid-cols-2 gap-3 mt-2 pt-2 border-t">
+                                                                            <div>
+                                                                                <dt className="text-xs text-secondary-600">Date</dt>
+                                                                                <dd className="text-sm">{srv.serviceDate ? new Date(srv.serviceDate).toLocaleString() : '-'}</dd>
+                                                                            </div>
+                                                                            <div>
+                                                                                <dt className="text-xs text-secondary-600">Meal Type</dt>
+                                                                                <dd className="text-sm">{srv.mealType || '-'}</dd>
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
+
+                                                                    {srv.description && (
+                                                                        <div className="mt-2 pt-2 border-t">
+                                                                            <dt className="text-xs text-secondary-600">Description</dt>
+                                                                            <dd className="text-sm text-gray-700">{srv.description}</dd>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            )
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Guides */}
+                            {confirmedQuery.guides && confirmedQuery.guides.length > 0 && (
+                                <div className="card">
+                                    <h3 className="text-lg font-semibold mb-4 border-b pb-2">Guides</h3>
+                                    <div className="space-y-3">
+                                        {confirmedQuery.guides.map((guide, idx) => {
+                                            const supplier = suppliers.find(s => s.value === guide.supplierId)
+
+                                            return (
+                                                <div key={idx} className="grid grid-cols-2 md:grid-cols-5 gap-4 p-3 bg-gray-50 rounded">
+                                                    <div>
+                                                        <dt className="text-xs text-secondary-600">Supplier</dt>
+                                                        <dd className="font-medium text-sm">{guide.supplierName || supplier?.label || '-'}</dd>
+                                                    </div>
+                                                    <div>
+                                                        <dt className="text-xs text-secondary-600">Guide Name</dt>
+                                                        <dd className="font-medium text-sm">{guide.guideName || '-'}</dd>
+                                                    </div>
+                                                    <div>
+                                                        <dt className="text-xs text-secondary-600">Gender</dt>
+                                                        <dd className="font-medium text-sm">{guide.gender || '-'}</dd>
+                                                    </div>
+                                                    <div>
+                                                        <dt className="text-xs text-secondary-600">Contact</dt>
+                                                        <dd className="font-medium text-sm">{guide.contactNumber || '-'}</dd>
+                                                    </div>
+                                                    <div>
+                                                        <dt className="text-xs text-secondary-600">Language</dt>
+                                                        <dd className="font-medium text-sm">{guide.language || '-'}</dd>
+                                                    </div>
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Final Itinerary */}
+                            {(confirmedQuery.finalItinerary || confirmedQuery.isVisaIncluded !== undefined) && (
+                                <div className="card">
+                                    <h3 className="text-lg font-semibold mb-4 border-b pb-2">Final Details</h3>
+                                    {confirmedQuery.isVisaIncluded !== undefined && (
+                                        <div className="mb-4">
+                                            <span className={`px-3 py-1 rounded-full text-sm font-medium ${confirmedQuery.isVisaIncluded
+                                                ? 'bg-green-100 text-green-800'
+                                                : 'bg-gray-100 text-gray-800'
+                                                }`}>
+                                                {confirmedQuery.isVisaIncluded ? '✓ Visa Included' : 'Visa Not Included'}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {confirmedQuery.finalItinerary && (
+                                        <div>
+                                            <dt className="text-sm font-medium text-secondary-600 mb-2">Final Itinerary</dt>
+                                            <dd className="text-sm bg-gray-50 p-4 rounded whitespace-pre-wrap">{confirmedQuery.finalItinerary}</dd>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </>
+                    )}
                 </div>
 
                 <div className="space-y-6">
+
+                    <div className='card py-3'>
+                        <div className='flex justify-between items-center mb-4 border-b pb-2'>
+                            <div className="text-lg font-semibold">Client Invoices</div>
+                            <Button variant="outline" className="py-1 px-2 text-sm" onClick={() => navigate(`/invoice/${id}`)}>
+                                Generate Invoice
+                            </Button>
+                        </div>
+                        <div className="flex flex-wrap justify-between items-center gap-2 bg-blue-100 py-1 px-2 rounded-md">
+                            <div className='text-blue-700 px-2 py-1 text-sm'>
+                                <span>Invoice No.</span>
+                            </div>
+                            <Button variant="outline" onClick={() => navigate(`/invoice/${id}`)} className="text-blue-700 hover:text-blue-800 p-1 border-none rounded hover:bg-gray-50 transition-colors"
+                                title="View">
+                                <Eye className="w-4 h-4" />
+                            </Button>
+                        </div>
+                        <div className='card-footer mt-4'>
+                            <div className='flex justify-between items-center px-2 bg-green-600 py-1 rounded-md'>
+                                <div className='text-sm text-gray-100'>
+                                    <span>Accumulated Invoice</span>
+                                </div>
+                                <Button variant="outline" className="py-0 px-2 text-sm text-gray-100 border-gray-100 hover:text-gray-800 hover:border-gray-100 transition-colors" onClick={() => navigate(`/invoice/${id}`)}>
+                                    Generate
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="card">
                         <h3 className="text-lg font-semibold mb-4 border-b pb-2">Status</h3>
                         <span className={`badge ${(query.queryStatus || '').toLowerCase() === 'confirmed' ? 'badge-success' :
@@ -273,9 +665,6 @@ const ViewQuery = () => {
                             </Button>
                             {/* Placeholders for future features */}
                             <Button variant="outline" className="w-full" disabled title="Coming soon">
-                                Generate Voucher
-                            </Button>
-                            <Button variant="outline" className="w-full" disabled title="Coming soon">
                                 Create Invoice
                             </Button>
                         </div>
@@ -293,8 +682,22 @@ const ViewQuery = () => {
                             </div>
                         </div>
                     )}
+
+                    {/* Service Voucher */}
+                    <div className="card">
+                        <h3 className="text-lg font-semibold mb-4 border-b pb-2">Service Voucher</h3>
+                        <div className="flex flex-wrap gap-2">
+                            <Button variant="outline" className="w-full" onClick={() => navigate(`/service-voucher/${id}`)}>
+                                View Service Voucher
+                            </Button>
+                        </div>
+                    </div>
+
+
                 </div>
             </div>
+
+
         </div>
     )
 }

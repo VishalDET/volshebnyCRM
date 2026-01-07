@@ -20,6 +20,7 @@ const ConfirmQuery = () => {
     const [query, setQuery] = useState(null)
     const [client, setClient] = useState(null)
     const [suppliers, setSuppliers] = useState([])
+    const [suppliersByDest, setSuppliersByDest] = useState({}) // { [destIndex]: [suppliers] }
     const [currencies, setCurrencies] = useState([])
     const [locationNames, setLocationNames] = useState({}) // map ID to name
 
@@ -91,7 +92,7 @@ const ConfirmQuery = () => {
             // 3. Fetch Location Maps
             fetchCountriesAndMap()
 
-            // 4. Fetch Suppliers
+            // 4. Fetch All Suppliers (for global use)
             const sPayload = {
                 id: 0,
                 fullName: "string",
@@ -120,24 +121,43 @@ const ConfirmQuery = () => {
                     sIds.add(s.id)
                     uniqueSuppliers.push({
                         value: s.id,
-                        label: s.supplierName
+                        label: s.companyName || s.supplierName || s.fullName || 'Unknown Supplier',
+                        countryId: s.countryId,
+                        cityId: s.cityId
                     })
                 }
             })
             setSuppliers(uniqueSuppliers)
 
+            // 5. Fetch suppliers for each destination
+            if (qData.destinations && qData.destinations.length > 0) {
+                const destSuppliers = {}
+                for (let i = 0; i < qData.destinations.length; i++) {
+                    const dest = qData.destinations[i]
+                    destSuppliers[i] = await fetchSuppliersForDestination(dest.countryId, dest.cityId)
+                }
+                setSuppliersByDest(destSuppliers)
+            }
+
             // 3. Fetch Currencies
-            const cPayload = { currencyId: 0, spType: "R" }
+            const cPayload = {
+                id: 0,
+                currencyName: "string",
+                currencySign: "string",
+                isActive: true,
+                isDeleted: false,
+                spType: "R"
+            }
             const cRes = await manageCurrency(cPayload)
             const cData = cRes.data?.data || (Array.isArray(cRes.data) ? cRes.data : []) || []
             const uniqueCurrencies = []
             const cIds = new Set()
             cData.forEach(c => {
-                if (!cIds.has(c.currencyId)) {
-                    cIds.add(c.currencyId)
+                if (!cIds.has(c.id)) {
+                    cIds.add(c.id)
                     uniqueCurrencies.push({
-                        value: c.currencyId,
-                        label: `${c.currencyName} (${c.currencyCode})`
+                        value: c.id,
+                        label: `${c.currencyName} (${c.currencySign})`
                     })
                 }
             })
@@ -269,6 +289,52 @@ const ConfirmQuery = () => {
         } catch (e) { console.error(e) }
     }
 
+    const fetchSuppliersForDestination = async (countryId, cityId) => {
+        try {
+            const payload = {
+                id: 0,
+                fullName: "string",
+                companyContactNo: "string",
+                companyEmailId: "string",
+                companyName: "string",
+                gstCertificate: "string",
+                isGSTIN: true,
+                gstNumber: "string",
+                address: "string",
+                countryId: countryId || 0,
+                stateId: 0,
+                cityId: cityId || 0,
+                createdBy: 0,
+                modifiedBy: 0,
+                isActive: true,
+                spType: "R"
+            }
+            const res = await manageSupplier(payload)
+            const data = res.data?.data || (Array.isArray(res.data) ? res.data : []) || []
+
+            // Filter suppliers by destination and remove duplicates
+            const uniqueSuppliers = []
+            const sIds = new Set()
+            data.forEach(s => {
+                // Match by country and optionally city
+                const matchesCountry = !countryId || s.countryId === countryId
+                const matchesCity = !cityId || s.cityId === cityId
+
+                if (matchesCountry && matchesCity && !sIds.has(s.id)) {
+                    sIds.add(s.id)
+                    uniqueSuppliers.push({
+                        value: s.id,
+                        label: s.companyName || s.supplierName || s.fullName || 'Unknown Supplier'
+                    })
+                }
+            })
+            return uniqueSuppliers
+        } catch (error) {
+            console.error('Error fetching suppliers for destination:', error)
+            return []
+        }
+    }
+
     // --- Tour Leads Handlers ---
     const addTourLead = () => {
         setTourLeads([...tourLeads, { leadName: '', gender: '', age: '', visaStatus: '' }])
@@ -337,7 +403,6 @@ const ConfirmQuery = () => {
         setGuides(updated)
     }
 
-
     const handleSubmit = async () => {
         setSubmitting(true)
         try {
@@ -347,7 +412,13 @@ const ConfirmQuery = () => {
                 query.destinations.forEach((dest, dIdx) => {
                     const destServices = servicesByDest[dIdx] || []
                     destServices.forEach(srv => {
-                        const sup = suppliers.find(s => s.value == srv.supplierId)
+                        // Try to find supplier in destination-specific list first, then global list
+                        const destSuppliers = suppliersByDest[dIdx] || []
+                        let sup = destSuppliers.find(s => s.value == srv.supplierId)
+                        if (!sup) {
+                            sup = suppliers.find(s => s.value == srv.supplierId)
+                        }
+
                         flatServices.push({
                             countryId: dest.countryId,
                             cityId: dest.cityId,
@@ -572,7 +643,7 @@ const ConfirmQuery = () => {
                                             />
                                             <Select label="Supplier" value={srv.supplierId}
                                                 onChange={e => updateService(dIdx, sIdx, 'supplierId', e.target.value)}
-                                                options={suppliers}
+                                                options={suppliersByDest[dIdx] || suppliers}
                                                 placeholder="Select Supplier"
                                             />
                                             <Select label="Currency" value={srv.currencyId}

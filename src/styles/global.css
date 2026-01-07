@@ -133,3 +133,55 @@
         display: none;
     }
 }
+
+/* Print Styles */
+@media print {
+
+    /* Collapse the background page to prevent ghost pages */
+    body,
+    html,
+    #root {
+        height: 0 !important;
+        overflow: hidden !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    /* Hide everything by default */
+    body * {
+        visibility: hidden;
+    }
+
+    /* Restore visibility for the voucher */
+    #printable-voucher,
+    #printable-voucher * {
+        visibility: visible !important;
+    }
+
+    /* Position the voucher on top of the collapsed page */
+    #printable-voucher {
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: auto !important;
+        margin: 0;
+        padding: 10mm;
+        /* Add internal padding for safe printing */
+        background: white;
+        z-index: 9999;
+    }
+
+    /* Minimal page margins to maximize paper usage */
+    @page {
+        size: A4;
+        margin: 0;
+        /* Let component padding handle margins */
+    }
+
+    /* Ensure background colors print */
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+}

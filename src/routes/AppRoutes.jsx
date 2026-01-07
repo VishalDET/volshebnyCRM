@@ -104,7 +104,7 @@ const AppRoutes = () => {
             <Route path="/queries/:id/pax" element={<ProtectedRoute><PaxDetails /></ProtectedRoute>} />
 
             {/* Service Vouchers */}
-            <Route path="/vouchers" element={<ProtectedRoute><ServiceVoucher /></ProtectedRoute>} />
+            <Route path="/service-voucher/:id" element={<ProtectedRoute><ServiceVoucher /></ProtectedRoute>} />
 
             {/* Client Invoices */}
             <Route path="/invoices/client" element={<ProtectedRoute><ClientInvoiceList /></ProtectedRoute>} />

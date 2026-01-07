@@ -67,9 +67,9 @@ const Modal = ({
                 >
                     {/* Header */}
                     {(title || showCloseButton) && (
-                        <div className="flex items-center justify-between p-6 border-b border-secondary-200">
+                        <div className="flex items-center justify-between p-4 border-b border-secondary-200">
                             {title && (
-                                <h3 className="text-xl font-semibold text-secondary-900">
+                                <h3 className="text-lg font-semibold text-secondary-900">
                                     {title}
                                 </h3>
                             )}
