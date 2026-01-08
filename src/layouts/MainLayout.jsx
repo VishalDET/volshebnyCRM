@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useState } from 'react'
 import { useAuth } from '@hooks/useAuth'
 import {
@@ -15,12 +15,9 @@ import {
     ChevronDown
 } from 'lucide-react'
 
-/**
- * MainLayout Component
- * Main application layout with sidebar navigation and header
- */
 const MainLayout = ({ children }) => {
     const navigate = useNavigate()
+    const { pathname } = useLocation()
     const { user, logout } = useAuth()
     const [sidebarOpen, setSidebarOpen] = useState(true)
 
@@ -30,14 +27,40 @@ const MainLayout = ({ children }) => {
     }
 
     const navigation = [
-        { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-        { name: 'Queries', href: '/queries', icon: FileText },
-        { name: 'Service Vouchers', href: '/vouchers', icon: Ticket },
-        { name: 'Client Invoices', href: '/invoices/client', icon: Receipt },
-        { name: 'Supplier Invoices', href: '/invoices/supplier', icon: FileSignature },
-        { name: 'Finance', href: '/finance', icon: Landmark },
-        { name: 'Masters', href: '/masters', icon: Settings },
+        {
+            title: 'MAIN',
+            items: [
+                { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+            ]
+        },
+        {
+            title: 'OPERATIONS',
+            items: [
+                { name: 'Queries', href: '/queries', icon: FileText },
+                { name: 'Service Vouchers', href: '/vouchers', icon: Ticket },
+            ]
+        },
+        {
+            title: 'BILLING',
+            items: [
+                { name: 'Client Invoices', href: '/invoices/client', icon: Receipt },
+                { name: 'Supplier Invoices', href: '/invoices/supplier', icon: FileSignature },
+            ]
+        },
+        {
+            title: 'ADMIN',
+            items: [
+                { name: 'Finance', href: '/finance', icon: Landmark },
+                { name: 'Masters', href: '/masters', icon: Settings },
+            ]
+        }
     ]
+
+    const isActive = (path) => {
+        if (path === '/dashboard' && pathname === '/dashboard') return true
+        if (path !== '/dashboard' && pathname.startsWith(path)) return true
+        return false
+    }
 
     return (
         <div className="min-h-screen bg-secondary-50">
@@ -64,23 +87,39 @@ const MainLayout = ({ children }) => {
                     </div>
 
                     {/* Navigation */}
-                    <nav className="flex-1 overflow-y-auto p-4 space-y-1">
-                        <ul className="space-y-1">
-                            {navigation.map((item) => {
-                                const Icon = item.icon
-                                return (
-                                    <li key={item.name}>
-                                        <Link
-                                            to={item.href}
-                                            className="flex items-center gap-3 px-3 py-2.5 text-secondary-600 rounded-lg hover:bg-primary-50 hover:text-primary-700 transition-all duration-200 group"
-                                        >
-                                            <Icon className="w-5 h-5 text-secondary-400 group-hover:text-primary-600 transition-colors" />
-                                            <span className="font-medium text-sm">{item.name}</span>
-                                        </Link>
-                                    </li>
-                                )
-                            })}
-                        </ul>
+                    <nav className="flex-1 overflow-y-auto p-4 space-y-6">
+                        {navigation.map((group) => (
+                            <div key={group.title} className="space-y-2">
+                                <h3 className="px-3 text-[10px] font-bold text-secondary-400 uppercase tracking-wider">
+                                    {group.title}
+                                </h3>
+                                <ul className="space-y-1">
+                                    {group.items.map((item) => {
+                                        const Icon = item.icon
+                                        const active = isActive(item.href)
+                                        return (
+                                            <li key={item.name}>
+                                                <Link
+                                                    to={item.href}
+                                                    className={`
+                                                        flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 group
+                                                        ${active
+                                                            ? 'bg-primary-50 text-primary-700'
+                                                            : 'text-secondary-600 hover:bg-secondary-50 hover:text-secondary-900'}
+                                                    `}
+                                                >
+                                                    <Icon className={`w-4.5 h-4.5 transition-colors ${active ? 'text-primary-600' : 'text-secondary-400 group-hover:text-secondary-600'}`} />
+                                                    <span>{item.name}</span>
+                                                    {active && (
+                                                        <div className="ml-auto w-1 h-1 rounded-full bg-primary-600"></div>
+                                                    )}
+                                                </Link>
+                                            </li>
+                                        )
+                                    })}
+                                </ul>
+                            </div>
+                        ))}
                     </nav>
 
                     {/* User Profile */}

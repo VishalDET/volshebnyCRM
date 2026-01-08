@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import PageHeader from '@components/PageHeader'
 import Button from '@components/Button'
-import { Eye, Pencil, Trash2, CheckCircle } from 'lucide-react'
+import { Eye, Pencil, Trash2, CheckCircle, Plus } from 'lucide-react'
 import Loader from '@components/Loader'
 import { manageQuery, manageConfirmQuery } from '@api/query.api'
+import { manageClientInvoice } from '@api/clientInvoice.api'
+import { manageSupplierInvoice } from '@api/supplierInvoice.api'
 import { manageClient, manageCity, manageCountry, manageSupplier, manageCurrency } from '@api/masters.api'
 
 import { toast } from 'react-hot-toast'
@@ -198,6 +200,58 @@ const ViewQuery = () => {
 
             if (confirmedData) {
                 console.log("Setting confirmed query data:", confirmedData)
+                // Fetch invoices to sum up the invoiced amount for the overview bar
+                try {
+                    const invPayload = {
+                        id: 0,
+                        queryId: parseInt(queryId),
+                        clientId: 0,
+                        invoiceNo: "",
+                        invoiceDate: null,
+                        dueDate: null,
+                        currencyId: 0,
+                        totalAmount: 0,
+                        taxAmount: 0,
+                        netAmount: 0,
+                        paymentStatus: "",
+                        userId: 0,
+                        isActive: true,
+                        isDeleted: false,
+                        createdBy: 0,
+                        modifiedBy: 0,
+                        spType: "R"
+                    }
+                    const invRes = await manageClientInvoice(invPayload)
+                    const invoices = invRes.data?.data || []
+                    confirmedData.totalInvoiced = invoices.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0)
+
+                    // Fetch supplier invoices for summary
+                    const supInvPayload = {
+                        id: 0,
+                        queryId: parseInt(queryId),
+                        supplierId: 0,
+                        serviceType: "",
+                        supplierInvNo: "",
+                        invoiceDate: null,
+                        dueDate: null,
+                        currencyId: 0,
+                        totalAmount: 0,
+                        taxAmount: 0,
+                        netAmount: 0,
+                        paymentStatus: "",
+                        userId: 0,
+                        spType: "R"
+                    }
+                    const supInvRes = await manageSupplierInvoice(supInvPayload)
+                    const supInvoices = supInvRes.data?.data || []
+                    confirmedData.totalSupplierCost = supInvoices.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0)
+                    confirmedData.supplierInvoiceCount = supInvoices.length
+                } catch (err) {
+                    console.error("Error calculating total invoiced/costs:", err)
+                    confirmedData.totalInvoiced = 0
+                    confirmedData.totalSupplierCost = 0
+                    confirmedData.supplierInvoiceCount = 0
+                }
                 setConfirmedQuery(confirmedData)
             }
         } catch (error) {
@@ -622,28 +676,81 @@ const ViewQuery = () => {
                     <div className='card py-3'>
                         <div className='flex justify-between items-center mb-4 border-b pb-2'>
                             <div className="text-lg font-semibold">Client Invoices</div>
-                            <Button variant="outline" className="py-1 px-2 text-sm" onClick={() => navigate(`/invoice/${id}`)}>
-                                Generate Invoice
+                            <Button variant="outline" className="py-1 px-2 text-sm" onClick={() => navigate(`/invoices/client/create/${id}`)}>
+                                + New Invoice
                             </Button>
                         </div>
-                        <div className="flex flex-wrap justify-between items-center gap-2 bg-blue-100 py-1 px-2 rounded-md">
-                            <div className='text-blue-700 px-2 py-1 text-sm'>
-                                <span>Invoice No.</span>
+
+                        {/* Budget Stats Summary */}
+                        <div className="grid grid-cols-1 gap-2 mb-4">
+                            <div className="flex justify-between text-xs font-bold px-2">
+                                <span className="text-gray-500">BUDGET: ₹{query.budget?.toLocaleString() || 0}</span>
+                                <span className="text-blue-600">REMAINING: ₹{((query.budget || 0) - (confirmedQuery?.totalInvoiced || 0)).toLocaleString()}</span>
                             </div>
-                            <Button variant="outline" onClick={() => navigate(`/invoice/${id}`)} className="text-blue-700 hover:text-blue-800 p-1 border-none rounded hover:bg-gray-50 transition-colors"
-                                title="View">
+                            <div className="w-full bg-gray-200 rounded-full h-1.5 px-0">
+                                <div
+                                    className="bg-blue-600 h-1.5 rounded-full"
+                                    style={{ width: `${Math.min(100, (((confirmedQuery?.totalInvoiced || 0) / (query.budget || 1)) * 100))}%` }}
+                                ></div>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-wrap justify-between items-center gap-2 bg-blue-50 py-2 px-3 rounded-md border border-blue-100">
+                            <div className='text-blue-900 font-bold text-sm'>
+                                <span>View All Invoices</span>
+                            </div>
+                            <Button variant="outline" onClick={() => navigate(`/invoices/client/query/${id}`)} className="text-blue-700 hover:text-blue-800 p-1 bg-white border-blue-200 rounded hover:bg-gray-50 transition-colors"
+                                title="View List">
                                 <Eye className="w-4 h-4" />
                             </Button>
                         </div>
+
                         <div className='card-footer mt-4'>
-                            <div className='flex justify-between items-center px-2 bg-green-600 py-1 rounded-md'>
-                                <div className='text-sm text-gray-100'>
-                                    <span>Accumulated Invoice</span>
+                            <div className='flex justify-between items-center px-3 bg-gray-900 py-2 rounded-md shadow-sm'>
+                                <div className='text-xs font-black text-gray-100 uppercase tracking-widest'>
+                                    <span>Accumulated</span>
                                 </div>
-                                <Button variant="outline" className="py-0 px-2 text-sm text-gray-100 border-gray-100 hover:text-gray-800 hover:border-gray-100 transition-colors" onClick={() => navigate(`/invoice/${id}`)}>
-                                    Generate
+                                <Button
+                                    variant="outline"
+                                    className="py-1 px-3 text-[10px] font-bold text-gray-100 border-gray-500 hover:text-white hover:border-white transition-colors uppercase tracking-widest"
+                                    onClick={() => navigate(`/invoices/client/accumulated/${id}`)}
+                                >
+                                    Print Final
                                 </Button>
                             </div>
+                        </div>
+                    </div>
+
+                    <div className='card py-3'>
+                        <div className='flex justify-between items-center mb-4 border-b pb-2'>
+                            <div className="text-lg font-semibold">Supplier Invoices</div>
+                            <Button variant="outline" className="py-1 px-2 text-sm" onClick={() => navigate(`/invoices/supplier/create/${id}`)}>
+                                + New Invoice
+                            </Button>
+                        </div>
+
+                        {/* Cost Summary */}
+                        <div className="grid grid-cols-1 gap-2 mb-4">
+                            <div className="flex justify-between text-xs font-bold px-2">
+                                <span className="text-gray-500 uppercase tracking-tight">TOTAL COST: ₹{confirmedQuery?.totalSupplierCost?.toLocaleString() || 0}</span>
+                                <span className="text-red-600 uppercase tracking-tight">COUNT: {confirmedQuery?.supplierInvoiceCount || 0}</span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-1.5 px-0">
+                                <div
+                                    className="bg-red-500 h-1.5 rounded-full"
+                                    style={{ width: `${Math.min(100, (((confirmedQuery?.totalSupplierCost || 0) / (query.budget || 1)) * 100))}%` }}
+                                ></div>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-wrap justify-between items-center gap-2 bg-red-50 py-2 px-3 rounded-md border border-red-100">
+                            <div className='text-red-900 font-bold text-sm'>
+                                <span>Supplier Invoices</span>
+                            </div>
+                            <Button variant="outline" onClick={() => navigate(`/invoices/supplier/query/${id}`)} className="text-red-700 hover:text-red-800 p-1 bg-white border-red-200 rounded hover:bg-gray-50 transition-colors"
+                                title="View List">
+                                <Eye className="w-4 h-4" />
+                            </Button>
                         </div>
                     </div>
 
@@ -660,12 +767,20 @@ const ViewQuery = () => {
                     <div className="card">
                         <h3 className="text-lg font-semibold mb-4 border-b pb-2">Quick Actions</h3>
                         <div className="space-y-2">
-                            <Button variant="outline" className="w-full" onClick={() => navigate(`/queries/edit/${id}`)}>
-                                Edit Details
+                            <Button variant="outline" className="w-full text-left justify-start" onClick={() => navigate(`/queries/edit/${id}`)}>
+                                <Pencil size={16} className="mr-2" /> Edit Query Details
                             </Button>
-                            {/* Placeholders for future features */}
-                            <Button variant="outline" className="w-full" disabled title="Coming soon">
-                                Create Invoice
+                            <Button variant="outline" className="w-full text-left justify-start" onClick={() => navigate(`/invoices/client/create/${id}`)}>
+                                <Plus size={16} className="mr-2" /> Create Client Invoice
+                            </Button>
+                            <Button variant="outline" className="w-full text-left justify-start" onClick={() => navigate(`/invoices/supplier/create/${id}`)}>
+                                <Plus size={16} className="mr-2" /> Create Supplier Invoice
+                            </Button>
+                            <Button variant="outline" className="w-full text-left justify-start" onClick={() => navigate(`/invoices/client/query/${id}`)}>
+                                <FileText size={16} className="mr-2" /> View Client Invoices
+                            </Button>
+                            <Button variant="outline" className="w-full text-left justify-start" onClick={() => navigate(`/invoices/supplier/query/${id}`)}>
+                                <FileText size={16} className="mr-2" /> View Supplier Invoices
                             </Button>
                         </div>
                     </div>

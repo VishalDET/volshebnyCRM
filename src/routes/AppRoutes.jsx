@@ -27,6 +27,7 @@ import ServiceVoucher from '@pages/serviceVoucher/ServiceVoucher'
 import ClientInvoiceList from '@pages/clientInvoices/ClientInvoiceList'
 import CreateClientInvoice from '@pages/clientInvoices/CreateClientInvoice'
 import AddClientPayment from '@pages/clientInvoices/AddClientPayment'
+import InvoicePDF from '@pages/clientInvoices/InvoicePDF'
 
 // Supplier Invoices
 import SupplierInvoiceList from '@pages/supplierInvoices/SupplierInvoiceList'
@@ -108,12 +109,20 @@ const AppRoutes = () => {
 
             {/* Client Invoices */}
             <Route path="/invoices/client" element={<ProtectedRoute><ClientInvoiceList /></ProtectedRoute>} />
+            <Route path="/invoices/client/query/:queryId" element={<ProtectedRoute><ClientInvoiceList /></ProtectedRoute>} />
             <Route path="/invoices/client/create" element={<ProtectedRoute><CreateClientInvoice /></ProtectedRoute>} />
+            <Route path="/invoices/client/create/:queryId" element={<ProtectedRoute><CreateClientInvoice /></ProtectedRoute>} />
+            <Route path="/invoices/client/edit/:id" element={<ProtectedRoute><CreateClientInvoice /></ProtectedRoute>} />
+            <Route path="/invoices/client/preview/:id" element={<ProtectedRoute><InvoicePDF /></ProtectedRoute>} />
+            <Route path="/invoices/client/accumulated/:queryId" element={<ProtectedRoute><InvoicePDF isAccumulated={true} /></ProtectedRoute>} />
             <Route path="/invoices/client/:id/payment" element={<ProtectedRoute><AddClientPayment /></ProtectedRoute>} />
 
             {/* Supplier Invoices */}
             <Route path="/invoices/supplier" element={<ProtectedRoute><SupplierInvoiceList /></ProtectedRoute>} />
+            <Route path="/invoices/supplier/query/:queryId" element={<ProtectedRoute><SupplierInvoiceList /></ProtectedRoute>} />
             <Route path="/invoices/supplier/create" element={<ProtectedRoute><CreateSupplierInvoice /></ProtectedRoute>} />
+            <Route path="/invoices/supplier/create/:queryId" element={<ProtectedRoute><CreateSupplierInvoice /></ProtectedRoute>} />
+            <Route path="/invoices/supplier/edit/:id" element={<ProtectedRoute><CreateSupplierInvoice /></ProtectedRoute>} />
             <Route path="/invoices/supplier/:id/payment" element={<ProtectedRoute><AddSupplierPayment /></ProtectedRoute>} />
 
             {/* Finance */}
