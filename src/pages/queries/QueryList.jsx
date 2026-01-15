@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import PageHeader from '@components/PageHeader'
 import Button from '@components/Button'
 import Table from '@components/Table'
@@ -10,9 +10,22 @@ import { toast } from 'react-hot-toast'
 
 const QueryList = () => {
     const navigate = useNavigate()
+    const { search } = useLocation()
+    const urlStatus = new URLSearchParams(search).get('status')
+
     const [queries, setQueries] = useState([])
     const [isLoading, setIsLoading] = useState(false)
-    const [filters, setFilters] = useState({ status: '' })
+    const [filters, setFilters] = useState({ status: urlStatus || '' })
+
+    useEffect(() => {
+        if (urlStatus) {
+            setFilters({ status: urlStatus })
+        }
+    }, [urlStatus])
+
+    useEffect(() => {
+        fetchQueries()
+    }, [filters])
 
     const [deleteId, setDeleteId] = useState(null)
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)

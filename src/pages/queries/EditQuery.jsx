@@ -4,9 +4,10 @@ import PageHeader from '@components/PageHeader'
 import Button from '@components/Button'
 import Input from '@components/Input'
 import Select from '@components/Select'
-import { toast } from 'react-hot-toast'
-import { manageQuery } from '@api/query.api'
-import { manageClient, manageHandler, manageCountry, manageCity } from '@api/masters.api'
+import { manageQuery, manageConfirmQuery } from '@api/query.api'
+import { manageClient, manageHandler, manageCountry, manageCity, manageSupplier, manageCurrency } from '@api/masters.api'
+import Loader from '@components/Loader'
+import { Plus, Trash2, Calendar, User, Building, Users, Banknote, FileText, Briefcase } from 'lucide-react'
 
 const EditQuery = () => {
     const navigate = useNavigate()
@@ -18,6 +19,10 @@ const EditQuery = () => {
     const [handlers, setHandlers] = useState([])
     const [countries, setCountries] = useState([])
     const [cityOptions, setCityOptions] = useState({}) // Cache cities by countryId
+    const [suppliers, setSuppliers] = useState([])
+    const [currencies, setCurrencies] = useState([])
+    const [suppliersByDest, setSuppliersByDest] = useState({}) // { [destIndex]: [suppliers] }
+    const [locationNames, setLocationNames] = useState({}) // map ID to name
 
     // Form State
     const initialFormState = {
@@ -40,6 +45,17 @@ const EditQuery = () => {
         specialRequirements: ''
     }
     const [formData, setFormData] = useState(initialFormState)
+
+    // Confirmation States
+    const [tourLeads, setTourLeads] = useState([])
+    const [servicesByDest, setServicesByDest] = useState({})
+    const [guides, setGuides] = useState([])
+    const [generalInfo, setGeneralInfo] = useState({
+        isVisaIncluded: false,
+        finalItinerary: '',
+        miscellaneous: ''
+    })
+    const [isConfirmedDataLoading, setIsConfirmedDataLoading] = useState(false)
 
     useEffect(() => {
         const init = async () => {
@@ -170,7 +186,71 @@ const EditQuery = () => {
                     }
                 })
                 setCountries(uniqueCountries)
+                // Map countries for locationNames
+                const map = {}
+                uniqueCountries.forEach(c => map[`country_${c.value}`] = c.label)
+                setLocationNames(prev => ({ ...prev, ...map }))
             }
+
+            // Fetch Suppliers
+            const sPayload = {
+                id: 0,
+                fullName: "string",
+                companyContactNo: "string",
+                companyEmailId: "string",
+                companyName: "string",
+                gstCertificate: "string",
+                isGSTIN: true,
+                gstNumber: "string",
+                address: "string",
+                countryId: 0,
+                stateId: 0,
+                cityId: 0,
+                createdBy: 0,
+                modifiedBy: 0,
+                isActive: true,
+                spType: "R"
+            }
+            const sRes = await manageSupplier(sPayload)
+            const sData = sRes.data?.data || (Array.isArray(sRes.data) ? sRes.data : []) || []
+            const uniqueSuppliers = []
+            const sIds = new Set()
+            sData.forEach(s => {
+                if (!sIds.has(s.id)) {
+                    sIds.add(s.id)
+                    uniqueSuppliers.push({
+                        value: s.id,
+                        label: s.companyName || s.supplierName || s.fullName || 'Unknown Supplier',
+                        countryId: s.countryId,
+                        cityId: s.cityId
+                    })
+                }
+            })
+            setSuppliers(uniqueSuppliers)
+
+            // Fetch Currencies
+            const currPayload = {
+                id: 0,
+                currencyName: "string",
+                currencySign: "string",
+                isActive: true,
+                isDeleted: false,
+                spType: "R"
+            }
+            const currRes = await manageCurrency(currPayload)
+            const currData = currRes.data?.data || (Array.isArray(currRes.data) ? currRes.data : []) || []
+            const uniqueCurrencies = []
+            const currIds = new Set()
+            currData.forEach(c => {
+                if (!currIds.has(c.id)) {
+                    currIds.add(c.id)
+                    uniqueCurrencies.push({
+                        value: String(c.id),
+                        label: `${c.currencyName} (${c.currencySign})`
+                    })
+                }
+            })
+            setCurrencies(uniqueCurrencies)
         } catch (error) {
             console.error("Error fetching masters:", error)
             toast.error("Failed to load master data")
@@ -225,6 +305,19 @@ const EditQuery = () => {
             const queryData = Array.isArray(queryDataList) ? queryDataList[0] : queryDataList
 
             if (queryData) {
+                // Seed locationNames from queryData names if available
+                const initialNames = {}
+                if (queryData.originCountryName) initialNames[`country_${queryData.originCountryId}`] = queryData.originCountryName
+                if (queryData.originCityName) initialNames[`city_${queryData.originCityId}`] = queryData.originCityName
+
+                if (queryData.destinations) {
+                    queryData.destinations.forEach(d => {
+                        if (d.countryName) initialNames[`country_${d.countryId}`] = d.countryName
+                        if (d.cityName) initialNames[`city_${d.cityId}`] = d.cityName
+                    })
+                }
+                setLocationNames(prev => ({ ...prev, ...initialNames }))
+
                 // Pre-fetch cities for origin country
                 if (queryData.originCountryId) {
                     fetchCitiesForCountry(queryData.originCountryId)
@@ -278,6 +371,11 @@ const EditQuery = () => {
                     queryStatus: queryData.queryStatus || 'Pending',
                     specialRequirements: queryData.specialRequirements || ''
                 })
+
+                // If confirmed, fetch confirmation details
+                if (queryData.queryStatus?.toLowerCase() === 'confirmed') {
+                    fetchConfirmDetails(queryData.id, queryData.destinations)
+                }
             }
         } catch (error) {
             console.error("Error fetching query details:", error)
@@ -289,7 +387,6 @@ const EditQuery = () => {
 
     const fetchCitiesForCountry = async (countryId) => {
         if (!countryId || cityOptions[countryId]) return
-
         try {
             const payload = {
                 cityId: 0,
@@ -302,24 +399,178 @@ const EditQuery = () => {
             }
             const res = await manageCity(payload)
             if (res.data?.data) {
-                // Filter by countryId (client-side safeguard) and then filter duplicates
                 const uniqueCities = []
                 const cityIds = new Set()
+                const map = {}
                 res.data.data.forEach(c => {
-                    const matchesCountry = c.countryId === parseInt(countryId)
-                    if (matchesCountry && !cityIds.has(c.cityId)) {
+                    if (c.countryId === parseInt(countryId) && !cityIds.has(c.cityId)) {
                         cityIds.add(c.cityId)
                         uniqueCities.push({ value: c.cityId, label: c.cityName })
+                        map[`city_${c.cityId}`] = c.cityName
                     }
                 })
-                setCityOptions(prev => ({
-                    ...prev,
-                    [countryId]: uniqueCities
-                }))
+                setLocationNames(prev => ({ ...prev, ...map }))
+                setCityOptions(prev => ({ ...prev, [countryId]: uniqueCities }))
             }
         } catch (error) {
             console.error(`Error fetching cities for country ${countryId}:`, error)
         }
+    }
+
+    const fetchConfirmDetails = async (queryId, destinations = []) => {
+        setIsConfirmedDataLoading(true)
+        try {
+            const payload = {
+                queryId: parseInt(queryId),
+                isVisaIncluded: true,
+                finalItinerary: "string",
+                miscellaneous: "string",
+                spType: "R", // Read
+                tourLeads: [],
+                services: [],
+                guides: []
+            }
+            const res = await manageConfirmQuery(payload)
+            const rawData = res.data?.data
+            const confirmedData = Array.isArray(rawData) ? rawData[0] : rawData
+
+            if (confirmedData) {
+                setTourLeads(confirmedData.tourLeads?.length > 0 ? confirmedData.tourLeads : [{ leadName: '', gender: '', age: '', visaStatus: '' }])
+                setGuides(confirmedData.guides?.length > 0 ? confirmedData.guides : [{ supplierId: '', supplierName: '', guideName: '', gender: '', contactNumber: '', language: '' }])
+                setGeneralInfo({
+                    isVisaIncluded: confirmedData.isVisaIncluded || false,
+                    finalItinerary: confirmedData.finalItinerary || '',
+                    miscellaneous: ''
+                })
+
+                // Group services by destination index
+                if (destinations.length > 0 && confirmedData.services) {
+                    const grouped = {}
+                    destinations.forEach((dest, dIdx) => {
+                        const destServices = confirmedData.services.filter(srv =>
+                            srv.countryId === dest.countryId &&
+                            srv.cityId === dest.cityId
+                        ).map(srv => ({
+                            ...srv,
+                            serviceDate: srv.serviceDate ? srv.serviceDate.split('T')[0] : '',
+                            checkInDate: srv.checkInDate ? srv.checkInDate.split('T')[0] : '',
+                            checkOutDate: srv.checkOutDate ? srv.checkOutDate.split('T')[0] : ''
+                        }))
+                        grouped[dIdx] = destServices
+                        // Also fetch suppliers for each destination for the selects
+                        fetchSuppliersForDestination(dest.countryId, dest.cityId, dIdx)
+                    })
+                    setServicesByDest(grouped)
+                }
+            } else {
+                setTourLeads([{ leadName: '', gender: '', age: '', visaStatus: '' }])
+                setGuides([{ supplierId: '', supplierName: '', guideName: '', gender: '', contactNumber: '', language: '' }])
+            }
+        } catch (error) {
+            console.error("Error fetching confirmation details:", error)
+            toast.error("Failed to load confirmation details")
+        } finally {
+            setIsConfirmedDataLoading(false)
+        }
+    }
+
+    const fetchSuppliersForDestination = async (countryId, cityId, destIndex) => {
+        try {
+            const payload = {
+                id: 0,
+                fullName: "string",
+                companyContactNo: "string",
+                companyEmailId: "string",
+                companyName: "string",
+                gstCertificate: "string",
+                isGSTIN: true,
+                gstNumber: "string",
+                address: "string",
+                countryId: countryId || 0,
+                stateId: 0,
+                cityId: cityId || 0,
+                createdBy: 0,
+                modifiedBy: 0,
+                isActive: true,
+                spType: "R"
+            }
+            const res = await manageSupplier(payload)
+            const data = res.data?.data || (Array.isArray(res.data) ? res.data : []) || []
+
+            const uniqueSuppliers = []
+            const sIds = new Set()
+            data.forEach(s => {
+                const matchesCountry = !countryId || s.countryId === countryId
+                const matchesCity = !cityId || s.cityId === cityId
+
+                if (matchesCountry && matchesCity && !sIds.has(s.id)) {
+                    sIds.add(s.id)
+                    uniqueSuppliers.push({
+                        value: s.id,
+                        label: s.companyName || s.supplierName || s.fullName || 'Unknown Supplier'
+                    })
+                }
+            })
+            setSuppliersByDest(prev => ({ ...prev, [destIndex]: uniqueSuppliers }))
+        } catch (error) {
+            console.error('Error fetching suppliers for destination:', error)
+        }
+    }
+
+    // --- Tour Leads Handlers ---
+    const addTourLead = () => setTourLeads([...tourLeads, { leadName: '', gender: '', age: '', visaStatus: '' }])
+    const removeTourLead = (index) => tourLeads.length > 1 && setTourLeads(tourLeads.filter((_, i) => i !== index))
+    const updateTourLead = (index, field, value) => {
+        const updated = [...tourLeads]
+        updated[index][field] = value
+        setTourLeads(updated)
+    }
+
+    // --- Services Handlers ---
+    const addService = (destIndex) => {
+        setServicesByDest(prev => ({
+            ...prev,
+            [destIndex]: [
+                ...(prev[destIndex] || []),
+                {
+                    serviceType: 'Transportation',
+                    supplierId: '',
+                    serviceCharge: '',
+                    currencyId: '',
+                    description: '',
+                    serviceDate: '',
+                    pickupLocation: '', dropLocation: '',
+                    checkInDate: '', checkOutDate: '',
+                    mealType: ''
+                }
+            ]
+        }))
+    }
+    const removeService = (destIndex, sIndex) => {
+        setServicesByDest(prev => ({
+            ...prev,
+            [destIndex]: prev[destIndex].filter((_, i) => i !== sIndex)
+        }))
+    }
+    const updateService = (destIndex, sIndex, field, value) => {
+        setServicesByDest(prev => {
+            const destServices = [...(prev[destIndex] || [])]
+            destServices[sIndex] = { ...destServices[sIndex], [field]: value }
+            return { ...prev, [destIndex]: destServices }
+        })
+    }
+
+    // --- Guides Handlers ---
+    const addGuide = () => setGuides([...guides, { supplierId: '', supplierName: '', guideName: '', gender: '', contactNumber: '', language: '' }])
+    const removeGuide = (index) => guides.length > 1 && setGuides(guides.filter((_, i) => i !== index))
+    const updateGuide = (index, field, value) => {
+        const updated = [...guides]
+        updated[index][field] = value
+        if (field === 'supplierId') {
+            const sup = suppliers.find(s => s.value == value)
+            updated[index].supplierName = sup ? sup.label : ''
+        }
+        setGuides(updated)
     }
 
     const handleInputChange = (e) => {
@@ -425,6 +676,61 @@ const EditQuery = () => {
 
             const response = await manageQuery(payload)
             if (response.data && (response.data.success || response.status === 200)) {
+                // If confirmed, also update confirmation details
+                if (formData.queryStatus?.toLowerCase() === 'confirmed') {
+                    const flatServices = []
+                    formData.destinations.forEach((dest, dIdx) => {
+                        const destServices = servicesByDest[dIdx] || []
+                        destServices.forEach(srv => {
+                            flatServices.push({
+                                countryId: parseInt(dest.countryId),
+                                cityId: parseInt(dest.cityId),
+                                serviceType: srv.serviceType,
+                                serviceCharge: parseFloat(srv.serviceCharge) || 0,
+                                currencyId: parseInt(srv.currencyId) || 0,
+                                supplierId: parseInt(srv.supplierId) || 0,
+                                supplierName: srv.supplierName || "",
+                                description: srv.description || "",
+                                serviceDate: srv.serviceDate ? new Date(srv.serviceDate).toISOString() : null,
+                                checkInDate: srv.checkInDate ? new Date(srv.checkInDate).toISOString() : null,
+                                checkOutDate: srv.checkOutDate ? new Date(srv.checkOutDate).toISOString() : null,
+                                pickupLocation: srv.pickupLocation || "",
+                                dropLocation: srv.dropLocation || "",
+                                mealType: srv.mealType || ""
+                            })
+                        })
+                    })
+
+                    const confirmPayload = {
+                        queryId: parseInt(id),
+                        isVisaIncluded: generalInfo.isVisaIncluded,
+                        finalItinerary: generalInfo.finalItinerary || "",
+                        spType: "U", // Update
+                        tourLeads: tourLeads.map(tl => ({
+                            leadName: tl.leadName || "",
+                            gender: tl.gender || "",
+                            age: parseInt(tl.age) || 0,
+                            visaStatus: tl.visaStatus || ""
+                        })),
+                        services: flatServices,
+                        guides: guides.map(g => ({
+                            supplierId: parseInt(g.supplierId) || 0,
+                            supplierName: g.supplierName || "",
+                            guideName: g.guideName || "",
+                            gender: g.gender || "",
+                            contactNumber: g.contactNumber || "",
+                            language: g.language || ""
+                        }))
+                    }
+
+                    const confirmRes = await manageConfirmQuery(confirmPayload)
+                    if (!confirmRes.data?.success && confirmRes.status !== 200) {
+                        toast.error("Query basic info updated, but confirmation details failed.")
+                        // We still consider it a partial success, or we could rollback? 
+                        // Backend might not support rollback easily.
+                    }
+                }
+
                 toast.success("Query updated successfully!")
                 navigate('/queries')
             } else {
@@ -450,7 +756,7 @@ const EditQuery = () => {
             />
 
             <form onSubmit={handleSubmit} className="card max-w-4xl p-0 mt-4">
-                <div className='card-header bg-gray-50 p-4 border-b rounded-t-lg'>
+                <div className='card-header bg-gray-50 p-4 border rounded-t-lg'>
                     <div className='flex flex-nowrap gap-4 items-end'>
                         <Input
                             label="Query No"
@@ -619,6 +925,255 @@ const EditQuery = () => {
                                         />
                                     </div>
                                 ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {formData.queryStatus === 'Confirmed' && (
+                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                            {/* Tour Leads Section */}
+                            <div className="border-t pt-6">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="text-lg font-bold flex items-center gap-2">
+                                        <Users className="w-5 h-5 text-blue-600" />
+                                        Tour Leads
+                                    </h3>
+                                    <button
+                                        type="button"
+                                        onClick={addTourLead}
+                                        className="btn btn-secondary btn-sm flex items-center gap-1"
+                                    >
+                                        <Plus className="w-4 h-4" /> Add Lead
+                                    </button>
+                                </div>
+                                <div className="space-y-4">
+                                    {tourLeads.map((lead, index) => (
+                                        <div key={index} className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 border rounded-lg bg-gray-50 relative group">
+                                            <Input
+                                                label="Lead Name"
+                                                value={lead.leadName}
+                                                onChange={(e) => updateTourLead(index, 'leadName', e.target.value)}
+                                                placeholder="Enter Name"
+                                            />
+                                            <Select
+                                                label="Gender"
+                                                value={lead.gender}
+                                                onChange={(e) => updateTourLead(index, 'gender', e.target.value)}
+                                                options={[{ value: 'Male', label: 'Male' }, { value: 'Female', label: 'Female' }, { value: 'Other', label: 'Other' }]}
+                                            />
+                                            <Input
+                                                label="Age"
+                                                type="number"
+                                                value={lead.age}
+                                                onChange={(e) => updateTourLead(index, 'age', e.target.value)}
+                                                placeholder="Age"
+                                            />
+                                            <Select
+                                                label="Visa Status"
+                                                value={lead.visaStatus}
+                                                onChange={(e) => updateTourLead(index, 'visaStatus', e.target.value)}
+                                                options={[
+                                                    { value: 'Applied', label: 'Applied' },
+                                                    { value: 'Approved', label: 'Approved' },
+                                                    { value: 'Pending', label: 'Pending' },
+                                                    { value: 'Not Required', label: 'Not Required' }
+                                                ]}
+                                            />
+                                            <div className="flex items-end justify-center pb-2">
+                                                {tourLeads.length > 1 && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeTourLead(index)}
+                                                        className="text-red-500 hover:text-red-700 p-2"
+                                                    >
+                                                        <Trash2 className="w-5 h-5" />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Services Section */}
+                            <div className="border-t pt-6">
+                                <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                                    <Briefcase className="w-5 h-5 text-blue-600" />
+                                    Destination-wise Services
+                                </h3>
+                                <div className="space-y-6">
+                                    {formData.destinations.filter(d => d.spType !== 'D').map((dest, dIdx) => (
+                                        <div key={dIdx} className="border rounded-lg overflow-hidden">
+                                            <div className="bg-blue-600 text-white p-3 flex justify-between items-center">
+                                                <span className="font-bold flex items-center gap-2">
+                                                    {locationNames[`country_${dest.countryId}`] || dest.countryName || 'Loading...'} - {locationNames[`city_${dest.cityId}`] || dest.cityName || 'Loading...'}
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => addService(dIdx)}
+                                                    className="bg-white/20 hover:bg-white/30 text-white px-3 py-1 rounded text-sm flex items-center gap-1"
+                                                >
+                                                    <Plus className="w-4 h-4" /> Add Service
+                                                </button>
+                                            </div>
+                                            <div className="p-4 space-y-4 bg-white">
+                                                {(servicesByDest[dIdx] || []).length === 0 ? (
+                                                    <p className="text-gray-500 text-center py-4 text-sm italic">No services added for this destination.</p>
+                                                ) : (
+                                                    (servicesByDest[dIdx] || []).map((service, sIdx) => (
+                                                        <div key={sIdx} className="border rounded p-4 bg-gray-50">
+                                                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                                                                <Select
+                                                                    label="Service Type"
+                                                                    value={service.serviceType}
+                                                                    onChange={(e) => updateService(dIdx, sIdx, 'serviceType', e.target.value)}
+                                                                    options={[
+                                                                        { value: 'Transportation', label: 'Transportation' },
+                                                                        { value: 'Hotel', label: 'Hotel' },
+                                                                        { value: 'Meal', label: 'Meal' },
+                                                                        { value: 'Sightseeing', label: 'Sightseeing' },
+                                                                        { value: 'Others', label: 'Others' }
+                                                                    ]}
+                                                                />
+                                                                <Select
+                                                                    label="Supplier"
+                                                                    value={service.supplierId}
+                                                                    onChange={(e) => updateService(dIdx, sIdx, 'supplierId', e.target.value)}
+                                                                    options={suppliersByDest[dIdx] || []}
+                                                                />
+                                                                <Input
+                                                                    label="Charge"
+                                                                    type="number"
+                                                                    value={service.serviceCharge}
+                                                                    onChange={(e) => updateService(dIdx, sIdx, 'serviceCharge', e.target.value)}
+                                                                />
+                                                                <Select
+                                                                    label="Currency"
+                                                                    value={service.currencyId}
+                                                                    onChange={(e) => updateService(dIdx, sIdx, 'currencyId', e.target.value)}
+                                                                    options={currencies}
+                                                                />
+                                                            </div>
+
+                                                            {/* Dynamic Fields based on Service Type */}
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                {service.serviceType === 'Hotel' ? (
+                                                                    <>
+                                                                        <Input label="Check In" type="date" value={service.checkInDate} onChange={(e) => updateService(dIdx, sIdx, 'checkInDate', e.target.value)} />
+                                                                        <Input label="Check Out" type="date" value={service.checkOutDate} onChange={(e) => updateService(dIdx, sIdx, 'checkOutDate', e.target.value)} />
+                                                                    </>
+                                                                ) : service.serviceType === 'Meal' ? (
+                                                                    <>
+                                                                        <Input label="Date" type="date" value={service.serviceDate} onChange={(e) => updateService(dIdx, sIdx, 'serviceDate', e.target.value)} />
+                                                                        <Select
+                                                                            label="Meal Type"
+                                                                            value={service.mealType}
+                                                                            onChange={(e) => updateService(dIdx, sIdx, 'mealType', e.target.value)}
+                                                                            options={[{ value: 'BF', label: 'Breakfast' }, { value: 'LN', label: 'Lunch' }, { value: 'DN', label: 'Dinner' }]}
+                                                                        />
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <Input label="Date" type="date" value={service.serviceDate} onChange={(e) => updateService(dIdx, sIdx, 'serviceDate', e.target.value)} />
+                                                                        <Input label="Details" value={service.description} onChange={(e) => updateService(dIdx, sIdx, 'description', e.target.value)} placeholder="Route, Pickup etc." />
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                            <div className="flex justify-end mt-2">
+                                                                <button type="button" onClick={() => removeService(dIdx, sIdx)} className="text-red-500 hover:text-red-700 text-sm flex items-center gap-1">
+                                                                    <Trash2 className="w-4 h-4" /> Remove Service
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ))
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Guides Section */}
+                            <div className="border-t pt-6">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="text-lg font-bold flex items-center gap-2">
+                                        <User className="w-5 h-5 text-blue-600" />
+                                        Guides Details
+                                    </h3>
+                                    <button type="button" onClick={addGuide} className="btn btn-secondary btn-sm flex items-center gap-1">
+                                        <Plus className="w-4 h-4" /> Add Guide
+                                    </button>
+                                </div>
+                                <div className="space-y-4">
+                                    {guides.map((guide, index) => (
+                                        <div key={index} className="grid grid-cols-1 md:grid-cols-6 gap-4 p-4 border rounded-lg bg-gray-50 relative group">
+                                            <div className="md:col-span-2">
+                                                <Select
+                                                    label="Agent/Supplier"
+                                                    value={guide.supplierId}
+                                                    onChange={(e) => updateGuide(index, 'supplierId', e.target.value)}
+                                                    options={suppliers}
+                                                />
+                                            </div>
+                                            <Input label="Guide Name" value={guide.guideName} onChange={(e) => updateGuide(index, 'guideName', e.target.value)} />
+                                            <Select
+                                                label="Gender"
+                                                value={guide.gender}
+                                                onChange={(e) => updateGuide(index, 'gender', e.target.value)}
+                                                options={[{ value: 'Male', label: 'Male' }, { value: 'Female', label: 'Female' }]}
+                                            />
+                                            <Input label="Contact" value={guide.contactNumber} onChange={(e) => updateGuide(index, 'contactNumber', e.target.value)} />
+                                            <div className="flex items-end justify-center pb-2">
+                                                {guides.length > 1 && (
+                                                    <button type="button" onClick={() => removeGuide(index)} className="text-red-500 hover:text-red-700 p-2">
+                                                        <Trash2 className="w-5 h-5" />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Final Details */}
+                            <div className="border-t pt-6 bg-blue-50/50 p-6 rounded-lg border">
+                                <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-blue-800">
+                                    <FileText className="w-5 h-5" />
+                                    Post-Confirmation Details
+                                </h3>
+                                <div className="space-y-6">
+                                    <div className="flex items-center gap-4 p-3 bg-white border rounded shadow-sm">
+                                        <label className="flex items-center gap-2 cursor-pointer font-medium">
+                                            <input
+                                                type="checkbox"
+                                                checked={generalInfo.isVisaIncluded}
+                                                onChange={(e) => setGeneralInfo({ ...generalInfo, isVisaIncluded: e.target.checked })}
+                                                className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                            />
+                                            Visa Assistance Included?
+                                        </label>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-700 mb-2">Final Itinerary Link/Note</label>
+                                            <textarea
+                                                className="input w-full min-h-[100px]"
+                                                value={generalInfo.finalItinerary}
+                                                onChange={(e) => setGeneralInfo({ ...generalInfo, finalItinerary: e.target.value })}
+                                                placeholder="Link to PDF or summary of itinerary..."
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-700 mb-2">Miscellaneous Info</label>
+                                            <textarea
+                                                className="input w-full min-h-[100px]"
+                                                value={generalInfo.miscellaneous}
+                                                onChange={(e) => setGeneralInfo({ ...generalInfo, miscellaneous: e.target.value })}
+                                                placeholder="Any extra notes for operational teams..."
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     )}

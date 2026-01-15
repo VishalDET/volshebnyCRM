@@ -57,7 +57,18 @@ const Login = () => {
         if (result.success) {
             navigate('/dashboard')
         } else {
-            setErrors({ general: result.error || 'Login failed. Please try again.' })
+            let errorMessage = result.error || 'Login failed. Please try again.'
+
+            // Map Firebase error codes to user-friendly messages
+            if (errorMessage.includes('auth/invalid-credential') || errorMessage.includes('auth/user-not-found') || errorMessage.includes('auth/wrong-password')) {
+                errorMessage = 'Invalid email or password.'
+            } else if (errorMessage.includes('auth/too-many-requests')) {
+                errorMessage = 'Too many failed login attempts. Please try again later.'
+            } else if (errorMessage.includes('auth/network-request-failed')) {
+                errorMessage = 'Network error. Please check your connection.'
+            }
+
+            setErrors({ general: errorMessage })
         }
     }
 

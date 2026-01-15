@@ -1,17 +1,38 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
-import { login as loginAPI, logout as logoutAPI } from '@api/auth.api'
+import { getUserProfile } from '@api/auth.api'
+import { loginWithFirebase, logoutFromFirebase } from '../services/firebase.service'
 
+// Async thunks
 // Async thunks
 export const login = createAsyncThunk(
     'auth/login',
-    async (credentials, { rejectWithValue }) => {
+    async ({ email, password }, { rejectWithValue }) => {
         try {
-            const response = await loginAPI(credentials)
-            localStorage.setItem('authToken', response.data.token)
-            localStorage.setItem('user', JSON.stringify(response.data.user))
-            return response.data
+            // 1. Login with Firebase
+            const { user: firebaseUser, error } = await loginWithFirebase(email, password)
+            if (error) throw new Error(error)
+
+            // 2. Get User Token (optional, if needed for backend calls immediately)
+            const token = await firebaseUser.getIdToken()
+
+            // 3. Get Backend User Details using UID
+            const userResponse = await getUserProfile(firebaseUser.uid)
+            const backendUser = userResponse.data
+
+            const userData = {
+                ...backendUser,
+                uid: firebaseUser.uid,
+                email: firebaseUser.email,
+                photoURL: firebaseUser.photoURL
+            }
+
+            // Store in LocalStorage
+            localStorage.setItem('authToken', token)
+            localStorage.setItem('user', JSON.stringify(userData))
+
+            return { user: userData, token }
         } catch (error) {
-            return rejectWithValue(error.response?.data?.message || 'Login failed')
+            return rejectWithValue(error.response?.data?.message || error.message || 'Login failed')
         }
     }
 )
@@ -20,12 +41,12 @@ export const logout = createAsyncThunk(
     'auth/logout',
     async (_, { rejectWithValue }) => {
         try {
-            await logoutAPI()
+            await logoutFromFirebase()
             localStorage.removeItem('authToken')
             localStorage.removeItem('user')
             return null
         } catch (error) {
-            return rejectWithValue(error.response?.data?.message || 'Logout failed')
+            return rejectWithValue(error.message || 'Logout failed')
         }
     }
 )

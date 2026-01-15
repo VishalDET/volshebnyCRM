@@ -84,6 +84,19 @@ const ConfirmQuery = () => {
             }
             setQuery(qData)
 
+            // Seed locationNames immediately from queryData names if available
+            const initialNames = {}
+            if (qData.originCountryName) initialNames[`country_${qData.originCountryId}`] = qData.originCountryName
+            if (qData.originCityName) initialNames[`city_${qData.originCityId}`] = qData.originCityName
+
+            if (qData.destinations) {
+                qData.destinations.forEach(d => {
+                    if (d.countryName) initialNames[`country_${d.countryId}`] = d.countryName
+                    if (d.cityName) initialNames[`city_${d.cityId}`] = d.cityName
+                })
+            }
+            setLocationNames(prev => ({ ...prev, ...initialNames }))
+
             // 2. Fetch Full Client Details
             if (qData.clientId) {
                 fetchClientDetails(qData.clientId)
@@ -566,13 +579,9 @@ const ConfirmQuery = () => {
                         {query.destinations && query.destinations.map((dest, idx) => (
                             <div key={idx} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
                                 <span className="font-bold text-gray-500 w-6">{idx + 1}.</span>
-                                <span>{locationNames[`country_${dest.countryId}`] || dest.countryName || 'Unknown Country'}</span>
-                                {dest.cityName && (
-                                    <>
-                                        <span className="text-gray-400 mx-2">/</span>
-                                        <span>{dest.cityName}</span>
-                                    </>
-                                )}
+                                <span>{locationNames[`country_${dest.countryId}`] || dest.countryName || 'Loading...'}</span>
+                                <span className="text-gray-400 mx-2">/</span>
+                                <span>{locationNames[`city_${dest.cityId}`] || dest.cityName || 'Loading...'}</span>
                             </div>
                         ))}
                         {(!query.destinations || query.destinations.length === 0) && <p className="text-gray-500 italic">No destinations found.</p>}
@@ -621,7 +630,7 @@ const ConfirmQuery = () => {
                         <div key={dIdx} className="mb-8 border rounded-lg p-4">
                             <div className="flex justify-between items-center mb-4 bg-blue-50 p-2 rounded">
                                 <h4 className="font-bold text-blue-900">
-                                    {dIdx + 1}. {locationNames[`country_${dest.countryId}`] || dest.countryName || 'Unknown Country'} - {dest.cityName}
+                                    {dIdx + 1}. {locationNames[`country_${dest.countryId}`] || dest.countryName || 'Loading...'} - {locationNames[`city_${dest.cityId}`] || dest.cityName || 'Loading...'}
                                 </h4>
                                 <Button size="sm" variant="outline" onClick={() => addService(dIdx)}>+ Add Service</Button>
                             </div>

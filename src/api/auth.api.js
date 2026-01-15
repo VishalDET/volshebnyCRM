@@ -56,3 +56,10 @@ export const requestPasswordReset = async (email) => {
 export const resetPassword = async (token, newPassword) => {
     return await axiosInstance.post('/auth/reset-password', { token, newPassword })
 }
+
+/**
+ * Get user profile by Firebase UID
+ */
+export const getUserProfile = async (uid) => {
+    return await axiosInstance.get(`/users/${uid}`)
+}

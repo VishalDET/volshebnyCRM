@@ -14,6 +14,7 @@ import {
     Bell,
     ChevronDown
 } from 'lucide-react'
+import UserDropdown from '@components/UserDropdown'
 
 const MainLayout = ({ children }) => {
     const navigate = useNavigate()
@@ -122,29 +123,7 @@ const MainLayout = ({ children }) => {
                         ))}
                     </nav>
 
-                    {/* User Profile */}
-                    <div className="p-4 border-t border-secondary-200 bg-secondary-50/50">
-                        <div className="flex items-center gap-3 mb-3">
-                            <div className="w-9 h-9 rounded-full bg-primary-100 border border-primary-200 flex items-center justify-center text-primary-700 font-semibold text-sm">
-                                {user?.name?.charAt(0) || 'U'}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-sm font-semibold text-secondary-900 truncate">
-                                    {user?.name || 'User'}
-                                </p>
-                                <p className="text-xs text-secondary-500 truncate">
-                                    {user?.email || 'user@example.com'}
-                                </p>
-                            </div>
-                        </div>
-                        <button
-                            onClick={handleLogout}
-                            className="flex items-center gap-2 w-full px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        >
-                            <LogOut className="w-4 h-4" />
-                            <span>Sign out</span>
-                        </button>
-                    </div>
+
                 </div>
             </aside>
 
@@ -165,12 +144,16 @@ const MainLayout = ({ children }) => {
                                 <Bell className="w-5 h-5" />
                                 <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white"></span>
                             </button>
+
+                            <div className="h-8 w-px bg-secondary-200 mx-1 hidden md:block"></div>
+
+                            <UserDropdown />
                         </div>
                     </div>
                 </header>
 
                 {/* Page Content */}
-                <main className="p-8 max-w-7xl mx-auto">
+                <main className="p-8 max-w-9xl mx-auto">
                     {children}
                 </main>
             </div>

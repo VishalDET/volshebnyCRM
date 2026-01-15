@@ -72,12 +72,26 @@ const ViewQuery = () => {
 
             if (queryData) {
                 setQuery(queryData)
+
+                // Seed locationNames immediately from queryData names if available
+                const initialNames = {}
+                if (queryData.originCountryName) initialNames[`country_${queryData.originCountryId}`] = queryData.originCountryName
+                if (queryData.originCityName) initialNames[`city_${queryData.originCityId}`] = queryData.originCityName
+
+                if (queryData.destinations) {
+                    queryData.destinations.forEach(d => {
+                        if (d.countryName) initialNames[`country_${d.countryId}`] = d.countryName
+                        if (d.cityName) initialNames[`city_${d.cityId}`] = d.cityName
+                    })
+                }
+                setLocationNames(prev => ({ ...prev, ...initialNames }))
+
                 // Fetch Full Client Details
                 if (queryData.clientId) {
                     fetchClientDetails(queryData.clientId)
                 }
 
-                // Fetch location names
+                // Fetch location names (updates the map with full data)
                 fetchCountriesAndMap(queryData)
 
                 // Fetch confirmed query details if status is Confirmed
@@ -416,7 +430,8 @@ const ViewQuery = () => {
                             <div>
                                 <dt className="text-sm text-secondary-600">Origin</dt>
                                 <dd className="font-medium">
-                                    {locationNames[`country_${query.originCountryId}`] || query.originCountryId || '-'}
+                                    {locationNames[`country_${query.originCountryId}`] || query.originCountryName || 'Loading...'}
+                                    {(locationNames[`city_${query.originCityId}`] || query.originCityName) && ` - ${locationNames[`city_${query.originCityId}`] || query.originCityName}`}
                                 </dd>
                             </div>
                             <div>
@@ -459,10 +474,10 @@ const ViewQuery = () => {
                                     <div key={idx} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
                                         <span className="font-bold text-gray-500 w-6">{idx + 1}.</span>
                                         <span>
-                                            {locationNames[`country_${dest.countryId}`] || dest.countryName || `Country ID: ${dest.countryId}`}
+                                            {locationNames[`country_${dest.countryId}`] || dest.countryName || 'Loading...'}
                                         </span>
-                                        {dest.cityName && <span className="text-gray-400 mx-2">/</span>}
-                                        <span>{dest.cityName}</span>
+                                        <span className="text-gray-400 mx-2">/</span>
+                                        <span>{locationNames[`city_${dest.cityId}`] || dest.cityName || 'Loading...'}</span>
                                     </div>
                                 ))}
                             </div>
@@ -519,7 +534,7 @@ const ViewQuery = () => {
                                             return (
                                                 <div key={dIdx} className="border rounded-lg p-4 bg-gray-50">
                                                     <h4 className="font-bold text-blue-900 mb-3">
-                                                        {locationNames[`country_${dest.countryId}`] || dest.countryName} - {dest.cityName}
+                                                        {locationNames[`country_${dest.countryId}`] || dest.countryName || 'Loading...'} - {locationNames[`city_${dest.cityId}`] || dest.cityName || 'Loading...'}
                                                     </h4>
                                                     <div className="space-y-3">
                                                         {destServices.map((srv, sIdx) => {

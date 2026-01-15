@@ -23,7 +23,7 @@ const AuthLayout = ({ children }) => {
 
                 {/* Footer */}
                 <div className="text-center mt-6 text-primary-100 text-sm">
-                    © 2024 VolshebnyCRM. All rights reserved.
+                    © {new Date().getFullYear()} VolshebnyCRM. All rights reserved.
                 </div>
             </div>
         </div>

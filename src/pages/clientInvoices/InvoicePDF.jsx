@@ -7,6 +7,8 @@ import Button from '@components/Button'
 import Loader from '@components/Loader'
 import { Printer, ArrowLeft, Mail, Phone, MapPin } from 'lucide-react'
 import { toast } from 'react-hot-toast'
+import logo from '../../assets/images/vol-logo.png'
+import { numberToWords } from '@utils/formatters'
 
 const InvoicePDF = ({ isAccumulated = false }) => {
     const { id, queryId } = useParams()
@@ -150,136 +152,200 @@ const InvoicePDF = ({ isAccumulated = false }) => {
             {/* A4 Canvas */}
             <div
                 id="printable-voucher"
-                className="bg-white shadow-2xl mx-auto p-12 print:shadow-none print:p-8 border rounded-sm"
+                className="bg-white shadow-2xl mx-auto p-10 print:shadow-none print:p-6 border rounded-sm font-serif"
                 style={{ width: '210mm', minHeight: '297mm', boxSizing: 'border-box' }}
             >
-                {/* Header */}
-                <div className="flex justify-between items-start mb-12 border-b-2 border-gray-900 pb-8">
-                    <div>
-                        <h1 className="text-4xl font-black text-gray-900 tracking-tighter">VOLSHEBNY</h1>
-                        <p className="text-sm font-bold text-gray-500 uppercase tracking-[0.2em] mt-2">DMC & Premium Services</p>
-                        <div className="mt-8 space-y-1 text-sm text-gray-600">
-                            <div className="flex items-center gap-2"><Mail size={14} /> accounts@volshebny.com</div>
-                            <div className="flex items-center gap-2"><Phone size={14} /> +91 98765 43210</div>
-                            <div className="flex items-center gap-2 font-medium text-gray-700">GSTIN: 07AAE CV1234F1Z5</div>
+                {/* Header: Company Details */}
+                <div className="flex justify-between items-start border-b border-gray-800 pb-4 mb-4">
+                    <div className="flex gap-4">
+                        <div className="w-16 h-16 rounded-sm flex items-center justify-center text-white font-black text-xl">
+                            <img src={logo} alt="Logo" className='w-full h-full object-contain' />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-black text-gray-900 leading-none">VOLSHEBNY HOLIDAYS LLP</h2>
+                            {/* <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Premium Destination Management</p> */}
+                            <div className="mt-3 space-y-0.5 text-[10px] text-gray-600">
+                                <p className="font-bold text-gray-800 uppercase">Registered Office:</p>
+                                <p>G14, PRASAD CHAMBERS
+                                    TATA ROAD NO.2
+                                    OPERA HOUSE
+                                    MUMBAI</p>
+                                <p className="font-bold text-gray-900 mt-1 uppercase">GSTIN: 07AAECV1234F1Z5 | PAN: AAECV1234F</p>
+                                <p>CIN: AAG-0129</p>
+                                <div className="flex gap-4 mt-1">
+                                    <span><Mail size={10} className="inline mr-1" /> info@volshebnyholidays.co</span>
+                                    <span><Phone size={10} className="inline mr-1" /> +91 98765 43210</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div className="text-right">
-                        <div className="text-3xl font-black text-gray-900 mb-6 uppercase">INVOICE</div>
-                        <div className="space-y-1 text-sm font-medium">
-                            <p className="text-gray-500 text-xs">INVOICE NO</p>
-                            <p className="text-lg font-bold">{isAccumulated ? `ACC-${queryId}` : (invoices[0].invoiceNo || `INV-00${invoices[0].id}`)}</p>
-                            <div className="pt-4 h-1"></div>
-                            <p className="text-gray-500 text-xs">DATE</p>
-                            <p className="text-lg font-bold">{new Date().toLocaleDateString('en-GB')}</p>
+                        <h2 className="text-sm font-black text-dark bg-gray-100 px-2 py-1 inline-block mb-3 rounded">TAX INVOICE</h2>
+                        <div className="text-[10px] space-y-1">
+                            <p><span className="text-gray-400 uppercase font-bold">Invoice No:</span> <span className="font-bold">{isAccumulated ? `ACC-${queryId}` : (invoices[0].invoiceNo || `INV-00${invoices[0].id}`)}</span></p>
+                            <p><span className="text-gray-400 uppercase font-bold">Invoice Date:</span> <span className="font-bold">{new Date().toLocaleDateString('en-GB')}</span></p>
+                            <p><span className="text-gray-400 uppercase font-bold">State Name:</span> <span className="font-bold">Maharashtra</span></p>
                         </div>
                     </div>
                 </div>
 
-                {/* Billing Info */}
-                <div className="grid grid-cols-2 gap-12 mb-12">
-                    <div>
-                        <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Billed To</h3>
-                        <div className="border-l-4 border-gray-900 pl-6 h-full flex flex-col justify-center">
-                            <p className="text-xl font-bold text-gray-900">{client?.firstName} {client?.lastName}</p>
-                            {client?.companyName && <p className="font-semibold text-gray-700">{client.companyName}</p>}
-                            <p className="text-sm text-gray-600 mt-2 max-w-[250px]">{client?.address}</p>
-                            <p className="text-sm text-gray-600 italic">GST: {client?.gstNumber || 'N/A'}</p>
+                {/* Billing Section */}
+                <div className="grid grid-cols-2 gap-0 border border-gray-600 mb-4 divide-x divide-gray-800">
+                    <div className="p-3">
+                        <h3 className="text-[9px] font-black text-gray-400 uppercase mb-2">Details of Receiver (Billed To)</h3>
+                        <p className="text-xs font-black text-gray-900 uppercase">{client?.firstName} {client?.lastName}</p>
+                        {client?.companyName && <p className="text-[10px] font-bold text-gray-700">{client.companyName}</p>}
+                        <p className="text-[10px] text-gray-600 mt-1 max-w-[200px] leading-tight">{client?.address}</p>
+                        <div className="mt-2 text-[10px] space-y-0.5">
+                            <p><span className="font-bold uppercase tracking-tighter">GSTIN:</span> {client?.gstNumber || 'N/A'}</p>
+                            <p><span className="font-bold uppercase tracking-tighter">Place of Supply:</span> {client?.stateName || 'N/A'}</p>
                         </div>
                     </div>
-                    <div>
-                        <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Service Details</h3>
-                        <div className="bg-gray-50 p-6 space-y-3 rounded-sm border">
-                            <div className="flex justify-between">
-                                <span className="text-xs text-gray-500">QUERY ID:</span>
-                                <span className="text-sm font-bold">#{query?.id}</span>
+                    <div className="p-3">
+                        <h3 className="text-[9px] font-black text-gray-400 uppercase mb-2">Consignee (Ship To)</h3>
+                        <div className="flex justify-between items-center bg-gray-50 p-2 rounded-sm mb-2 border border-dashed border-gray-300">
+                            <span className="text-[9px] font-bold text-gray-500 uppercase">Query Reference</span>
+                            <span className="text-xs font-black text-gray-900 tracking-tighter">#{query?.id} / {query?.queryNo || 'N/A'}</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 text-[10px]">
+                            <div>
+                                <p className="text-gray-400 uppercase font-bold text-[8px]">Nature of Service</p>
+                                <p className="font-bold">Destination Management</p>
                             </div>
-                            <div className="flex justify-between border-t pt-3">
-                                <span className="text-xs text-gray-500">TRAVEL DATE:</span>
-                                <span className="text-sm font-bold">{query?.travelDate ? new Date(query.travelDate).toLocaleDateString('en-GB') : 'TBD'}</span>
-                            </div>
-                            <div className="flex justify-between border-t pt-3">
-                                <span className="text-xs text-gray-500">PAX:</span>
-                                <span className="text-sm font-bold">{query?.adults} ADT / {query?.children} CHD</span>
+                            <div>
+                                <p className="text-gray-400 uppercase font-bold text-[8px]">Reporting Date</p>
+                                <p className="font-bold">{query?.travelDate ? new Date(query.travelDate).toLocaleDateString('en-GB') : 'TBD'}</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Invoice Table */}
-                <div className="mb-12">
-                    <table className="w-full text-left">
+                {/* Particulars Table */}
+                <div className="mb-4">
+                    <table className="w-full text-left border-collapse border border-gray-800">
                         <thead>
-                            <tr className="bg-gray-900 text-white text-xs font-black uppercase tracking-widest">
-                                <th className="px-6 py-4">Item Description</th>
-                                <th className="px-6 py-4 text-center">Date</th>
-                                <th className="px-6 py-4 text-right">Amount (₹)</th>
+                            <tr className="bg-gray-100 text-[9px] font-black uppercase text-gray-700 border-b border-gray-800 divide-x divide-gray-800">
+                                <th className="px-2 py-2 w-10 text-center">S.No</th>
+                                <th className="px-3 py-2">Description of Services</th>
+                                <th className="px-3 py-2 w-20 text-center">Date</th>
+                                <th className="px-3 py-2 w-28 text-right">Amount (₹)</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y border-b border-gray-900">
+                        <tbody className="divide-y divide-gray-200 text-[10px]">
                             {invoices.map((inv, idx) => (
-                                <tr key={idx} className="text-sm bg-white">
-                                    <td className="px-6 py-6 min-w-[300px]">
-                                        <p className="font-black text-gray-900 text-base">{inv.invoiceNo || 'General Travel Services'}</p>
-                                        <p className="text-gray-500 mt-1 italic">Services provided for Query #{query?.id}</p>
+                                <tr key={idx} className="divide-x divide-gray-800 border-b border-gray-800 h-12">
+                                    <td className="px-2 py-2 text-center text-gray-500">{idx + 1}</td>
+                                    <td className="px-3 py-2">
+                                        <p className="font-black text-gray-900 uppercase">Travel Package Services - {inv.invoiceNo}</p>
+                                        <p className="text-[9px] text-gray-500 mt-0.5 line-clamp-1">VOLSHEBNY HOLIDAYS LLP for Query #{query?.id}</p>
                                     </td>
-                                    <td className="px-6 py-6 text-center font-bold text-gray-700">
-                                        {inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString() : '-'}
+                                    <td className="px-3 py-2 text-center font-bold text-gray-700">
+                                        {inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString('en-GB') : '-'}
                                     </td>
-                                    <td className="px-6 py-6 text-right font-black text-gray-900 text-base">
-                                        {inv.totalAmount?.toLocaleString()}
+                                    <td className="px-3 py-2 text-right font-black text-gray-900">
+                                        {inv.totalAmount?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                     </td>
                                 </tr>
                             ))}
                         </tbody>
+                        <tfoot>
+                            <tr className="text-[10px] divide-x divide-gray-800">
+                                <td colSpan="3" className="px-3 py-2 font-bold uppercase text-right bg-gray-50">Sub Total</td>
+                                <td className="px-3 py-2 text-right font-black text-gray-900">₹{grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                            </tr>
+                            {invoices.some(i => i.isDomestic) && (
+                                <>
+                                    <tr className="text-[10px] divide-x divide-gray-800 whitespace-nowrap">
+                                        <td colSpan="3" className="px-3 py-1.5 text-right text-gray-500">CGST (9%)</td>
+                                        <td className="px-3 py-1.5 text-right font-bold text-gray-700">₹{(totalTax / 2).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                    </tr>
+                                    <tr className="text-[10px] divide-x divide-gray-800 whitespace-nowrap">
+                                        <td colSpan="3" className="px-3 py-1.5 text-right text-gray-500 border-b border-gray-800">SGST (9%)</td>
+                                        <td className="px-3 py-1.5 text-right font-bold text-gray-700 border-b border-gray-800">₹{(totalTax / 2).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                    </tr>
+                                </>
+                            )}
+                            <tr className="text-[11px] divide-x divide-gray-800 bg-gray-900 text-white">
+                                <td colSpan="3" className="px-3 py-2.5 font-bold uppercase text-right">Grand Total (Rounded)</td>
+                                <td className="px-3 py-2.5 text-right font-black text-base">₹{netAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                            </tr>
+                        </tfoot>
                     </table>
                 </div>
 
-                {/* Summary Section */}
-                <div className="flex justify-end pr-1">
-                    <div className="w-1/2 space-y-4">
-                        <div className="flex justify-between items-center text-sm font-bold text-gray-600">
-                            <span>Subtotal</span>
-                            <span>₹{grandTotal.toLocaleString()}</span>
+                {/* Amount in Words */}
+                <div className="border border-gray-800 p-2 mb-4 bg-gray-50">
+                    <p className="text-[8px] font-black text-gray-400 uppercase mb-1">Total Amount in Words</p>
+                    <p className="text-[10px] font-black uppercase text-gray-800 italic">Rupees {numberToWords(Math.round(netAmount))} Only</p>
+                </div>
+
+                {/* Bottom Section: Bank & Terms */}
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-4">
+                        <div>
+                            <h3 className="text-[9px] font-black text-gray-400 uppercase mb-1.5 underline decoration-gray-900 underline-offset-4">Bank Account Details</h3>
+                            <table className="w-full text-[9px] border-collapse border border-gray-300">
+                                <tbody>
+                                    <tr className="border-b divide-x">
+                                        <th className="px-2 py-1 bg-gray-50 w-24 text-left">Account Name</th>
+                                        <td className="px-2 py-1 font-bold">VOLSHEBNY PREMIUM SERVICES</td>
+                                    </tr>
+                                    <tr className="border-b divide-x">
+                                        <th className="px-2 py-1 bg-gray-50">Bank Name</th>
+                                        <td className="px-2 py-1 font-bold">AXIS BANK LTD</td>
+                                    </tr>
+                                    <tr className="border-b divide-x">
+                                        <th className="px-2 py-1 bg-gray-50">A/c Number</th>
+                                        <td className="px-2 py-1 font-black text-gray-900">918020012345678</td>
+                                    </tr>
+                                    <tr className="divide-x">
+                                        <th className="px-2 py-1 bg-gray-50">IFSC Code</th>
+                                        <td className="px-2 py-1 font-black text-gray-900">UTIB0001234</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
-                        <div className="flex justify-between items-center text-sm font-bold text-gray-600">
-                            <span>Tax Base (GST)</span>
-                            <span>₹{totalTax.toLocaleString()}</span>
+                        <div className="p-2 border border-blue-100 bg-blue-50/30 rounded-sm">
+                            <h4 className="text-[8px] font-black text-blue-900 uppercase mb-1">Terms & Conditions</h4>
+                            <ul className="text-[8px] text-gray-600 font-bold uppercase leading-tight list-decimal pl-3 space-y-0.5">
+                                <li>E.& O.E. Payments should be made via Bank Transfer.</li>
+                                <li>100% advance required 30 days prior to travel.</li>
+                                <li>Subject to Noida Jurisdiction.</li>
+                            </ul>
                         </div>
-                        <div className="flex justify-between items-center border-t-4 border-gray-900 pt-6 mt-4">
-                            <span className="text-sm font-black text-gray-900 uppercase tracking-widest">Grand Total</span>
-                            <span className="text-3xl font-black text-gray-900">₹{netAmount.toLocaleString()}</span>
+                    </div>
+
+                    <div className="flex flex-col justify-between items-end text-right border-l border-gray-100 pl-4">
+                        <div className="space-y-1">
+                            <p className="text-[9px] font-black text-gray-400 uppercase italic">Digitally Signed By</p>
+                            <p className="text-xs font-black text-gray-900 uppercase">VOLSHEBNY PREMIUM SERVICES</p>
+                            <div className="h-10"></div>
+                            <div className="border-t border-gray-900 pt-1 inline-block px-4">
+                                <p className="text-[9px] font-black text-gray-900 uppercase">Authorized Signatory</p>
+                            </div>
                         </div>
+
                     </div>
                 </div>
 
-                {/* Payment Info & Terms */}
-                <div className="mt-16 pt-12 border-t border-gray-100 flex justify-between gap-12">
-                    <div className="flex-1">
-                        <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Bank Details</h4>
-                        <div className="text-xs font-bold text-gray-700 leading-relaxed uppercase">
-                            <p>Bank: AXIS BANK LTD</p>
-                            <p>A/c Name: VOLSHEBNY PREMIUM SERVICES</p>
-                            <p>A/c No: 918020012345678</p>
-                            <p>IFSC: AXIS0001234</p>
+                {/* Footer */}
+                <div className="mt-8 pt-4 border-t-2 border-gray-900 flex justify-between items-end">
+                    <div className="flex gap-4">
+                        <img src={logo} alt="Logo" className='w-12 h-12 object-contain' />
+                        <div className="text-[8px] text-gray-400 font-bold italic">
+                            <p>Thank you for choosing luxury destination management.</p>
+                            <p>Designed with excellence for your premium travel experience.</p>
                         </div>
                     </div>
-                    <div className="flex-1">
-                        <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Terms</h4>
-                        <p className="text-[10px] text-gray-500 font-bold italic leading-relaxed uppercase">
-                            1. All payments should be made in favor of VOLSHEBNY PREMIUM SERVICES.<br />
-                            2. 100% Payment required before travel dates.<br />
-                            3. Cancellation as per individual hotel/service policies.
-                        </p>
-                    </div>
-                </div>
+                    <div className="text-[8px] text-gray-400 font-bold flex items-center gap-3">
+                        <span>Page 1 of 1</span>
+                        <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
 
-                {/* Signature / Footer */}
-                <div className="mt-auto pt-24 text-center">
-                    <div className="inline-block border-t-2 border-gray-200 px-12 pt-4">
-                        <p className="text-xs font-black text-gray-400 uppercase tracking-[0.3em]">Authorized Signatory</p>
                     </div>
+
                 </div>
+                <p className="text-[6px] text-gray-400 text-center font-bold uppercase tracking-tighter italic">This is a computer generated invoice and requires no physical signature.</p>
+
             </div>
         </div>
     )

@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import PageHeader from '@components/PageHeader'
 import {
     Flag, MapPin, Banknote, CreditCard,
-    Bus, Building2, Users
+    Bus, Building2, Users, UserCog
 } from 'lucide-react'
 
 const MastersDashboard = () => {
@@ -62,6 +62,13 @@ const MastersDashboard = () => {
             icon: Users,
             path: '/masters/handlers',
             color: 'bg-teal-100 text-teal-600'
+        },
+        {
+            title: 'User Management',
+            description: 'Manage system users and roles',
+            icon: UserCog,
+            path: '/masters/users',
+            color: 'bg-red-100 text-red-600'
         }
     ]
 
@@ -73,14 +80,14 @@ const MastersDashboard = () => {
                 breadcrumbs={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Masters' }]}
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 card hover:shadow-md transition-shadow rounded-2xl">
                 {masterModules.map((module, index) => {
                     const Icon = module.icon
                     return (
                         <Link
                             key={index}
                             to={module.path}
-                            className="card hover:shadow-md transition-shadow cursor-pointer group"
+                            className="transition-shadow cursor-pointer group"
                         >
                             <div className="flex items-start gap-4">
                                 <div className={`p-3 rounded-lg ${module.color} group-hover:scale-110 transition-transform`}>
