@@ -67,11 +67,28 @@ export const getAllRoles = async () => {
 }
 
 /**
+ * Manage User Role Mapping (Create, Read, Delete)
+ * @param {Object} data - User role mapping data
+ * @returns {Promise} Axios response
+ */
+export const manageUserRoleMapping = async (data) => {
+    const payload = {
+        userRoleId: 0,
+        userId: 0,
+        roleId: 0,
+        isDeleted: false,
+        spType: 'R',
+        ...data
+    }
+    return await axiosInstance.post('/api/UserRole/ManageUserRoleMapping', payload)
+}
+
+/**
  * Get user profile by email
  * @param {string} email - User email address
  */
 export const getUserProfileByEmail = async (email) => {
-    return await axiosInstance.get(`/api/UserRole/GetUserProfileByEmail`, {
-        params: { email }
+    return await axiosInstance.post(`/api/UserRole/GetUserProfileByEmail`, {
+        emailId: email
     })
 }

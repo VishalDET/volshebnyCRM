@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useDispatch } from 'react-redux'
 import { useAuth } from '@hooks/useAuth'
 import { User, Mail, Shield, Key } from 'lucide-react'
@@ -11,23 +11,27 @@ const UserProfile = () => {
     const { user } = useAuth()
     const dispatch = useDispatch()
     const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+    const [loading, setLoading] = useState(false)
 
-    const handleUpdateSuccess = async () => {
+    useEffect(() => {
+        if (user?.email) {
+            fetchProfile(user.email)
+        }
+    }, [user?.email])
+
+    const fetchProfile = async (email) => {
         try {
-            // Refresh user data using email
-            const response = await getUserProfileByEmail(user.email)
-
-            // API returns { statusCode, success, message, data: {...}, totalCount, error }
+            setLoading(true)
+            const response = await getUserProfileByEmail(email)
             const profileData = response.data?.data
 
             if (profileData) {
-                // Map the profile data to our app's user structure
                 const mappedUser = {
-                    ...user, // keep existing fields like token/uid/photoURL
+                    ...user,
                     id: profileData.userId,
                     name: profileData.fullName,
                     email: profileData.emailId,
-                    role: profileData.authority,
+                    role: profileData.roleName, // Use roleName, ignore Authority
                     roleName: profileData.roleName,
                     mobileNo: profileData.mobileNo,
                     companyName: profileData.companyName,
@@ -38,7 +42,15 @@ const UserProfile = () => {
                 localStorage.setItem('user', JSON.stringify(mappedUser))
             }
         } catch (error) {
-            console.error('Failed to refresh user data', error)
+            console.error('Failed to fetch user data', error)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleUpdateSuccess = async () => {
+        if (user?.email) {
+            await fetchProfile(user.email)
         }
     }
 
@@ -51,7 +63,7 @@ const UserProfile = () => {
 
                 <div className="px-6 pb-8">
                     <div className="relative flex justify-start items-center -mt-12 mb-6 bg-gradient-to-r from-blue-500 to-indigo-600
-                                    border-2 border-white p-2 rounded-xl">
+                                    border-2 border-indigo-500 p-2 rounded-xl">
                         <div className="flex items-end">
                             <div className="w-24 h-24 rounded-full bg-white p-1 shadow-md">
                                 {user?.photoURL ? (
@@ -72,13 +84,13 @@ const UserProfile = () => {
                                 <h2 className="text-2xl font-bold text-gray-100">{user?.name || 'User Name'}</h2>
                                 <p className="text-gray-300 text-sm">Member since {new Date().getFullYear()}</p>
                             </div>
-                            <Button
+                            {/* <Button
                                 variant="outline"
                                 className="bg-white text-gray-900 hover:bg-gray-100 border border-gray-200"
                                 onClick={() => setIsEditModalOpen(true)}
                             >
                                 Edit Profile
-                            </Button>
+                            </Button> */}
                         </div>
                     </div>
 

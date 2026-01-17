@@ -29,6 +29,7 @@ export const login = createAsyncThunk(
             // Store in LocalStorage
             localStorage.setItem('authToken', token)
             localStorage.setItem('user', JSON.stringify(userData))
+            localStorage.setItem('userEmail', firebaseUser.email)
 
             return { user: userData, token }
         } catch (error) {

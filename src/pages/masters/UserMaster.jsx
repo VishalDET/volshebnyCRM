@@ -3,7 +3,7 @@ import { Plus, Search, Edit2, Trash2, Mail, Phone, Building } from 'lucide-react
 import { toast } from 'react-hot-toast'
 import Button from '@components/Button'
 import Input from '@components/Input'
-import { manageUser } from '@api/userRole.api'
+import { manageUser, manageUserRoleMapping } from '@api/userRole.api'
 
 const UserMaster = () => {
     const [users, setUsers] = useState([])
@@ -19,13 +19,7 @@ const UserMaster = () => {
         mobileNo: '',
         companyName: '',
         password: '', // Only for creation if needed, though API desc doesn't strictly show password field in RQ. Assuming it handles it or generic "manage" might not set password directly? 
-        // Wait, the API request provided by user doesn't have "password". 
-        // Maybe it's handled via email/reset? Or maybe it's missing in the snippet?
-        // For now, I'll keep it but if API ignores it, so be it. 
-        // Actually, for "ManageUser", usually password isn't passed in plain text in update. For create, maybe.
-        // I will omit password from payload if not supported, but usually Create User needs one.
-        // Let's assume standard behavior: if spType is INSERT, maybe backend generates one?
-        role: 'user'
+        role: 'Handler'
     })
 
     useEffect(() => {
@@ -38,7 +32,36 @@ const UserMaster = () => {
             const response = await manageUser({ id: 0, spType: 'R', isActive: true })
             // API returns { statusCode, success, message, data: [...], totalCount, error }
             const userData = response.data?.data || []
-            setUsers(Array.isArray(userData) ? userData : [])
+
+            // Fetch role information for each user
+            const usersWithRoles = await Promise.all(
+                userData.map(async (user) => {
+                    try {
+                        const roleResponse = await manageUserRoleMapping({
+                            userRoleId: 0,
+                            userId: user.id,
+                            roleId: 0,
+                            isDeleted: false,
+                            spType: 'R'
+                        })
+                        const roleData = roleResponse.data?.data?.[0]
+                        return {
+                            ...user,
+                            roleName: roleData?.roleName || 'Handler',
+                            roleId: roleData?.roleId || 2
+                        }
+                    } catch (error) {
+                        console.error(`Failed to fetch role for user ${user.id}`, error)
+                        return {
+                            ...user,
+                            roleName: 'Handler',
+                            roleId: 2
+                        }
+                    }
+                })
+            )
+
+            setUsers(Array.isArray(usersWithRoles) ? usersWithRoles : [])
         } catch (error) {
             toast.error('Failed to fetch users')
             console.error(error)
@@ -68,7 +91,7 @@ const UserMaster = () => {
                 emailId: user.emailId || '',
                 mobileNo: user.mobileNo || '',
                 companyName: user.companyName || '',
-                role: user.authority || 'user',
+                role: user.roleName || 'Handler',
                 password: ''
             })
         } else {
@@ -80,7 +103,7 @@ const UserMaster = () => {
                 mobileNo: '',
                 companyName: '',
                 password: '',
-                role: 'user'
+                role: 'Handler'
             })
         }
         setShowModal(true)
@@ -109,17 +132,37 @@ const UserMaster = () => {
                     pincode: selectedUser.pincode || "",
                 } : {}),
 
-                authority: formData.role,
+                authority: "",
+                createdBy: 0,
                 modifiedBy: 0,
                 isActive: true,
-                spType: modalMode === 'add' ? 'INSERT' : 'UPDATE'
+                spType: modalMode === 'add' ? 'C' : 'U'
             }
 
-            await manageUser(payload)
+            const userResponse = await manageUser(payload)
+
+            // Get the user ID from response or use existing ID
+            const userId = modalMode === 'add'
+                ? userResponse.data?.data?.[0]?.id || userResponse.data?.data?.id || userResponse.data?.data
+                : (selectedUser.id || selectedUser.uid)
+
+            // Map role name to role ID (1 for SuperAdmin, 2 for Handler)
+            const roleId = formData.role.toLowerCase() === 'superadmin' ? 1 : 2
+
+            // Create or update role mapping: Use 'C' for create, 'U' for update as per requirement
+            await manageUserRoleMapping({
+                userRoleId: 0,
+                userId: userId,
+                roleId: roleId,
+                isDeleted: false,
+                spType: modalMode === 'add' ? 'C' : 'U'
+            })
+
             toast.success(`User ${modalMode === 'add' ? 'created' : 'updated'} successfully`)
             setShowModal(false)
             fetchUsers()
         } catch (error) {
+            console.error('Submit error:', error)
             toast.error(error.response?.data?.message || 'Operation failed')
         }
     }
@@ -127,12 +170,26 @@ const UserMaster = () => {
     const handleDelete = async (id) => {
         if (window.confirm('Are you sure you want to delete this user?')) {
             try {
-                // DELETE usually requires ID and spType
-                // We might need to pass other required fields as dummies if the proc is strict
                 const payload = {
                     id: id,
-                    spType: 'DELETE',
-                    isActive: false
+                    firstName: "",
+                    lastName: "",
+                    mobileNo: "",
+                    companyName: "",
+                    emailId: "",
+                    isGSTIN: false,
+                    gstNumber: "",
+                    address: "",
+                    landmark: "",
+                    authority: "",
+                    countryId: 0,
+                    stateId: 0,
+                    cityId: 0,
+                    pincode: "",
+                    createdBy: 0,
+                    modifiedBy: 0,
+                    isActive: false,
+                    spType: 'D'
                 }
                 await manageUser(payload)
                 toast.success('User deleted successfully')
@@ -198,9 +255,9 @@ const UserMaster = () => {
                                         </td>
                                         <td className="p-4">
                                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
-                                                ${(user.authority || user.role) === 'superadmin' ? 'bg-purple-100 text-purple-800' :
-                                                    (user.authority || user.role) === 'admin' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>
-                                                {user.authority || user.role || 'User'}
+                                                ${(user.roleName || user.role) === 'SuperAdmin' ? 'bg-purple-100 text-purple-800' :
+                                                    (user.roleName || user.role) === 'Admin' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>
+                                                {user.roleName || user.role || 'User'}
                                             </span>
                                         </td>
                                         <td className="p-4 text-right">
@@ -279,9 +336,8 @@ const UserMaster = () => {
                                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 bg-white"
                                 >
-                                    <option value="user">User</option>
-                                    <option value="admin">Admin</option>
-                                    <option value="superadmin">Super Admin</option>
+                                    <option value="Handler">Handler</option>
+                                    <option value="SuperAdmin">Super Admin</option>
                                 </select>
                             </div>
 
