@@ -1,9 +1,46 @@
+import { useState } from 'react'
+import { useDispatch } from 'react-redux'
 import { useAuth } from '@hooks/useAuth'
 import { User, Mail, Shield, Key } from 'lucide-react'
 import Button from '@components/Button'
+import EditProfileModal from '@components/EditProfileModal'
+import { setUser } from '@redux/authSlice'
+import { getUserProfileByEmail } from '@api/userRole.api'
 
 const UserProfile = () => {
     const { user } = useAuth()
+    const dispatch = useDispatch()
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+
+    const handleUpdateSuccess = async () => {
+        try {
+            // Refresh user data using email
+            const response = await getUserProfileByEmail(user.email)
+
+            // API returns { statusCode, success, message, data: {...}, totalCount, error }
+            const profileData = response.data?.data
+
+            if (profileData) {
+                // Map the profile data to our app's user structure
+                const mappedUser = {
+                    ...user, // keep existing fields like token/uid/photoURL
+                    id: profileData.userId,
+                    name: profileData.fullName,
+                    email: profileData.emailId,
+                    role: profileData.authority,
+                    roleName: profileData.roleName,
+                    mobileNo: profileData.mobileNo,
+                    companyName: profileData.companyName,
+                    isActive: profileData.isActive
+                }
+
+                dispatch(setUser(mappedUser))
+                localStorage.setItem('user', JSON.stringify(mappedUser))
+            }
+        } catch (error) {
+            console.error('Failed to refresh user data', error)
+        }
+    }
 
     return (
         <div className="max-w-4xl mx-auto p-6 rounded-2xl">
@@ -35,7 +72,11 @@ const UserProfile = () => {
                                 <h2 className="text-2xl font-bold text-gray-100">{user?.name || 'User Name'}</h2>
                                 <p className="text-gray-300 text-sm">Member since {new Date().getFullYear()}</p>
                             </div>
-                            <Button variant="outline" className="bg-white text-gray-900 hover:bg-gray-100 border border-gray-200">
+                            <Button
+                                variant="outline"
+                                className="bg-white text-gray-900 hover:bg-gray-100 border border-gray-200"
+                                onClick={() => setIsEditModalOpen(true)}
+                            >
                                 Edit Profile
                             </Button>
                         </div>
@@ -60,6 +101,16 @@ const UserProfile = () => {
                                     <p className="font-medium">{user?.email}</p>
                                 </div>
                             </div>
+
+                            {user?.mobileNo && (
+                                <div className="flex items-center gap-3 text-gray-700">
+                                    <div className="w-5 h-5" /> {/* Spacer */}
+                                    <div>
+                                        <p className="text-sm text-gray-500">Mobile</p>
+                                        <p className="font-medium">{user.mobileNo}</p>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         <div className="space-y-4">
@@ -82,10 +133,27 @@ const UserProfile = () => {
                                     <p className="font-mono text-xs bg-gray-50 px-2 py-1 rounded text-gray-600">{user?.uid || user?.id}</p>
                                 </div>
                             </div>
+
+                            {user?.companyName && (
+                                <div className="flex items-center gap-3 text-gray-700">
+                                    <div className="w-5 h-5" />
+                                    <div>
+                                        <p className="text-sm text-gray-500">Company</p>
+                                        <p className="font-medium">{user.companyName}</p>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
             </div>
+
+            <EditProfileModal
+                isOpen={isEditModalOpen}
+                onClose={() => setIsEditModalOpen(false)}
+                user={user}
+                onUpdateSuccess={handleUpdateSuccess}
+            />
         </div>
     )
 }

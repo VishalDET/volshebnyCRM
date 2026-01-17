@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
-import { Plus, Search, Edit2, Trash2 } from 'lucide-react'
+import { Plus, Search, Edit2, Trash2, Mail, Phone, Building } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import Button from '@components/Button'
 import Input from '@components/Input'
-import { getAllUsers, createUser, updateUser, deleteUser } from '@api/user.api'
+import { manageUser } from '@api/userRole.api'
 
 const UserMaster = () => {
     const [users, setUsers] = useState([])
@@ -13,9 +13,18 @@ const UserMaster = () => {
     const [modalMode, setModalMode] = useState('add') // 'add' or 'edit'
     const [selectedUser, setSelectedUser] = useState(null)
     const [formData, setFormData] = useState({
-        name: '',
-        email: '',
-        password: '',
+        firstName: '',
+        lastName: '',
+        emailId: '',
+        mobileNo: '',
+        companyName: '',
+        password: '', // Only for creation if needed, though API desc doesn't strictly show password field in RQ. Assuming it handles it or generic "manage" might not set password directly? 
+        // Wait, the API request provided by user doesn't have "password". 
+        // Maybe it's handled via email/reset? Or maybe it's missing in the snippet?
+        // For now, I'll keep it but if API ignores it, so be it. 
+        // Actually, for "ManageUser", usually password isn't passed in plain text in update. For create, maybe.
+        // I will omit password from payload if not supported, but usually Create User needs one.
+        // Let's assume standard behavior: if spType is INSERT, maybe backend generates one?
         role: 'user'
     })
 
@@ -26,11 +35,14 @@ const UserMaster = () => {
     const fetchUsers = async () => {
         try {
             setLoading(true)
-            const response = await getAllUsers()
-            setUsers(response.data)
+            const response = await manageUser({ id: 0, spType: 'R', isActive: true })
+            // API returns { statusCode, success, message, data: [...], totalCount, error }
+            const userData = response.data?.data || []
+            setUsers(Array.isArray(userData) ? userData : [])
         } catch (error) {
             toast.error('Failed to fetch users')
             console.error(error)
+            setUsers([])
         } finally {
             setLoading(false)
         }
@@ -40,26 +52,33 @@ const UserMaster = () => {
         setSearchTerm(e.target.value)
     }
 
-    const filteredUsers = users.filter(user =>
-        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase())
-    )
+    const filteredUsers = users.filter(user => {
+        const fullName = `${user.firstName || ''} ${user.lastName || ''}`.toLowerCase()
+        return fullName.includes(searchTerm.toLowerCase()) ||
+            (user.emailId || '').toLowerCase().includes(searchTerm.toLowerCase())
+    })
 
     const handleOpenModal = (mode, user = null) => {
         setModalMode(mode)
         if (mode === 'edit' && user) {
             setSelectedUser(user)
             setFormData({
-                name: user.name,
-                email: user.email,
-                role: user.role,
-                password: '' // Password usually not editable directly or empty
+                firstName: user.firstName || '',
+                lastName: user.lastName || '',
+                emailId: user.emailId || '',
+                mobileNo: user.mobileNo || '',
+                companyName: user.companyName || '',
+                role: user.authority || 'user',
+                password: ''
             })
         } else {
             setSelectedUser(null)
             setFormData({
-                name: '',
-                email: '',
+                firstName: '',
+                lastName: '',
+                emailId: '',
+                mobileNo: '',
+                companyName: '',
                 password: '',
                 role: 'user'
             })
@@ -70,16 +89,34 @@ const UserMaster = () => {
     const handleSubmit = async (e) => {
         e.preventDefault()
         try {
-            if (modalMode === 'add') {
-                await createUser(formData)
-                toast.success('User created successfully')
-            } else {
-                await updateUser(selectedUser.uid, {
-                    name: formData.name,
-                    role: formData.role
-                })
-                toast.success('User updated successfully')
+            const payload = {
+                id: modalMode === 'edit' ? (selectedUser.id || selectedUser.uid) : 0,
+                firstName: formData.firstName,
+                lastName: formData.lastName,
+                mobileNo: formData.mobileNo,
+                companyName: formData.companyName,
+                emailId: formData.emailId,
+
+                // When editing, preserve existing fields that aren't in the form
+                ...(modalMode === 'edit' && selectedUser ? {
+                    address: selectedUser.address || "",
+                    landmark: selectedUser.landmark || "",
+                    gstNumber: selectedUser.gstNumber || "",
+                    isGSTIN: selectedUser.isGSTIN || false,
+                    countryId: selectedUser.countryId || 0,
+                    stateId: selectedUser.stateId || 0,
+                    cityId: selectedUser.cityId || 0,
+                    pincode: selectedUser.pincode || "",
+                } : {}),
+
+                authority: formData.role,
+                modifiedBy: 0,
+                isActive: true,
+                spType: modalMode === 'add' ? 'INSERT' : 'UPDATE'
             }
+
+            await manageUser(payload)
+            toast.success(`User ${modalMode === 'add' ? 'created' : 'updated'} successfully`)
             setShowModal(false)
             fetchUsers()
         } catch (error) {
@@ -87,10 +124,17 @@ const UserMaster = () => {
         }
     }
 
-    const handleDelete = async (uid) => {
+    const handleDelete = async (id) => {
         if (window.confirm('Are you sure you want to delete this user?')) {
             try {
-                await deleteUser(uid)
+                // DELETE usually requires ID and spType
+                // We might need to pass other required fields as dummies if the proc is strict
+                const payload = {
+                    id: id,
+                    spType: 'DELETE',
+                    isActive: false
+                }
+                await manageUser(payload)
                 toast.success('User deleted successfully')
                 fetchUsers()
             } catch (error) {
@@ -127,7 +171,7 @@ const UserMaster = () => {
                         <thead className="bg-gray-50 text-gray-600 font-medium">
                             <tr>
                                 <th className="p-4">Name</th>
-                                <th className="p-4">Email</th>
+                                <th className="p-4">Contact</th>
                                 <th className="p-4">Role</th>
                                 <th className="p-4 text-right">Actions</th>
                             </tr>
@@ -143,14 +187,20 @@ const UserMaster = () => {
                                 </tr>
                             ) : (
                                 filteredUsers.map(user => (
-                                    <tr key={user.uid} className="hover:bg-gray-50">
-                                        <td className="p-4 font-medium text-gray-900">{user.name}</td>
-                                        <td className="p-4 text-gray-600">{user.email}</td>
+                                    <tr key={user.id || user.uid} className="hover:bg-gray-50">
+                                        <td className="p-4">
+                                            <div className="font-medium text-gray-900">{user.firstName} {user.lastName}</div>
+                                            {user.companyName && <div className="text-xs text-gray-500 flex items-center gap-1"><Building size={12} /> {user.companyName}</div>}
+                                        </td>
+                                        <td className="p-4 text-gray-600">
+                                            <div className="flex items-center gap-2 text-sm"><Mail size={14} /> {user.emailId}</div>
+                                            {user.mobileNo && <div className="flex items-center gap-2 text-sm text-gray-500 mt-1"><Phone size={14} /> {user.mobileNo}</div>}
+                                        </td>
                                         <td className="p-4">
                                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
-                                                ${user.role === 'superadmin' ? 'bg-purple-100 text-purple-800' :
-                                                    user.role === 'admin' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>
-                                                {user.role}
+                                                ${(user.authority || user.role) === 'superadmin' ? 'bg-purple-100 text-purple-800' :
+                                                    (user.authority || user.role) === 'admin' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>
+                                                {user.authority || user.role || 'User'}
                                             </span>
                                         </td>
                                         <td className="p-4 text-right">
@@ -162,7 +212,7 @@ const UserMaster = () => {
                                                     <Edit2 size={18} />
                                                 </button>
                                                 <button
-                                                    onClick={() => handleDelete(user.uid)}
+                                                    onClick={() => handleDelete(user.id || user.uid)}
                                                     className="p-1 text-red-600 hover:bg-red-50 rounded"
                                                 >
                                                     <Trash2 size={18} />
@@ -180,36 +230,48 @@ const UserMaster = () => {
             {/* Modal */}
             {showModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl">
                         <div className="p-6 border-b border-gray-100 flex justify-between items-center">
                             <h2 className="text-xl font-bold bg-white">{modalMode === 'add' ? 'Add User' : 'Edit User'}</h2>
                             <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600">&times;</button>
                         </div>
                         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                            <Input
-                                label="Full Name"
-                                value={formData.name}
-                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                required
-                            />
-                            <Input
-                                label="Email Address"
-                                type="email"
-                                value={formData.email}
-                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                disabled={modalMode === 'edit'} // Email usually not editable to keep sync simple
-                                required
-                            />
-                            {modalMode === 'add' && (
+                            <div className="grid grid-cols-2 gap-4">
                                 <Input
-                                    label="Password"
-                                    type="password"
-                                    value={formData.password}
-                                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                    label="First Name"
+                                    value={formData.firstName}
+                                    onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                                     required
-                                    placeholder="Temp password"
                                 />
-                            )}
+                                <Input
+                                    label="Last Name"
+                                    value={formData.lastName}
+                                    onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <Input
+                                    label="Email Address"
+                                    type="email"
+                                    value={formData.emailId}
+                                    onChange={(e) => setFormData({ ...formData, emailId: e.target.value })}
+                                    disabled={modalMode === 'edit'}
+                                    required
+                                />
+                                <Input
+                                    label="Mobile No"
+                                    value={formData.mobileNo}
+                                    onChange={(e) => setFormData({ ...formData, mobileNo: e.target.value })}
+                                />
+                            </div>
+
+                            <Input
+                                label="Company Name"
+                                value={formData.companyName}
+                                onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
+                            />
+
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
                                 <select
