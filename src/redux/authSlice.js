@@ -30,6 +30,10 @@ export const login = createAsyncThunk(
             localStorage.setItem('authToken', token)
             localStorage.setItem('user', JSON.stringify(userData))
             localStorage.setItem('userEmail', firebaseUser.email)
+            localStorage.setItem('userId', backendUser.userId)
+            localStorage.setItem('roleId', backendUser.roleId)
+            sessionStorage.setItem('userId', backendUser.userId)
+            sessionStorage.setItem('roleId', backendUser.roleId)
 
             return { user: userData, token }
         } catch (error) {
@@ -45,6 +49,10 @@ export const logout = createAsyncThunk(
             await logoutFromFirebase()
             localStorage.removeItem('authToken')
             localStorage.removeItem('user')
+            localStorage.removeItem('userId')
+            localStorage.removeItem('roleId')
+            sessionStorage.removeItem('userId')
+            sessionStorage.removeItem('roleId')
             return null
         } catch (error) {
             return rejectWithValue(error.message || 'Logout failed')

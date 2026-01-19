@@ -29,8 +29,10 @@ const UserProfile = () => {
                 const mappedUser = {
                     ...user,
                     id: profileData.userId,
+                    userId: profileData.userId,
                     name: profileData.fullName,
                     email: profileData.emailId,
+                    roleId: profileData.roleId,
                     role: profileData.roleName, // Use roleName, ignore Authority
                     roleName: profileData.roleName,
                     mobileNo: profileData.mobileNo,
@@ -40,6 +42,10 @@ const UserProfile = () => {
 
                 dispatch(setUser(mappedUser))
                 localStorage.setItem('user', JSON.stringify(mappedUser))
+                localStorage.setItem('userId', mappedUser.userId)
+                localStorage.setItem('roleId', mappedUser.roleId)
+                sessionStorage.setItem('userId', mappedUser.userId)
+                sessionStorage.setItem('roleId', mappedUser.roleId)
             }
         } catch (error) {
             console.error('Failed to fetch user data', error)
@@ -102,7 +108,7 @@ const UserProfile = () => {
                                 <User className="w-5 h-5 text-gray-400" />
                                 <div>
                                     <p className="text-sm text-gray-500">Full Name</p>
-                                    <p className="font-medium">{user?.name || 'Not provided'}</p>
+                                    <p className="font-medium">{user?.name || 'Not provided'}|{user?.userId} </p>
                                 </div>
                             </div>
 
@@ -133,7 +139,7 @@ const UserProfile = () => {
                                 <div>
                                     <p className="text-sm text-gray-500">Role</p>
                                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 capitalize">
-                                        {user?.role || 'Guest'}
+                                        {user?.role || 'Guest'} | {user?.roleId}
                                     </span>
                                 </div>
                             </div>

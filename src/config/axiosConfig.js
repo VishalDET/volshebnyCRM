@@ -41,16 +41,16 @@ axiosInstance.interceptors.response.use(
                     window.location.href = '/login'
                     break
                 case 403:
-                    console.error('Access forbidden:', data.message)
+                    console.error('Access forbidden:', data?.message || 'No message provided')
                     break
                 case 404:
-                    console.error('Resource not found:', data.message)
+                    console.error('Resource not found:', data?.message || 'No message provided')
                     break
                 case 500:
-                    console.error('Server error:', data.message)
+                    console.error('Server error:', data?.message || 'No message provided')
                     break
                 default:
-                    console.error('API Error:', data.message)
+                    console.error('API Error:', data?.message || 'No message provided')
             }
         } else if (error.request) {
             // Request made but no response received
