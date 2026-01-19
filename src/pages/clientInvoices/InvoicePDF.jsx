@@ -228,7 +228,7 @@ const InvoicePDF = ({ isAccumulated = false }) => {
                                 <th className="px-2 py-2 w-10 text-center">S.No</th>
                                 <th className="px-3 py-2">Description of Services</th>
                                 <th className="px-3 py-2 w-20 text-center">Date</th>
-                                <th className="px-3 py-2 w-28 text-right">Amount (₹)</th>
+                                <th className="px-3 py-2 w-28 text-right">Amount ($)</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 text-[10px]">
@@ -251,23 +251,23 @@ const InvoicePDF = ({ isAccumulated = false }) => {
                         <tfoot>
                             <tr className="text-[10px] divide-x divide-gray-800">
                                 <td colSpan="3" className="px-3 py-2 font-bold uppercase text-right bg-gray-50">Sub Total</td>
-                                <td className="px-3 py-2 text-right font-black text-gray-900">₹{grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                <td className="px-3 py-2 text-right font-black text-gray-900">${grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
                             </tr>
                             {invoices.some(i => i.isDomestic) && (
                                 <>
                                     <tr className="text-[10px] divide-x divide-gray-800 whitespace-nowrap">
                                         <td colSpan="3" className="px-3 py-1.5 text-right text-gray-500">CGST (9%)</td>
-                                        <td className="px-3 py-1.5 text-right font-bold text-gray-700">₹{(totalTax / 2).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                        <td className="px-3 py-1.5 text-right font-bold text-gray-700">${(totalTax / 2).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
                                     </tr>
                                     <tr className="text-[10px] divide-x divide-gray-800 whitespace-nowrap">
                                         <td colSpan="3" className="px-3 py-1.5 text-right text-gray-500 border-b border-gray-800">SGST (9%)</td>
-                                        <td className="px-3 py-1.5 text-right font-bold text-gray-700 border-b border-gray-800">₹{(totalTax / 2).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                        <td className="px-3 py-1.5 text-right font-bold text-gray-700 border-b border-gray-800">${(totalTax / 2).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
                                     </tr>
                                 </>
                             )}
                             <tr className="text-[11px] divide-x divide-gray-800 bg-gray-900 text-white">
                                 <td colSpan="3" className="px-3 py-2.5 font-bold uppercase text-right">Grand Total (Rounded)</td>
-                                <td className="px-3 py-2.5 text-right font-black text-base">₹{netAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                <td className="px-3 py-2.5 text-right font-black text-base">${grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
                             </tr>
                         </tfoot>
                     </table>
@@ -276,7 +276,7 @@ const InvoicePDF = ({ isAccumulated = false }) => {
                 {/* Amount in Words */}
                 <div className="border border-gray-800 p-2 mb-4 bg-gray-50">
                     <p className="text-[8px] font-black text-gray-400 uppercase mb-1">Total Amount in Words</p>
-                    <p className="text-[10px] font-black uppercase text-gray-800 italic">Rupees {numberToWords(Math.round(netAmount))} Only</p>
+                    <p className="text-[10px] font-black uppercase text-gray-800 italic">{numberToWords(Math.round(grandTotal))} Only</p>
                 </div>
 
                 {/* Bottom Section: Bank & Terms */}

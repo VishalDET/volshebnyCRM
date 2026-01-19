@@ -454,7 +454,7 @@ const ViewQuery = () => {
                             </div>
                             <div>
                                 <dt className="text-sm text-secondary-600">Budget</dt>
-                                <dd className="font-medium">₹{query.budget?.toLocaleString()}</dd>
+                                <dd className="font-medium">${query.budget?.toLocaleString()}</dd>
                             </div>
                         </dl>
 
@@ -701,8 +701,8 @@ const ViewQuery = () => {
                                 {/* Budget Stats Summary */}
                                 <div className="grid grid-cols-1 gap-2 mb-4">
                                     <div className="flex justify-between text-xs font-bold px-2">
-                                        <span className="text-gray-500">BUDGET: ₹{query.budget?.toLocaleString() || 0}</span>
-                                        <span className="text-blue-600">REMAINING: ₹{((query.budget || 0) - (confirmedQuery?.totalInvoiced || 0)).toLocaleString()}</span>
+                                        <span className="text-gray-500">BUDGET: ${query.budget?.toLocaleString() || 0}</span>
+                                        <span className="text-blue-600">REMAINING: ${((query.budget || 0) - (confirmedQuery?.totalInvoiced || 0)).toLocaleString()}</span>
                                     </div>
                                     <div className="w-full bg-gray-200 rounded-full h-1.5 px-0">
                                         <div
@@ -749,7 +749,7 @@ const ViewQuery = () => {
                                 {/* Cost Summary */}
                                 <div className="grid grid-cols-1 gap-2 mb-4">
                                     <div className="flex justify-between text-xs font-bold px-2">
-                                        <span className="text-gray-500 uppercase tracking-tight">TOTAL COST: ₹{confirmedQuery?.totalSupplierCost?.toLocaleString() || 0}</span>
+                                        <span className="text-gray-500 uppercase tracking-tight">TOTAL COST: ${confirmedQuery?.totalSupplierCost?.toLocaleString() || 0}</span>
                                         <span className="text-red-600 uppercase tracking-tight">COUNT: {confirmedQuery?.supplierInvoiceCount || 0}</span>
                                     </div>
                                     <div className="w-full bg-gray-200 rounded-full h-1.5 px-0">

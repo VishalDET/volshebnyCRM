@@ -35,7 +35,7 @@ const UserMaster = () => {
                 id: 0,
                 spType: 'R',
                 isActive: true,
-                isDeleted: true,
+                isDeleted: false,
                 roleId: 0,
                 createdBy: 0,
                 modifiedBy: 0
@@ -51,7 +51,7 @@ const UserMaster = () => {
                             userRoleId: 0,
                             userId: user.id,
                             roleId: 0,
-                            isDeleted: true,
+                            isDeleted: false,
                             createdBy: 0,
                             spType: 'R'
                         })

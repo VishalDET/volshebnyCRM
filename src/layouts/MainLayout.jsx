@@ -217,7 +217,7 @@ const MainLayout = ({ children }) => {
                 </header>
 
                 {/* Page Content */}
-                <main className="p-8 max-w-8xl mx-auto">
+                <main className="p-8 max-w-7xl mx-auto">
                     {children}
                 </main>
             </div>

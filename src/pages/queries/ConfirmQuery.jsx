@@ -560,7 +560,7 @@ const ConfirmQuery = () => {
                             </div>
                             <div>
                                 <dt className="text-sm text-secondary-600">Budget</dt>
-                                <dd className="font-medium">₹{query.budget?.toLocaleString()}</dd>
+                                <dd className="font-medium">${query.budget?.toLocaleString()}</dd>
                             </div>
                             {query.specialRequirements && (
                                 <div className="col-span-2 mt-2">

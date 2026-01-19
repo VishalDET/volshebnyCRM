@@ -99,34 +99,41 @@ const CreateClientInvoice = () => {
 
         const finalNet = convertedTotal + convertedTax + convertedSC + rem
 
+        // Get currency sign for netAmount display
+        const selectedCurrency = currencies.find(c => (c.value === parseInt(formData.currencyId)))
+        const sign = selectedCurrency?.sign || "$"
+
         setFormData(prev => ({
             ...prev,
             taxAmount: (convertedTax + convertedSC).toFixed(2),
-            netAmount: finalNet.toFixed(2)
+            netAmount: finalNet.toFixed(2),
+            currencySign: sign
         }))
-    }, [formData.totalAmount, paymentMethod, remittanceCharge, rateOfExchange, isNettMode])
+    }, [formData.totalAmount, formData.currencyId, paymentMethod, remittanceCharge, rateOfExchange, isNettMode, currencies])
 
     const fetchMetadata = async () => {
         try {
             const payload = {
                 id: 0,
-                currencyCode: "",
-                currencyName: "",
-                currencySymbol: "",
+                roleId: 0,
                 createdBy: 0,
                 modifiedBy: 0,
+                currencyName: "string",
+                currencySign: "string",
                 isActive: true,
+                isDeleted: false,
                 spType: "R"
             }
             const res = await manageCurrency(payload)
             if (res.data?.data) {
                 const list = res.data.data.map(c => ({
                     value: c.id || c.currencyId,
-                    label: c.currencyName
+                    label: c.currencyName,
+                    sign: c.currencySign || "$"
                 }))
                 setCurrencies(list)
                 if (!isEdit && list.length > 0) {
-                    setFormData(prev => ({ ...prev, currencyId: list[0].value }))
+                    setFormData(prev => ({ ...prev, currencyId: list[0].value, currencySign: list[0].sign }))
                 }
             }
 
@@ -182,6 +189,17 @@ const CreateClientInvoice = () => {
                     dueDate: data.dueDate?.split('T')[0],
                     spType: "U"
                 })
+
+                // Sync UI states with fetched data
+                setPaymentMethod(data.paymentMethod || "")
+                setRateOfExchange(data.rateOfExchange || 1)
+                setRemittanceCharge(data.remittance || 0)
+                setGstAmount(data.gst || 0)
+                setServiceCharge(data.serviceCharge || 0)
+                // If taxAmount matches calculated GST+SC, it's not custom nett mode
+                if (data.taxAmount) {
+                    setIsNettMode(false)
+                }
 
                 // Ensure side details are loaded
                 if (qId) {
@@ -276,15 +294,22 @@ const CreateClientInvoice = () => {
                 id: 0,
                 queryId: parseInt(qId),
                 clientId: 0,
-                invoiceNo: "",
-                invoiceDate: null,
-                dueDate: null,
+                invoiceNo: "string",
+                invoiceDate: new Date().toISOString(),
+                dueDate: new Date().toISOString(),
                 currencyId: 0,
+                isDomestic: true,
                 totalAmount: 0,
-                taxAmount: 0,
+                gst: 0,
+                serviceCharge: 0,
+                remittance: 0,
+                rateOfExchange: 0,
+                paymentMethod: "string",
+                comments: "string",
                 netAmount: 0,
-                paymentStatus: "",
+                paymentStatus: "string",
                 userId: 0,
+                roleId: 0,
                 isActive: true,
                 isDeleted: false,
                 createdBy: 0,
@@ -300,22 +325,15 @@ const CreateClientInvoice = () => {
         }
     }
 
+    const currentInvoiceAmount = parseFloat(formData.totalAmount) || 0
     const totalInvoiced = existingInvoices.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0)
     const queryBudget = query?.budget || 0
-    const remainingBudget = queryBudget - totalInvoiced
+    const totalProjected = totalInvoiced + currentInvoiceAmount
+    const remainingBalance = queryBudget - totalProjected
 
     const handleInputChange = (e) => {
         const { name, value } = e.target
-        setFormData(prev => {
-            const updated = { ...prev, [name]: value }
-            // Auto calculate net if total or tax changes
-            if (name === 'totalAmount' || name === 'taxAmount') {
-                const total = parseFloat(name === 'totalAmount' ? value : prev.totalAmount) || 0
-                const tax = parseFloat(name === 'taxAmount' ? value : prev.taxAmount) || 0
-                updated.netAmount = total + tax
-            }
-            return updated
-        })
+        setFormData(prev => ({ ...prev, [name]: value }))
     }
 
     const handleSubmit = async (e) => {
@@ -341,6 +359,11 @@ const CreateClientInvoice = () => {
                 netAmount: parseFloat(formData.netAmount) || 0,
                 paymentStatus: formData.paymentStatus || "Unpaid",
                 userId: 0,
+                roleId: 0,
+                isActive: true,
+                isDeleted: false,
+                createdBy: 0,
+                modifiedBy: 0,
                 spType: isEdit ? "U" : "C"
             }
             console.log("Submitting Invoice Payload:", payload)
@@ -519,12 +542,12 @@ const CreateClientInvoice = () => {
                             />
                             <Input
                                 type="number"
-                                label="Net Amount"
+                                label={`Net Amount (${formData.currencySign || 'Amount'})`}
                                 name="netAmount"
                                 value={formData.netAmount}
                                 onChange={isNettMode ? handleInputChange : undefined}
                                 readOnly={!isNettMode}
-                                className={!isNettMode ? "bg-gray-50 font-bold" : "font-bold"}
+                                className={!isNettMode ? "bg-gray-50 font-bold" : "font-bold text-blue-600"}
                             />
                         </div>
 
@@ -547,21 +570,29 @@ const CreateClientInvoice = () => {
                         <div className="space-y-3">
                             <div className="flex justify-between items-center bg-white p-2 rounded border">
                                 <span className="text-sm text-gray-500">Total Budget</span>
-                                <span className="font-bold text-gray-900">₹{queryBudget.toLocaleString()}</span>
+                                <span className="font-bold text-gray-900">${queryBudget.toLocaleString()}</span>
                             </div>
                             <div className="flex justify-between items-center bg-white p-2 rounded border">
                                 <span className="text-sm text-gray-500">Invoiced to Date</span>
-                                <span className="font-bold text-red-600">₹{totalInvoiced.toLocaleString()}</span>
+                                <span className="font-bold text-gray-900">${totalInvoiced.toLocaleString()}</span>
+                            </div>
+                            <div className="flex justify-between items-center bg-white p-2 rounded border">
+                                <span className="text-sm text-gray-500">Current Invoice</span>
+                                <span className="font-bold text-blue-600">${currentInvoiceAmount.toLocaleString()}</span>
+                            </div>
+                            <div className="flex justify-between items-center bg-red-50 p-2 rounded border border-red-100">
+                                <span className="text-sm text-red-900 font-semibold">Total Projected</span>
+                                <span className="font-bold text-red-600">${totalProjected.toLocaleString()}</span>
                             </div>
                             <div className="flex justify-between items-center bg-blue-100 p-3 rounded border border-blue-200">
                                 <span className="text-sm font-semibold text-blue-900">Remaining Balance</span>
-                                <span className={`font-black text-lg ${remainingBudget < formData.totalAmount ? 'text-orange-600' : 'text-blue-900'}`}>
-                                    ₹{remainingBudget.toLocaleString()}
+                                <span className={`font-black text-lg ${remainingBalance < 0 ? 'text-orange-600' : 'text-blue-900'}`}>
+                                    ${remainingBalance.toLocaleString()}
                                 </span>
                             </div>
-                            {remainingBudget < formData.totalAmount && (
+                            {remainingBalance < 0 && (
                                 <div className="text-[11px] text-orange-600 italic mt-1 font-medium bg-orange-50 p-2 rounded border border-orange-100">
-                                    ⚠️ Warning: New invoice exceeds remaining budget!
+                                    ⚠️ Warning: Total invoiced exceeds query budget!
                                 </div>
                             )}
                         </div>

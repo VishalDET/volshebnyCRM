@@ -210,7 +210,7 @@ const CountryMaster = () => {
                 countryId: parseInt(countryId), // Passing countryId for server-side filtering
                 stateId: 0,
                 isActive: true,
-                isDeleted: true,
+                isDeleted: false,
                 roleId: 0,
                 createdBy: 0,
                 modifiedBy: 0,

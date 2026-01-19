@@ -34,7 +34,7 @@ const ServiceTypeMaster = () => {
                 serviceName: "string",
                 description: "string",
                 isActive: true,
-                isDeleted: true,
+                isDeleted: false,
                 roleId: 0,
                 createdBy: 0,
                 modifiedBy: 0,

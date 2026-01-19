@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import PageHeader from '@components/PageHeader'
-import { ChevronDown, ChevronUp, IndianRupee, TrendingUp, TrendingDown, FileText, Ship } from 'lucide-react'
+import { ChevronDown, ChevronUp, DollarSign, TrendingUp, TrendingDown, FileText, Ship } from 'lucide-react'
 import { manageQuery } from '@api/query.api'
 import { manageClientInvoice } from '@api/clientInvoice.api'
 import { manageSupplierInvoice } from '@api/supplierInvoice.api'
@@ -50,29 +50,8 @@ const FinanceSummary = () => {
                     queryId: 0,
                     clientId: 0,
                     invoiceNo: "string",
-                    invoiceDate: null,
-                    dueDate: null,
-                    currencyId: 0,
-                    totalAmount: 0,
-                    gst: 0,
-                    serviceCharge: 0,
-                    remittance: 0,
-                    rateOfExchange: 0,
-                    paymentMethod: "string",
-                    comments: "string",
-                    netAmount: 0,
-                    paymentStatus: "string",
-                    userId: 0,
-                    spType: "R"
-                }),
-                manageSupplierInvoice({
-                    id: 0,
-                    queryId: 0,
-                    supplierId: 0,
-                    serviceType: "string",
-                    supplierInvNo: "string",
-                    invoiceDate: null,
-                    dueDate: null,
+                    invoiceDate: new Date().toISOString(),
+                    dueDate: new Date().toISOString(),
                     currencyId: 0,
                     isDomestic: true,
                     totalAmount: 0,
@@ -85,6 +64,34 @@ const FinanceSummary = () => {
                     netAmount: 0,
                     paymentStatus: "string",
                     userId: 0,
+                    roleId: 0,
+                    isActive: true,
+                    isDeleted: false,
+                    spType: "R"
+                }),
+                manageSupplierInvoice({
+                    id: 0,
+                    queryId: 0,
+                    supplierId: 0,
+                    serviceType: "string",
+                    supplierInvNo: "string",
+                    invoiceDate: new Date().toISOString(),
+                    dueDate: new Date().toISOString(),
+                    currencyId: 0,
+                    isDomestic: true,
+                    totalAmount: 0,
+                    gst: 0,
+                    serviceCharge: 0,
+                    remittance: 0,
+                    rateOfExchange: 0,
+                    paymentMethod: "string",
+                    comments: "string",
+                    netAmount: 0,
+                    paymentStatus: "string",
+                    userId: 0,
+                    roleId: 0,
+                    isActive: true,
+                    isDeleted: false,
                     spType: "R"
                 })
             ])
@@ -125,7 +132,7 @@ const FinanceSummary = () => {
     const stats = [
         { label: 'Total Revenue', value: totalRevenue, icon: TrendingUp, color: 'text-green-600', bgColor: 'bg-green-50' },
         { label: 'Total Expenditure', value: totalExpense, icon: TrendingDown, color: 'text-red-600', bgColor: 'bg-red-50' },
-        { label: 'Net Profit', value: netProfit, icon: IndianRupee, color: 'text-blue-600', bgColor: 'bg-blue-50' },
+        { label: 'Net Profit', value: netProfit, icon: DollarSign, color: 'text-blue-600', bgColor: 'bg-blue-50' },
     ]
 
     if (loading) return <Loader />
@@ -147,7 +154,7 @@ const FinanceSummary = () => {
                         </div>
                         <div>
                             <p className="text-xs font-bold text-secondary-400 uppercase tracking-widest">{stat.label}</p>
-                            <p className="text-2xl font-black text-secondary-900">₹{stat.value.toLocaleString()}</p>
+                            <p className="text-2xl font-black text-secondary-900">${stat.value.toLocaleString()}</p>
                         </div>
                     </div>
                 ))}
@@ -177,9 +184,9 @@ const FinanceSummary = () => {
                                 <div className="col-span-2 text-sm text-secondary-600">
                                     {query.travelDate ? new Date(query.travelDate).toLocaleDateString() : 'TBD'}
                                 </div>
-                                <div className="col-span-2 text-right text-sm font-medium text-secondary-700">₹{(query.budget || 0).toLocaleString()}</div>
+                                <div className="col-span-2 text-right text-sm font-medium text-secondary-700">${(query.budget || 0).toLocaleString()}</div>
                                 <div className={`col-span-2 text-right font-black ${query.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                    ₹{query.profit.toLocaleString()}
+                                    ${query.profit.toLocaleString()}
                                 </div>
                                 <div className="col-span-1 flex justify-end">
                                     <ChevronUp className={`w-5 h-5 text-secondary-400 transition-transform duration-300 ${expandedQuery === query.id ? 'rotate-0' : 'rotate-180'}`} />
@@ -211,7 +218,7 @@ const FinanceSummary = () => {
                                                                 <tr key={inv.id}>
                                                                     <td className="px-4 py-3 font-medium text-secondary-700">{inv.invoiceNo}</td>
                                                                     <td className="px-4 py-3 text-secondary-500">{new Date(inv.invoiceDate).toLocaleDateString()}</td>
-                                                                    <td className="px-4 py-3 text-right font-bold text-secondary-900">₹{inv.totalAmount.toLocaleString()}</td>
+                                                                    <td className="px-4 py-3 text-right font-bold text-secondary-900">${inv.totalAmount.toLocaleString()}</td>
                                                                 </tr>
                                                             )) : (
                                                                 <tr>
@@ -243,7 +250,7 @@ const FinanceSummary = () => {
                                                                 <tr key={inv.id}>
                                                                     <td className="px-4 py-3 font-medium text-secondary-700 truncate max-w-[120px]">{inv.supplierName || `Supplier #${inv.supplierId}`}</td>
                                                                     <td className="px-4 py-3 text-secondary-500">{inv.serviceType}</td>
-                                                                    <td className="px-4 py-3 text-right font-bold text-secondary-900">₹{inv.totalAmount.toLocaleString()}</td>
+                                                                    <td className="px-4 py-3 text-right font-bold text-secondary-900">${inv.totalAmount.toLocaleString()}</td>
                                                                 </tr>
                                                             )) : (
                                                                 <tr>
@@ -261,17 +268,17 @@ const FinanceSummary = () => {
                                             <div className="flex gap-12">
                                                 <div>
                                                     <p className="text-[10px] uppercase font-bold text-secondary-400 tracking-widest mb-1">Total Billable</p>
-                                                    <p className="text-xl font-black">₹{query.totalRevenue.toLocaleString()}</p>
+                                                    <p className="text-xl font-black">${query.totalRevenue.toLocaleString()}</p>
                                                 </div>
                                                 <div>
                                                     <p className="text-[10px] uppercase font-bold text-secondary-400 tracking-widest mb-1">Total Direct Cost</p>
-                                                    <p className="text-xl font-black text-red-400">₹{query.totalExpense.toLocaleString()}</p>
+                                                    <p className="text-xl font-black text-red-400">${query.totalExpense.toLocaleString()}</p>
                                                 </div>
                                             </div>
                                             <div className="text-right">
                                                 <p className="text-[10px] uppercase font-bold text-secondary-400 tracking-widest mb-1">Net Margin</p>
                                                 <p className={`text-3xl font-black ${query.profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                                    ₹{query.profit.toLocaleString()}
+                                                    ${query.profit.toLocaleString()}
                                                 </p>
                                             </div>
                                         </div>

@@ -467,7 +467,7 @@ const CreateQuery = () => {
                             onChange={handleInputChange}
                         />
                         <Input
-                            label="Budget"
+                            label="Budget ($)"
                             name="budget"
                             type="number"
                             value={formData.budget}

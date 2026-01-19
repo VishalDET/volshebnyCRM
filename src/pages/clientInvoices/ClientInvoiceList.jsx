@@ -163,9 +163,9 @@ const ClientInvoiceList = () => {
             render: (val) => val ? new Date(val).toLocaleDateString('en-GB') : '-'
         },
         {
-            key: 'netAmount',
-            label: 'Net Amount',
-            render: (val) => <span className="font-semibold text-gray-900">₹{val.toLocaleString()}</span>
+            key: 'totalAmount',
+            label: 'Invoice Value',
+            render: (val) => <span className="font-semibold text-gray-900">${val.toLocaleString()}</span>
         },
         {
             key: 'paymentStatus',
@@ -223,15 +223,15 @@ const ClientInvoiceList = () => {
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
                     <div className="card bg-gray-50 border-gray-200 p-4">
                         <div className="text-xs font-bold text-gray-500 uppercase">Query Budget</div>
-                        <div className="text-xl font-black text-gray-900">₹{budget.toLocaleString()}</div>
+                        <div className="text-xl font-black text-gray-900">${budget.toLocaleString()}</div>
                     </div>
                     <div className="card bg-gray-50 border-gray-200 p-4">
                         <div className="text-xs font-bold text-gray-500 uppercase">Total Invoiced</div>
-                        <div className="text-xl font-black text-red-600">₹{totalInvoiced.toLocaleString()}</div>
+                        <div className="text-xl font-black text-red-600">${totalInvoiced.toLocaleString()}</div>
                     </div>
                     <div className="card bg-blue-50 border-blue-200 p-4">
                         <div className="text-xs font-bold text-blue-600 uppercase">Remaining</div>
-                        <div className="text-xl font-black text-blue-900">₹{remaining.toLocaleString()}</div>
+                        <div className="text-xl font-black text-blue-900">${remaining.toLocaleString()}</div>
                     </div>
                     <div className="card bg-green-50 border-green-200 p-4">
                         <div className="text-xs font-bold text-green-600 uppercase">Invoices Count</div>

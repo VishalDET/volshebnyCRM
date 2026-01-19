@@ -9,7 +9,7 @@ const RateMaster = () => {
         { key: 'service', label: 'Service' },
         { key: 'destination', label: 'Destination' },
         { key: 'season', label: 'Season' },
-        { key: 'rate', label: 'Rate', render: (val) => `₹${val?.toLocaleString()}` },
+        { key: 'rate', label: 'Rate', render: (val) => `$${val?.toLocaleString()}` },
     ]
 
     return (

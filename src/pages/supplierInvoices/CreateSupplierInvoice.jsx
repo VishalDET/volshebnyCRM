@@ -6,7 +6,7 @@ import Input from '@components/Input'
 import Select from '@components/Select'
 import { manageSupplierInvoice, getSupplierInvoiceById } from '@api/supplierInvoice.api'
 import { manageQuery, manageConfirmQuery } from '@api/query.api'
-import { manageSupplier, manageCurrency, manageServiceType } from '@api/masters.api'
+import { manageSupplier, manageCurrency, manageServiceType, manageCreditcards } from '@api/masters.api'
 import { toast } from 'react-hot-toast'
 import Loader from '@components/Loader'
 
@@ -25,6 +25,8 @@ const CreateSupplierInvoice = () => {
     const [serviceTypes, setServiceTypes] = useState([])
     const [queries, setQueries] = useState([])
     const [existingInvoices, setExistingInvoices] = useState([])
+    const [creditCards, setCreditCards] = useState([])
+    const [selectedBankId, setSelectedBankId] = useState("")
 
     const [formData, setFormData] = useState({
         id: 0,
@@ -54,10 +56,12 @@ const CreateSupplierInvoice = () => {
     }, [])
 
     useEffect(() => {
-        if (formData.queryId) {
+        if (formData.queryId && formData.queryId !== 0) {
             fetchQueryData(formData.queryId)
             fetchExistingInvoices(formData.queryId)
         } else {
+            setQuery(null)
+            setExistingInvoices([])
             setInitialLoading(false)
         }
     }, [formData.queryId])
@@ -73,8 +77,13 @@ const CreateSupplierInvoice = () => {
             // Fetch Currencies
             const curRes = await manageCurrency({
                 id: 0,
-                currencyCode: "",
-                currencyName: "",
+                roleId: 0,
+                createdBy: 0,
+                modifiedBy: 0,
+                currencyName: "string",
+                currencySign: "string",
+                isActive: true,
+                isDeleted: false,
                 spType: "R"
             })
             setCurrencies((curRes.data?.data || []).map(c => ({
@@ -85,8 +94,16 @@ const CreateSupplierInvoice = () => {
             // Fetch Suppliers
             const supRes = await manageSupplier({
                 id: 0,
-                supplierName: "",
-                supplierType: "",
+                fullName: "string",
+                companyContactNo: "string",
+                countryId: 0,
+                stateId: 0,
+                cityId: 0,
+                createdBy: 0,
+                modifiedBy: 0,
+                roleId: 0,
+                isActive: true,
+                isDeleted: false,
                 spType: "R"
             })
             setSuppliers((supRes.data?.data || []).map(s => ({
@@ -97,13 +114,37 @@ const CreateSupplierInvoice = () => {
             // Fetch Service Types
             const serRes = await manageServiceType({
                 id: 0,
-                serviceName: "",
+                serviceName: "string",
+                description: "string",
+                isActive: true,
+                isDeleted: false,
+                roleId: 0,
+                createdBy: 0,
+                modifiedBy: 0,
                 spType: "R"
             })
             setServiceTypes((serRes.data?.data || []).map(s => ({
                 value: s.serviceName,
                 label: s.serviceName
             })))
+
+            // Fetch Credit Cards
+            const cardRes = await manageCreditcards({
+                bankId: 0,
+                bankName: "string",
+                isActive: true,
+                isDeleted: false,
+                roleId: 0,
+                createdBy: 0,
+                modifiedBy: 0,
+                spType: "R"
+            })
+            if (cardRes.data?.data) {
+                setCreditCards(cardRes.data.data.map(c => ({
+                    value: c.bankId,
+                    label: c.bankName
+                })))
+            }
         } catch (error) {
             console.error("Metadata fetch failed", error)
         }
@@ -128,7 +169,7 @@ const CreateSupplierInvoice = () => {
                 specialRequirements: "",
                 createdBy: 0,
                 modifiedBy: 0,
-                isActive: true,
+                isDeleted: false,
                 spType: "R",
                 destinations: [],
                 childAges: []
@@ -168,6 +209,18 @@ const CreateSupplierInvoice = () => {
             setInitialLoading(false)
         }
     }
+
+    // Handle initial bank selection in Edit mode
+    useEffect(() => {
+        if (formData.paymentMethod?.startsWith("Credit Card:") && creditCards.length > 0) {
+            const bankName = formData.paymentMethod.split("Credit Card:")[1]?.trim()
+            const card = creditCards.find(c => c.label === bankName)
+            if (card) {
+                setSelectedBankId(card.value.toString())
+                setFormData(prev => ({ ...prev, paymentMethod: "Credit Card" }))
+            }
+        }
+    }, [formData.paymentMethod, creditCards])
 
     const fetchQueryData = async (qId) => {
         try {
@@ -252,8 +305,8 @@ const CreateSupplierInvoice = () => {
                 supplierId: 0,
                 serviceType: "string",
                 supplierInvNo: "string",
-                invoiceDate: null,
-                dueDate: null,
+                invoiceDate: new Date().toISOString(),
+                dueDate: new Date().toISOString(),
                 currencyId: 0,
                 isDomestic: true,
                 totalAmount: 0,
@@ -266,6 +319,11 @@ const CreateSupplierInvoice = () => {
                 netAmount: 0,
                 paymentStatus: "string",
                 userId: 0,
+                roleId: 0,
+                isActive: true,
+                isDeleted: false,
+                createdBy: 0,
+                modifiedBy: 0,
                 spType: "R"
             }
             const res = await manageSupplierInvoice(payload)
@@ -314,11 +372,18 @@ const CreateSupplierInvoice = () => {
                 serviceCharge: parseFloat(formData.serviceCharge) || 0,
                 remittance: parseFloat(formData.remittance) || 0,
                 rateOfExchange: parseFloat(formData.rateOfExchange) || 0,
-                paymentMethod: formData.paymentMethod || "string",
+                paymentMethod: formData.paymentMethod === "Credit Card"
+                    ? `Credit Card: ${creditCards.find(c => c.value === parseInt(selectedBankId))?.label || "Unknown Bank"}`
+                    : formData.paymentMethod || "Cash",
                 comments: formData.comments || "string",
                 netAmount: parseFloat(formData.netAmount) || 0,
                 paymentStatus: formData.paymentStatus || "Unpaid",
                 userId: 0,
+                roleId: 0,
+                isActive: true,
+                isDeleted: false,
+                createdBy: 0,
+                modifiedBy: 0,
                 spType: isEdit ? "U" : "C"
             }
             const res = await manageSupplierInvoice(payload)
@@ -357,7 +422,7 @@ const CreateSupplierInvoice = () => {
                                 name="queryId"
                                 value={formData.queryId}
                                 options={queries}
-                                onChange={(e) => setFormData(prev => ({ ...prev, queryId: e.target.value }))}
+                                onChange={(e) => setFormData(prev => ({ ...prev, queryId: parseInt(e.target.value) || 0 }))}
                                 required
                                 disabled={isEdit || !!routeQueryId}
                             />
@@ -433,26 +498,42 @@ const CreateSupplierInvoice = () => {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <Input
+                            <Select
                                 label="Payment Method"
                                 name="paymentMethod"
                                 value={formData.paymentMethod}
+                                options={[
+                                    { value: 'Cash', label: 'Cash' },
+                                    { value: 'Credit Card', label: 'Credit Card' }
+                                ]}
                                 onChange={handleInputChange}
-                                placeholder="Bank Transfer, Cash, etc."
+                                required
                             />
-                            <div className="flex items-center gap-2 pt-8">
-                                <input
-                                    type="checkbox"
-                                    id="isDomestic"
-                                    name="isDomestic"
-                                    checked={formData.isDomestic}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, isDomestic: e.target.checked }))}
-                                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            {formData.paymentMethod === "Credit Card" && (
+                                <Select
+                                    label="Select Card"
+                                    name="bankId"
+                                    value={selectedBankId}
+                                    options={creditCards}
+                                    onChange={(e) => setSelectedBankId(e.target.value)}
+                                    required
                                 />
-                                <label htmlFor="isDomestic" className="text-sm font-medium text-gray-700 underline-offset-4 cursor-pointer">
-                                    Domestic Payment
-                                </label>
-                            </div>
+                            )}
+                            {formData.paymentMethod === "Cash" && (
+                                <div className="flex items-center gap-2 pt-8">
+                                    <input
+                                        type="checkbox"
+                                        id="isDomestic"
+                                        name="isDomestic"
+                                        checked={formData.isDomestic}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, isDomestic: e.target.checked }))}
+                                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                    />
+                                    <label htmlFor="isDomestic" className="text-sm font-medium text-gray-700 underline-offset-4 cursor-pointer">
+                                        Domestic Payment
+                                    </label>
+                                </div>
+                            )}
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 border-t pt-4">
@@ -539,12 +620,18 @@ const CreateSupplierInvoice = () => {
                             <div className="grid grid-cols-1 gap-6">
                                 <div className="p-4 bg-white/5 rounded-xl border border-white/5">
                                     <span className="text-xs text-secondary-400 block uppercase font-bold tracking-widest mb-1">Query Budget</span>
-                                    <span className="text-2xl font-black text-white">₹{budget.toLocaleString()}</span>
+                                    <span className="text-2xl font-black text-white">${budget.toLocaleString()}</span>
                                 </div>
 
-                                <div className="p-4 bg-white/5 rounded-xl border border-white/5">
-                                    <span className="text-xs text-secondary-400 block uppercase font-bold tracking-widest mb-1">Total Purchase Cost</span>
-                                    <span className="text-2xl font-black text-red-400">₹{totalInvoiced.toLocaleString()}</span>
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] font-bold text-red-100 uppercase tracking-widest leading-none mb-1">Total Invoiced</span>
+                                    <span className="text-2xl font-black text-red-400">${totalInvoiced.toLocaleString()}</span>
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] font-bold text-blue-100 uppercase tracking-widest leading-none mb-1">Net Amount</span>
+                                    <div className="flex items-baseline gap-1">
+                                        <span className="text-2xl font-black text-blue-400">${(parseFloat(formData.totalAmount) || 0).toLocaleString()}</span>
+                                    </div>
                                 </div>
                             </div>
 
@@ -552,7 +639,7 @@ const CreateSupplierInvoice = () => {
                                 <div className="flex justify-between items-end">
                                     <div>
                                         <span className="text-xs text-secondary-400 block uppercase font-bold tracking-widest mb-1">Current Invoice</span>
-                                        <span className="text-2xl font-black text-blue-400">₹{(parseFloat(formData.totalAmount) || 0).toLocaleString()}</span>
+                                        <span className="text-2xl font-black text-blue-400">${(parseFloat(formData.totalAmount) || 0).toLocaleString()}</span>
                                     </div>
                                 </div>
                             </div>

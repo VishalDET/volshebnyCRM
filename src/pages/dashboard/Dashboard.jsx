@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { FileText, CheckCircle2, IndianRupee, Clock, TrendingUp, TrendingDown, Users, Ship, Flag, Calendar } from 'lucide-react'
+import { FileText, CheckCircle2, DollarSign, Clock, TrendingUp, TrendingDown, Users, Ship, Flag, Calendar } from 'lucide-react'
 import PageHeader from '@components/PageHeader'
 import Button from '@components/Button'
 import Select from '@components/Select'
@@ -66,8 +66,8 @@ const Dashboard = () => {
             setIsRightColLoading(true)
             const [qRes, cRes, sRes] = await Promise.all([
                 manageQuery({ id: 0, queryNo: "", handlerId: 0, clientId: 0, originCountryId: 0, originCityId: 0, travelDate: null, returnDate: null, totalDays: 0, adults: 0, children: 0, infants: 0, budget: 0, queryStatus: "", specialRequirements: "", createdBy: 0, modifiedBy: 0, isActive: true, spType: "R", destinations: [], childAges: [] }),
-                manageClientInvoice({ id: 0, queryId: 0, clientId: 0, invoiceNo: "", invoiceDate: null, dueDate: null, currencyId: 0, totalAmount: 0, gst: 0, serviceCharge: 0, remittance: 0, rateOfExchange: 0, paymentMethod: "", comments: "", netAmount: 0, paymentStatus: "", userId: 0, spType: "R" }),
-                manageSupplierInvoice({ id: 0, queryId: 0, supplierId: 0, serviceType: "", supplierInvNo: "", invoiceDate: null, dueDate: null, currencyId: 0, isDomestic: true, totalAmount: 0, gst: 0, serviceCharge: 0, remittance: 0, rateOfExchange: 0, paymentMethod: "", comments: "", netAmount: 0, paymentStatus: "", userId: 0, spType: "R" })
+                manageClientInvoice({ id: 0, queryId: 0, clientId: 0, invoiceNo: "string", invoiceDate: new Date().toISOString(), dueDate: new Date().toISOString(), currencyId: 0, isDomestic: true, totalAmount: 0, gst: 0, serviceCharge: 0, remittance: 0, rateOfExchange: 0, paymentMethod: "string", comments: "string", netAmount: 0, paymentStatus: "string", userId: 0, roleId: 0, isActive: true, isDeleted: false, spType: "R" }),
+                manageSupplierInvoice({ id: 0, queryId: 0, supplierId: 0, serviceType: "string", supplierInvNo: "string", invoiceDate: new Date().toISOString(), dueDate: new Date().toISOString(), currencyId: 0, isDomestic: true, totalAmount: 0, gst: 0, serviceCharge: 0, remittance: 0, rateOfExchange: 0, paymentMethod: "string", comments: "string", netAmount: 0, paymentStatus: "string", userId: 0, roleId: 0, isActive: true, isDeleted: false, spType: "R" })
             ])
 
             const allQueries = qRes.data?.data || []
@@ -123,7 +123,7 @@ const Dashboard = () => {
             // 3. Recent Activity (Combined latest created/updated items)
             const activity = [
                 ...allQueries.slice(0, 5).map(q => ({ type: 'query', title: `New Query: ${q.queryNo}`, desc: `Client: ${q.clientName || 'N/A'}`, date: q.createdDate || q.travelDate, id: q.id })),
-                ...allClientInvoices.slice(0, 5).map(inv => ({ type: 'invoice', title: `Invoice Generated: ${inv.invoiceNo}`, desc: `Client: ₹${inv.totalAmount.toLocaleString()}`, date: inv.invoiceDate, id: inv.id })),
+                ...allClientInvoices.slice(0, 5).map(inv => ({ type: 'invoice', title: `Invoice Generated: ${inv.invoiceNo}`, desc: `Client: $${inv.totalAmount.toLocaleString()}`, date: inv.invoiceDate, id: inv.id })),
                 ...allSupplierInvoices.slice(0, 5).map(inv => ({ type: 'supplier', title: `Supplier Bill: ${inv.supplierInvNo}`, desc: `Supplier: ${inv.supplierName || 'N/A'}`, date: inv.invoiceDate, id: inv.id }))
             ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 10)
 
@@ -148,25 +148,25 @@ const Dashboard = () => {
     const financialCards = [
         {
             title: 'Total Revenue',
-            value: `₹${financialReport?.totalRevenue?.toLocaleString() || 0}`,
+            value: `$${financialReport?.totalRevenue?.toLocaleString() || 0}`,
             icon: TrendingUp,
             color: 'bg-green-100 text-green-600',
         },
         {
             title: 'Total Expenditure',
-            value: `₹${financialReport?.totalExpenditure?.toLocaleString() || 0}`,
+            value: `$${financialReport?.totalExpenditure?.toLocaleString() || 0}`,
             icon: TrendingDown,
             color: 'bg-red-100 text-red-600',
         },
         {
             title: 'Profit (BT)',
-            value: `₹${financialReport?.profitBeforeTax?.toLocaleString() || 0}`,
-            icon: IndianRupee,
+            value: `$${financialReport?.profitBeforeTax?.toLocaleString() || 0}`,
+            icon: DollarSign,
             color: 'bg-blue-100 text-blue-600',
         },
         {
             title: 'Profit (AT)',
-            value: `₹${financialReport?.profitAfterTax?.toLocaleString() || 0}`,
+            value: `$${financialReport?.profitAfterTax?.toLocaleString() || 0}`,
             icon: CheckCircle2,
             color: 'bg-purple-100 text-purple-600',
         },
@@ -275,7 +275,7 @@ const Dashboard = () => {
                     <>
                         {/* Financial Stats */}
                         <div className="
-  grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 card
+  grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 card
   rounded-2xl
   bg-white
   backdrop-blur-xl
@@ -290,14 +290,14 @@ const Dashboard = () => {
                                     <div key={index} className=" mx-2">
                                         <div className="flex items-center justify-between">
                                             <div>
-                                                <p className="text-xs font-semibold text-secondary-400 uppercase tracking-wider mb-1">
+                                                <p className="text-xs font-semibold text-secondary-400 uppercase tracking-normal mb-1">
                                                     {stat.title}
                                                 </p>
-                                                <p className="text-xl font-black text-secondary-900">
+                                                <p className="text-sm font-black text-secondary-900">
                                                     {stat.value}
                                                 </p>
                                             </div>
-                                            <div className={`w-8 h-8 ${stat.color} rounded-2xl flex items-center justify-center shadow-inner`}>
+                                            <div className={`w-6 h-6 ${stat.color} rounded-2xl flex items-center justify-center shadow-inner`}>
                                                 <Icon className="w-4 h-4" />
                                             </div>
                                         </div>
@@ -306,9 +306,9 @@ const Dashboard = () => {
                             })}
                         </div>
 
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-0  bg-gradient-to-br from-primary-600 to-primary-900 rounded-2xl">
+                        <div className="grid grid-cols-1 lg:grid-cols-5 gap-0  bg-gradient-to-br from-primary-600 to-primary-900 rounded-2xl">
                             {/* Query Counter */}
-                            <div className="lg:col-span-2 p-0 overflow-hidden border-0 text-white">
+                            <div className="lg:col-span-3 p-0 overflow-hidden border-0 text-white">
                                 <div className="p-6 border-b border-white/10 flex items-center justify-between">
                                     <div>
                                         <h3 className="text-lg font-semibold">Query Pipeline</h3>
@@ -335,7 +335,7 @@ const Dashboard = () => {
                             </div>
 
                             {/* Invoice Summary */}
-                            <div className="card rounded-2xl border-0 bg-gradient-to-br from-primary-600 to-primary-900 text-white shadow-xl relative overflow-hidden">
+                            <div className="card lg:col-span-2 rounded-2xl border-0 bg-gradient-to-br from-primary-600 to-primary-900 text-white shadow-xl relative overflow-hidden">
                                 <div className="relative z-10 h-full flex flex-col justify-between">
                                     <div className="space-y-4">
                                         <div className='flex justify-between items-center'>
@@ -343,7 +343,7 @@ const Dashboard = () => {
                                                 <div className="p-2 bg-white/20 rounded-lg"><Users className="w-5 h-5 text-white" /></div>
                                                 <div>
                                                     <h4 className="text-xs font-normal opacity-80 uppercase tracking-wider">Client Invoices</h4>
-                                                    <p className="text-lg font-black">₹{clientInvoices.totalValue.toLocaleString()}</p>
+                                                    <p className="text-lg font-black">${clientInvoices.totalValue.toLocaleString()}</p>
                                                     <span className="text-xs opacity-60 font-normal">{clientInvoices.count} Invoices Generated</span>
                                                 </div>
                                             </div>
@@ -357,7 +357,7 @@ const Dashboard = () => {
                                                 <div className="p-2 bg-white/20 rounded-lg"><Ship className="w-5 h-5 text-white" /></div>
                                                 <div>
                                                     <h4 className="text-xs font-normal opacity-80 uppercase tracking-wider">Supplier Invoices</h4>
-                                                    <p className="text-lg font-black">₹{supplierInvoices.totalValue.toLocaleString()}</p>
+                                                    <p className="text-lg font-black">${supplierInvoices.totalValue.toLocaleString()}</p>
                                                     <span className="text-xs opacity-60 font-normal">{supplierInvoices.count} Invoices Received</span>
                                                 </div>
 
@@ -369,7 +369,7 @@ const Dashboard = () => {
                                     </div>
                                     {/* <div className="mt-4 flex gap-2">
                                         <Link to="/finance" className="flex-1 bg-white text-primary-700 py-2 rounded-lg font-semibold tracking-wider text-xs text-center hover:bg-secondary-50 transition-colors">TAX REPORT</Link>
-                                        <div className="flex-1 bg-white/10 text-white py-2 rounded-lg font-semibold tracking-wider text-xs text-center border border-white/20">GST: ₹{financialReport?.gsT_Collected?.toLocaleString() || 0}</div>
+                                        <div className="flex-1 bg-white/10 text-white py-2 rounded-lg font-semibold tracking-wider text-xs text-center border border-white/20">GST: ${financialReport?.gsT_Collected?.toLocaleString() || 0}</div>
                                     </div> */}
                                 </div>
                                 <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
@@ -410,7 +410,7 @@ const Dashboard = () => {
                                                             </div>
                                                         </td>
                                                         <td className="py-3 text-xs font-medium text-secondary-500">{c.noOfTours} Tours</td>
-                                                        <td className="py-3 pr-4 text-xs font-black text-secondary-900 text-right">₹{c.totalRevenue.toLocaleString()}</td>
+                                                        <td className="py-3 pr-4 text-xs font-black text-secondary-900 text-right">${c.totalRevenue.toLocaleString()}</td>
                                                     </tr>
                                                 ))}
                                             </tbody>
@@ -463,7 +463,7 @@ const Dashboard = () => {
                                                                 strokeWidth="0.5"
                                                                 className="transition-all duration-300 hover:fill-opacity-100 cursor-pointer origin-center hover:scale-105"
                                                             >
-                                                                <title>{`${d.name}: ₹${d.value.toLocaleString()} (${d.percentage.toFixed(1)}%)`}</title>
+                                                                <title>{`${d.name}: $${d.value.toLocaleString()} (${d.percentage.toFixed(1)}%)`}</title>
                                                             </path>
                                                         );
                                                     })}
@@ -482,7 +482,7 @@ const Dashboard = () => {
                                                             <span className="text-xs font-bold text-secondary-600 group-hover:text-secondary-900 transition-colors line-clamp-1 max-w-[100px]" title={d.name}>{d.name}</span>
                                                         </div>
                                                         <div className="text-right">
-                                                            <p className="text-xs font-black text-secondary-900">₹{d.value.toLocaleString()}</p>
+                                                            <p className="text-xs font-black text-secondary-900">${d.value.toLocaleString()}</p>
                                                             <p className="text-[9px] text-secondary-400 font-bold">{d.percentage.toFixed(0)}%</p>
                                                         </div>
                                                     </div>
@@ -636,7 +636,7 @@ const Dashboard = () => {
                                                 </div>
                                                 <div>
                                                     <p className="text-xs font-bold text-secondary-900 uppercase">{inv.invoiceNo}</p>
-                                                    <p className="text-[10px] text-secondary-500 font-medium">₹{inv.totalAmount.toLocaleString()}</p>
+                                                    <p className="text-[10px] text-secondary-500 font-medium">${inv.totalAmount.toLocaleString()}</p>
                                                 </div>
                                             </div>
                                             <div className="text-right">

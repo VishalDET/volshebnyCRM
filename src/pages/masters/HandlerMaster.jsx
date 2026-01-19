@@ -51,7 +51,7 @@ const HandlerMaster = () => {
                 createdBy: 0,
                 modifiedBy: 0,
                 isActive: true,
-                isDeleted: true,
+                isDeleted: false,
                 spType: "R"
             }
 

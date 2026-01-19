@@ -64,6 +64,11 @@ const SupplierInvoiceList = () => {
             netAmount: 0,
             paymentStatus: "string",
             userId: 0,
+            roleId: 0,
+            isActive: true,
+            isDeleted: false,
+            createdBy: 0,
+            modifiedBy: 0,
             spType: "R"
         }
         const res = await manageSupplierInvoice(payload)
@@ -91,6 +96,7 @@ const SupplierInvoiceList = () => {
             createdBy: 0,
             modifiedBy: 0,
             isActive: true,
+            isDeleted: false,
             spType: "E",
             destinations: [],
             childAges: []
@@ -104,8 +110,16 @@ const SupplierInvoiceList = () => {
         try {
             const payload = {
                 id: 0,
-                supplierName: "",
-                supplierType: "",
+                fullName: "string",
+                companyContactNo: "string",
+                countryId: 0,
+                stateId: 0,
+                cityId: 0,
+                createdBy: 0,
+                modifiedBy: 0,
+                roleId: 0,
+                isActive: true,
+                isDeleted: false,
                 spType: "R"
             }
             const res = await manageSupplier(payload)
@@ -162,7 +176,7 @@ const SupplierInvoiceList = () => {
         {
             key: 'netAmount',
             label: 'Amount',
-            render: (val) => <span className="font-semibold text-gray-900">₹{val.toLocaleString()}</span>
+            render: (val) => <span className="font-semibold text-gray-900">${val.toLocaleString()}</span>
         },
         {
             key: 'paymentStatus',
@@ -213,11 +227,11 @@ const SupplierInvoiceList = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
                     <div className="card bg-gray-50 border-gray-200 p-4 font-inter">
                         <div className="text-xs font-bold text-gray-500 uppercase">Query Budget</div>
-                        <div className="text-xl font-black text-gray-900">₹{budget.toLocaleString()}</div>
+                        <div className="text-xl font-black text-gray-900">${budget.toLocaleString()}</div>
                     </div>
                     <div className="card bg-gray-50 border-gray-200 p-4 font-inter">
                         <div className="text-xs font-bold text-gray-500 uppercase">Total Supplier Cost</div>
-                        <div className="text-xl font-black text-red-600">₹{totalInvoiced.toLocaleString()}</div>
+                        <div className="text-xl font-black text-red-600">${totalInvoiced.toLocaleString()}</div>
                     </div>
                     <div className="card bg-green-50 border-green-200 p-4 font-inter">
                         <div className="text-xs font-bold text-green-600 uppercase">Invoices Count</div>

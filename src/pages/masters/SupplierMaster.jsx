@@ -69,7 +69,7 @@ const SupplierMaster = () => {
                 countryId: 0,
                 countryName: "string",
                 isActive: true,
-                isDeleted: true,
+                isDeleted: false,
                 roleId: 0,
                 createdBy: 0,
                 modifiedBy: 0,
@@ -99,7 +99,7 @@ const SupplierMaster = () => {
                 countryId: parseInt(countryId),
                 stateId: 0,
                 isActive: true,
-                isDeleted: true,
+                isDeleted: false,
                 roleId: 0,
                 createdBy: 0,
                 modifiedBy: 0,
@@ -130,7 +130,7 @@ const SupplierMaster = () => {
                 serviceName: "string",
                 description: "string",
                 isActive: true,
-                isDeleted: true,
+                isDeleted: false,
                 roleId: 0,
                 createdBy: 0,
                 modifiedBy: 0,
@@ -177,7 +177,7 @@ const SupplierMaster = () => {
                 modifiedBy: 0,
                 roleId: 0,
                 isActive: true,
-                isDeleted: true,
+                isDeleted: false,
                 spType: "R"
             }
             const response = await manageSupplier(payload)
