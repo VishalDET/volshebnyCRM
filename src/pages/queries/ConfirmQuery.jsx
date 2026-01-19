@@ -503,7 +503,7 @@ const ConfirmQuery = () => {
     if (!query) return null
 
     return (
-        <div className="pb-10">
+        <div className="pb-10 max-w-7xl mx-auto">
             <PageHeader
                 title={`Confirm Query #${query.queryNo || id}`}
                 breadcrumbs={[

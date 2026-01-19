@@ -21,6 +21,7 @@ const MainLayout = ({ children }) => {
     const { pathname } = useLocation()
     const { user, logout } = useAuth()
     const [sidebarOpen, setSidebarOpen] = useState(true)
+    const [expandedGroups, setExpandedGroups] = useState(['Masters']) // Default open Masters if active
 
     const handleLogout = async () => {
         await logout()
@@ -38,7 +39,7 @@ const MainLayout = ({ children }) => {
             title: 'OPERATIONS',
             items: [
                 { name: 'Queries', href: '/queries', icon: FileText },
-                { name: 'Service Vouchers', href: '/vouchers', icon: Ticket },
+                // { name: 'Service Vouchers', href: '/vouchers', icon: Ticket },
             ]
         },
         {
@@ -52,15 +53,38 @@ const MainLayout = ({ children }) => {
             title: 'ADMIN',
             items: [
                 { name: 'Finance', href: '/finance', icon: Landmark },
-                { name: 'Masters', href: '/masters', icon: Settings },
+                {
+                    name: 'Masters',
+                    href: '/masters',
+                    icon: Settings,
+                    subItems: [
+                        { name: 'Countries', href: '/masters/countries' },
+                        { name: 'Destinations', href: '/masters/destinations' },
+                        { name: 'Currencies', href: '/masters/currencies' },
+                        { name: 'Credit Cards', href: '/masters/credit-cards' },
+                        { name: 'Service Types', href: '/masters/service-types' },
+                        { name: 'Suppliers', href: '/masters/suppliers' },
+                        { name: 'Clients', href: '/masters/clients' },
+                        { name: 'Handlers', href: '/masters/handlers' },
+                    ]
+                },
             ]
         }
     ]
 
     const isActive = (path) => {
+        if (!path) return false
         if (path === '/dashboard' && pathname === '/dashboard') return true
         if (path !== '/dashboard' && pathname.startsWith(path)) return true
         return false
+    }
+
+    const toggleGroup = (name) => {
+        setExpandedGroups(prev =>
+            prev.includes(name)
+                ? prev.filter(i => i !== name)
+                : [...prev, name]
+        )
     }
 
     return (
@@ -98,23 +122,63 @@ const MainLayout = ({ children }) => {
                                     {group.items.map((item) => {
                                         const Icon = item.icon
                                         const active = isActive(item.href)
+                                        const hasSubItems = item.subItems && item.subItems.length > 0
+                                        const isExpanded = expandedGroups.includes(item.name)
+
                                         return (
-                                            <li key={item.name}>
-                                                <Link
-                                                    to={item.href}
-                                                    className={`
-                                                        flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 group
-                                                        ${active
-                                                            ? 'bg-primary-50 text-primary-700'
-                                                            : 'text-secondary-600 hover:bg-secondary-50 hover:text-secondary-900'}
-                                                    `}
-                                                >
-                                                    <Icon className={`w-4.5 h-4.5 transition-colors ${active ? 'text-primary-600' : 'text-secondary-400 group-hover:text-secondary-600'}`} />
-                                                    <span>{item.name}</span>
-                                                    {active && (
-                                                        <div className="ml-auto w-1 h-1 rounded-full bg-primary-600"></div>
-                                                    )}
-                                                </Link>
+                                            <li key={item.name} className="space-y-1">
+                                                {hasSubItems ? (
+                                                    <>
+                                                        <button
+                                                            onClick={() => toggleGroup(item.name)}
+                                                            className={`
+                                                                w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 group
+                                                                ${active
+                                                                    ? 'bg-primary-50 text-primary-700'
+                                                                    : 'text-secondary-600 hover:bg-secondary-50 hover:text-secondary-900'}
+                                                            `}
+                                                        >
+                                                            <Icon className={`w-4.5 h-4.5 transition-colors ${active ? 'text-primary-600' : 'text-secondary-400 group-hover:text-secondary-600'}`} />
+                                                            <span>{item.name}</span>
+                                                            <ChevronDown className={`ml-auto w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                                                        </button>
+                                                        {isExpanded && (
+                                                            <ul className="ml-9 space-y-1 mt-1 border-l border-secondary-100">
+                                                                {item.subItems.map((subItem) => (
+                                                                    <li key={subItem.name}>
+                                                                        <Link
+                                                                            to={subItem.href || subItem.path}
+                                                                            className={`
+                                                                                block px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200
+                                                                                ${isActive(subItem.href || subItem.path)
+                                                                                    ? 'text-primary-600 bg-primary-50/50'
+                                                                                    : 'text-secondary-500 hover:text-secondary-900 hover:bg-secondary-50'}
+                                                                            `}
+                                                                        >
+                                                                            {subItem.name}
+                                                                        </Link>
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
+                                                        )}
+                                                    </>
+                                                ) : (
+                                                    <Link
+                                                        to={item.href}
+                                                        className={`
+                                                            flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 group
+                                                            ${active
+                                                                ? 'bg-primary-50 text-primary-700'
+                                                                : 'text-secondary-600 hover:bg-secondary-50 hover:text-secondary-900'}
+                                                        `}
+                                                    >
+                                                        <Icon className={`w-4.5 h-4.5 transition-colors ${active ? 'text-primary-600' : 'text-secondary-400 group-hover:text-secondary-600'}`} />
+                                                        <span>{item.name}</span>
+                                                        {active && (
+                                                            <div className="ml-auto w-1 h-1 rounded-full bg-primary-600"></div>
+                                                        )}
+                                                    </Link>
+                                                )}
                                             </li>
                                         )
                                     })}

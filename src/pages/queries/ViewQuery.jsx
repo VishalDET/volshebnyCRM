@@ -351,7 +351,7 @@ const ViewQuery = () => {
     return (
         <div className="pb-10">
             <PageHeader
-                title={`Query #${query.queryNo || query.id}`}
+                title={`Query #${query.queryNo || query.id} ${query.queryStatus}`}
                 subtitle={`Client: ${clientName}`}
                 breadcrumbs={[
                     { label: 'Dashboard', href: '/dashboard' },
@@ -688,86 +688,90 @@ const ViewQuery = () => {
 
                 <div className="space-y-6">
 
-                    <div className='card py-3'>
-                        <div className='flex justify-between items-center mb-4 border-b pb-2'>
-                            <div className="text-lg font-semibold">Client Invoices</div>
-                            <Button variant="outline" className="py-1 px-2 text-sm" onClick={() => navigate(`/invoices/client/create/${id}`)}>
-                                + New Invoice
-                            </Button>
-                        </div>
-
-                        {/* Budget Stats Summary */}
-                        <div className="grid grid-cols-1 gap-2 mb-4">
-                            <div className="flex justify-between text-xs font-bold px-2">
-                                <span className="text-gray-500">BUDGET: ₹{query.budget?.toLocaleString() || 0}</span>
-                                <span className="text-blue-600">REMAINING: ₹{((query.budget || 0) - (confirmedQuery?.totalInvoiced || 0)).toLocaleString()}</span>
-                            </div>
-                            <div className="w-full bg-gray-200 rounded-full h-1.5 px-0">
-                                <div
-                                    className="bg-blue-600 h-1.5 rounded-full"
-                                    style={{ width: `${Math.min(100, (((confirmedQuery?.totalInvoiced || 0) / (query.budget || 1)) * 100))}%` }}
-                                ></div>
-                            </div>
-                        </div>
-
-                        <div className="flex flex-wrap justify-between items-center gap-2 bg-blue-50 py-2 px-3 rounded-md border border-blue-100">
-                            <div className='text-blue-900 font-bold text-sm'>
-                                <span>View All Invoices</span>
-                            </div>
-                            <Button variant="outline" onClick={() => navigate(`/invoices/client/query/${id}`)} className="text-blue-700 hover:text-blue-800 p-1 bg-white border-blue-200 rounded hover:bg-gray-50 transition-colors"
-                                title="View List">
-                                <Eye className="w-4 h-4" />
-                            </Button>
-                        </div>
-
-                        <div className='card-footer mt-4'>
-                            <div className='flex justify-between items-center px-3 bg-gray-900 py-2 rounded-md shadow-sm'>
-                                <div className='text-xs font-black text-gray-100 uppercase tracking-widest'>
-                                    <span>Accumulated</span>
+                    {query.queryStatus?.toLowerCase() === 'confirmed' && (
+                        <>
+                            <div className='card py-3'>
+                                <div className='flex justify-between items-center mb-4 border-b pb-2'>
+                                    <div className="text-lg font-semibold">Client Invoices</div>
+                                    <Button variant="outline" className="py-1 px-2 text-sm" onClick={() => navigate(`/invoices/client/create/${id}`)}>
+                                        + New Invoice
+                                    </Button>
                                 </div>
-                                <Button
-                                    variant="outline"
-                                    className="py-1 px-3 text-[10px] font-bold text-gray-100 border-gray-500 hover:text-white hover:border-white transition-colors uppercase tracking-widest"
-                                    onClick={() => navigate(`/invoices/client/accumulated/${id}`)}
-                                >
-                                    Print Final
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
 
-                    <div className='card py-3'>
-                        <div className='flex justify-between items-center mb-4 border-b pb-2'>
-                            <div className="text-lg font-semibold">Supplier Invoices</div>
-                            <Button variant="outline" className="py-1 px-2 text-sm" onClick={() => navigate(`/invoices/supplier/create/${id}`)}>
-                                + New Invoice
-                            </Button>
-                        </div>
+                                {/* Budget Stats Summary */}
+                                <div className="grid grid-cols-1 gap-2 mb-4">
+                                    <div className="flex justify-between text-xs font-bold px-2">
+                                        <span className="text-gray-500">BUDGET: ₹{query.budget?.toLocaleString() || 0}</span>
+                                        <span className="text-blue-600">REMAINING: ₹{((query.budget || 0) - (confirmedQuery?.totalInvoiced || 0)).toLocaleString()}</span>
+                                    </div>
+                                    <div className="w-full bg-gray-200 rounded-full h-1.5 px-0">
+                                        <div
+                                            className="bg-blue-600 h-1.5 rounded-full"
+                                            style={{ width: `${Math.min(100, (((confirmedQuery?.totalInvoiced || 0) / (query.budget || 1)) * 100))}%` }}
+                                        ></div>
+                                    </div>
+                                </div>
 
-                        {/* Cost Summary */}
-                        <div className="grid grid-cols-1 gap-2 mb-4">
-                            <div className="flex justify-between text-xs font-bold px-2">
-                                <span className="text-gray-500 uppercase tracking-tight">TOTAL COST: ₹{confirmedQuery?.totalSupplierCost?.toLocaleString() || 0}</span>
-                                <span className="text-red-600 uppercase tracking-tight">COUNT: {confirmedQuery?.supplierInvoiceCount || 0}</span>
-                            </div>
-                            <div className="w-full bg-gray-200 rounded-full h-1.5 px-0">
-                                <div
-                                    className="bg-red-500 h-1.5 rounded-full"
-                                    style={{ width: `${Math.min(100, (((confirmedQuery?.totalSupplierCost || 0) / (query.budget || 1)) * 100))}%` }}
-                                ></div>
-                            </div>
-                        </div>
+                                <div className="flex flex-wrap justify-between items-center gap-2 bg-blue-50 py-2 px-3 rounded-md border border-blue-100">
+                                    <div className='text-blue-900 font-bold text-sm'>
+                                        <span>View All Invoices</span>
+                                    </div>
+                                    <Button variant="outline" onClick={() => navigate(`/invoices/client/query/${id}`)} className="text-blue-700 hover:text-blue-800 p-1 bg-white border-blue-200 rounded hover:bg-gray-50 transition-colors"
+                                        title="View List">
+                                        <Eye className="w-4 h-4" />
+                                    </Button>
+                                </div>
 
-                        <div className="flex flex-wrap justify-between items-center gap-2 bg-red-50 py-2 px-3 rounded-md border border-red-100">
-                            <div className='text-red-900 font-bold text-sm'>
-                                <span>Supplier Invoices</span>
+                                <div className='card-footer mt-4'>
+                                    <div className='flex justify-between items-center px-3 bg-gray-900 py-2 rounded-md shadow-sm'>
+                                        <div className='text-xs font-black text-gray-100 uppercase tracking-widest'>
+                                            <span>Accumulated</span>
+                                        </div>
+                                        <Button
+                                            variant="outline"
+                                            className="py-1 px-3 text-[10px] font-bold text-gray-100 border-gray-500 hover:text-white hover:border-white transition-colors uppercase tracking-widest"
+                                            onClick={() => navigate(`/invoices/client/accumulated/${id}`)}
+                                        >
+                                            Print Final
+                                        </Button>
+                                    </div>
+                                </div>
                             </div>
-                            <Button variant="outline" onClick={() => navigate(`/invoices/supplier/query/${id}`)} className="text-red-700 hover:text-red-800 p-1 bg-white border-red-200 rounded hover:bg-gray-50 transition-colors"
-                                title="View List">
-                                <Eye className="w-4 h-4" />
-                            </Button>
-                        </div>
-                    </div>
+
+                            <div className='card py-3'>
+                                <div className='flex justify-between items-center mb-4 border-b pb-2'>
+                                    <div className="text-lg font-semibold">Supplier Invoices</div>
+                                    <Button variant="outline" className="py-1 px-2 text-sm" onClick={() => navigate(`/invoices/supplier/create/${id}`)}>
+                                        + New Invoice
+                                    </Button>
+                                </div>
+
+                                {/* Cost Summary */}
+                                <div className="grid grid-cols-1 gap-2 mb-4">
+                                    <div className="flex justify-between text-xs font-bold px-2">
+                                        <span className="text-gray-500 uppercase tracking-tight">TOTAL COST: ₹{confirmedQuery?.totalSupplierCost?.toLocaleString() || 0}</span>
+                                        <span className="text-red-600 uppercase tracking-tight">COUNT: {confirmedQuery?.supplierInvoiceCount || 0}</span>
+                                    </div>
+                                    <div className="w-full bg-gray-200 rounded-full h-1.5 px-0">
+                                        <div
+                                            className="bg-red-500 h-1.5 rounded-full"
+                                            style={{ width: `${Math.min(100, (((confirmedQuery?.totalSupplierCost || 0) / (query.budget || 1)) * 100))}%` }}
+                                        ></div>
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-wrap justify-between items-center gap-2 bg-red-50 py-2 px-3 rounded-md border border-red-100">
+                                    <div className='text-red-900 font-bold text-sm'>
+                                        <span>Supplier Invoices</span>
+                                    </div>
+                                    <Button variant="outline" onClick={() => navigate(`/invoices/supplier/query/${id}`)} className="text-red-700 hover:text-red-800 p-1 bg-white border-red-200 rounded hover:bg-gray-50 transition-colors"
+                                        title="View List">
+                                        <Eye className="w-4 h-4" />
+                                    </Button>
+                                </div>
+                            </div>
+                        </>
+                    )}
 
                     <div className="card">
                         <h3 className="text-lg font-semibold mb-4 border-b pb-2">Status</h3>
@@ -785,18 +789,22 @@ const ViewQuery = () => {
                             <Button variant="outline" className="w-full text-left justify-start" onClick={() => navigate(`/queries/edit/${id}`)}>
                                 <Pencil size={16} className="mr-2" /> Edit Query Details
                             </Button>
-                            <Button variant="outline" className="w-full text-left justify-start" onClick={() => navigate(`/invoices/client/create/${id}`)}>
-                                <Plus size={16} className="mr-2" /> Create Client Invoice
-                            </Button>
-                            <Button variant="outline" className="w-full text-left justify-start" onClick={() => navigate(`/invoices/supplier/create/${id}`)}>
-                                <Plus size={16} className="mr-2" /> Create Supplier Invoice
-                            </Button>
-                            <Button variant="outline" className="w-full text-left justify-start" onClick={() => navigate(`/invoices/client/query/${id}`)}>
-                                <FileText size={16} className="mr-2" /> View Client Invoices
-                            </Button>
-                            <Button variant="outline" className="w-full text-left justify-start" onClick={() => navigate(`/invoices/supplier/query/${id}`)}>
-                                <FileText size={16} className="mr-2" /> View Supplier Invoices
-                            </Button>
+                            {query.queryStatus?.toLowerCase() === 'confirmed' && (
+                                <>
+                                    <Button variant="outline" className="w-full text-left justify-start" onClick={() => navigate(`/invoices/client/create/${id}`)}>
+                                        <Plus size={16} className="mr-2" /> Create Client Invoice
+                                    </Button>
+                                    <Button variant="outline" className="w-full text-left justify-start" onClick={() => navigate(`/invoices/supplier/create/${id}`)}>
+                                        <Plus size={16} className="mr-2" /> Create Supplier Invoice
+                                    </Button>
+                                    <Button variant="outline" className="w-full text-left justify-start" onClick={() => navigate(`/invoices/client/query/${id}`)}>
+                                        <FileText size={16} className="mr-2" /> View Client Invoices
+                                    </Button>
+                                    <Button variant="outline" className="w-full text-left justify-start" onClick={() => navigate(`/invoices/supplier/query/${id}`)}>
+                                        <FileText size={16} className="mr-2" /> View Supplier Invoices
+                                    </Button>
+                                </>
+                            )}
                         </div>
                     </div>
 
@@ -814,14 +822,16 @@ const ViewQuery = () => {
                     )}
 
                     {/* Service Voucher */}
-                    <div className="card">
-                        <h3 className="text-lg font-semibold mb-4 border-b pb-2">Service Voucher</h3>
-                        <div className="flex flex-wrap gap-2">
-                            <Button variant="outline" className="w-full" onClick={() => navigate(`/service-voucher/${id}`)}>
-                                View Service Voucher
-                            </Button>
+                    {query.queryStatus?.toLowerCase() === 'confirmed' && (
+                        <div className="card">
+                            <h3 className="text-lg font-semibold mb-4 border-b pb-2">Service Voucher</h3>
+                            <div className="flex flex-wrap gap-2">
+                                <Button variant="outline" className="w-full" onClick={() => navigate(`/service-voucher/${id}`)}>
+                                    View Service Voucher
+                                </Button>
+                            </div>
                         </div>
-                    </div>
+                    )}
 
 
                 </div>
