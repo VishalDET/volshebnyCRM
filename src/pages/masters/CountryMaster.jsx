@@ -10,8 +10,10 @@ import ConfirmModal from '@components/ConfirmModal'
 import { manageCountry, manageCity } from '@api/masters.api'
 import { toast } from 'react-hot-toast'
 import { MapPin } from 'lucide-react'
+import { useAuth } from '@hooks/useAuth'
 
 const CountryMaster = () => {
+    const { user } = useAuth()
     const [countries, setCountries] = useState([])
     const [isLoading, setIsLoading] = useState(false)
     const [isModalOpen, setIsModalOpen] = useState(false)
@@ -40,6 +42,9 @@ const CountryMaster = () => {
                 countryName: "string",
                 isActive: true,
                 isDeleted: false,
+                roleId: 0,
+                createdBy: 0,
+                modifiedBy: 0,
                 spType: "R"
             }
             const response = await manageCountry(payload)
@@ -110,6 +115,8 @@ const CountryMaster = () => {
                 countryName: formData.name,
                 isActive: true,
                 isDeleted: false,
+                createdBy: user?.id || 0,
+                roleId: user?.roleId || 0,
                 spType: editingId ? "U" : "C"
             }
 
@@ -149,6 +156,8 @@ const CountryMaster = () => {
                     countryName: "",
                     isActive: true,
                     isDeleted: true,
+                    createdBy: user?.id || 0,
+                    roleId: user?.roleId || 0,
                     spType: "D"
                 }
 
@@ -201,7 +210,10 @@ const CountryMaster = () => {
                 countryId: parseInt(countryId), // Passing countryId for server-side filtering
                 stateId: 0,
                 isActive: true,
-                isDeleted: false,
+                isDeleted: true,
+                roleId: 0,
+                createdBy: 0,
+                modifiedBy: 0,
                 spType: "R"
             }
             const response = await manageCity(payload)
@@ -240,6 +252,8 @@ const CountryMaster = () => {
                 stateId: 0,
                 isActive: true,
                 isDeleted: false,
+                createdBy: user?.id || 0,
+                roleId: user?.roleId || 0,
                 spType: editingCityId ? "U" : "C"
             }
 
@@ -284,6 +298,8 @@ const CountryMaster = () => {
                 stateId: 0,
                 isActive: true,
                 isDeleted: true,
+                createdBy: user?.id || 0,
+                roleId: user?.roleId || 0,
                 spType: "D"
             }
 

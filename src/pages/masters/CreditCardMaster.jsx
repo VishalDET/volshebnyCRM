@@ -10,8 +10,10 @@ import MastersNavigation from '@components/MastersNavigation'
 import ConfirmModal from '@components/ConfirmModal'
 import { manageCreditcards } from '@api/masters.api'
 import { toast } from 'react-hot-toast'
+import { useAuth } from '@hooks/useAuth'
 
 const CreditCardMaster = () => {
+    const { user } = useAuth()
     const [cards, setCards] = useState([])
     const [isLoading, setIsLoading] = useState(false)
     const [isModalOpen, setIsModalOpen] = useState(false)
@@ -31,7 +33,10 @@ const CreditCardMaster = () => {
                 bankId: 0,
                 bankName: "string",
                 isActive: true,
-                isDeleted: false,
+                isDeleted: true,
+                roleId: 0,
+                createdBy: 0,
+                modifiedBy: 0,
                 spType: "R"
             }
             const response = await manageCreditcards(payload)
@@ -95,6 +100,8 @@ const CreditCardMaster = () => {
                 bankName: formData.bankName,
                 isActive: true,
                 isDeleted: false,
+                createdBy: user?.id || 0,
+                roleId: user?.roleId || 0,
                 spType: editingId ? "U" : "C"
             }
 
@@ -133,6 +140,8 @@ const CreditCardMaster = () => {
                     bankName: "",
                     isActive: true,
                     isDeleted: true,
+                    createdBy: user?.id || 0,
+                    roleId: user?.roleId || 0,
                     spType: "D"
                 }
 

@@ -11,8 +11,10 @@ import MastersNavigation from '@components/MastersNavigation'
 import ConfirmModal from '@components/ConfirmModal'
 import { manageDestination, manageCountry, manageCity } from '@api/masters.api'
 import { toast } from 'react-hot-toast'
+import { useAuth } from '@hooks/useAuth'
 
 const DestinationMaster = () => {
+    const { user } = useAuth()
     const [destinations, setDestinations] = useState([])
     const [countries, setCountries] = useState([])
     const [cityOptions, setCityOptions] = useState([])
@@ -34,7 +36,10 @@ const DestinationMaster = () => {
                 countryId: 0,
                 countryName: "string",
                 isActive: true,
-                isDeleted: false,
+                isDeleted: true,
+                roleId: 0,
+                createdBy: 0,
+                modifiedBy: 0,
                 spType: "R"
             }
             const response = await manageCountry(payload)
@@ -70,7 +75,10 @@ const DestinationMaster = () => {
                 countryId: parseInt(countryId),
                 stateId: 0,
                 isActive: true,
-                isDeleted: false,
+                isDeleted: true,
+                roleId: 0,
+                createdBy: 0,
+                modifiedBy: 0,
                 spType: "R"
             }
             const response = await manageCity(payload)
@@ -111,10 +119,11 @@ const DestinationMaster = () => {
                 countryId: 0,
                 cityId: 0,
                 places: "string",
-                createdBy: 0,
-                modifyBy: 0,
                 isActive: true,
-                isDeleted: false,
+                isDeleted: true,
+                roleId: 0,
+                createdBy: 0,
+                modifiedBy: 0,
                 spType: "R"
             }
             console.log('Fetching destinations with payload:', payload)
@@ -204,8 +213,9 @@ const DestinationMaster = () => {
                 countryId: parseInt(formData.countryId),
                 cityId: parseInt(formData.cityId),
                 places: formData.places || '',
-                createdBy: 0,
-                modifyBy: 0,
+                createdBy: user?.id || 0,
+                roleId: user?.roleId || 0,
+                modifyBy: user?.id || 0,
                 isActive: true,
                 isDeleted: false,
                 spType: editingId ? "U" : "C"
@@ -246,8 +256,9 @@ const DestinationMaster = () => {
                     countryId: 0,
                     cityId: 0,
                     places: "",
-                    createdBy: 0,
-                    modifyBy: 0,
+                    createdBy: user?.id || 0,
+                    roleId: user?.roleId || 0,
+                    modifyBy: user?.id || 0,
                     isActive: true,
                     isDeleted: true,
                     spType: "D"

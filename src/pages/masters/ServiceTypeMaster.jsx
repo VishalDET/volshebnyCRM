@@ -10,8 +10,10 @@ import MastersNavigation from '@components/MastersNavigation'
 import ConfirmModal from '@components/ConfirmModal'
 import { manageServiceType } from '@api/masters.api'
 import { toast } from 'react-hot-toast'
+import { useAuth } from '@hooks/useAuth'
 
 const ServiceTypeMaster = () => {
+    const { user } = useAuth()
     const [services, setServices] = useState([])
     const [isLoading, setIsLoading] = useState(false)
     const [isModalOpen, setIsModalOpen] = useState(false)
@@ -32,7 +34,10 @@ const ServiceTypeMaster = () => {
                 serviceName: "string",
                 description: "string",
                 isActive: true,
-                isDeleted: false,
+                isDeleted: true,
+                roleId: 0,
+                createdBy: 0,
+                modifiedBy: 0,
                 spType: "R"
             }
             const response = await manageServiceType(payload)
@@ -98,6 +103,8 @@ const ServiceTypeMaster = () => {
                 description: formData.description || '',
                 isActive: true,
                 isDeleted: false,
+                createdBy: user?.id || 0,
+                roleId: user?.roleId || 0,
                 spType: editingId ? "U" : "C"
             }
 
@@ -137,6 +144,8 @@ const ServiceTypeMaster = () => {
                     description: "",
                     isActive: true,
                     isDeleted: true,
+                    createdBy: user?.id || 0,
+                    roleId: user?.roleId || 0,
                     spType: "D"
                 }
 

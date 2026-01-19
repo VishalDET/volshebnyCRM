@@ -9,8 +9,10 @@ import MastersNavigation from '@components/MastersNavigation'
 import ConfirmModal from '@components/ConfirmModal'
 import { manageHandler } from '@api/masters.api'
 import { toast } from 'react-hot-toast'
+import { useAuth } from '@hooks/useAuth'
 
 const HandlerMaster = () => {
+    const { user } = useAuth()
     const [handlers, setHandlers] = useState([])
     const [isLoading, setIsLoading] = useState(false)
 
@@ -49,6 +51,7 @@ const HandlerMaster = () => {
                 createdBy: 0,
                 modifiedBy: 0,
                 isActive: true,
+                isDeleted: true,
                 spType: "R"
             }
 
@@ -124,9 +127,9 @@ const HandlerMaster = () => {
                 emailId: formData.emailId,
                 mobileNo: formData.mobileNo || "",
                 handlerId: formData.handlerId,
-                roleId: parseInt(formData.roleId) || 0,
-                createdBy: 0,
-                modifiedBy: 0,
+                roleId: user?.roleId || 0,
+                createdBy: user?.id || 0,
+                modifiedBy: user?.id || 0,
                 isActive: true,
                 spType: editingId ? "U" : "C"
             }
@@ -178,9 +181,9 @@ const HandlerMaster = () => {
                 handlerName: "NA",
                 emailId: "na@na.com",
                 mobileNo: "",
-                roleId: 0,
-                createdBy: 0,
-                modifiedBy: 0,
+                roleId: user?.roleId || 0,
+                createdBy: user?.id || 0,
+                modifiedBy: user?.id || 0,
                 isActive: false,
                 spType: "D"
             }

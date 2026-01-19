@@ -10,8 +10,10 @@ import MastersNavigation from '@components/MastersNavigation'
 import ConfirmModal from '@components/ConfirmModal'
 import { manageCurrency } from '@api/masters.api'
 import { toast } from 'react-hot-toast'
+import { useAuth } from '@hooks/useAuth'
 
 const CurrencyMaster = () => {
+    const { user } = useAuth()
     const [currencies, setCurrencies] = useState([])
     const [isLoading, setIsLoading] = useState(false)
     const [isModalOpen, setIsModalOpen] = useState(false)
@@ -33,6 +35,9 @@ const CurrencyMaster = () => {
                 currencySign: "string",
                 isActive: true,
                 isDeleted: false,
+                roleId: 0,
+                createdBy: 0,
+                modifiedBy: 0,
                 spType: "R"
             }
             const response = await manageCurrency(payload)
@@ -87,6 +92,8 @@ const CurrencyMaster = () => {
                 currencySign: formData.currencySign,
                 isActive: true,
                 isDeleted: false,
+                createdBy: user?.id || 0,
+                roleId: user?.roleId || 0,
                 spType: editingId ? "U" : "C"
             }
 
@@ -124,6 +131,8 @@ const CurrencyMaster = () => {
                     currencySign: "",
                     isActive: true,
                     isDeleted: true,
+                    createdBy: user?.id || 0,
+                    roleId: user?.roleId || 0,
                     spType: "D"
                 }
 

@@ -11,8 +11,10 @@ import MastersNavigation from '@components/MastersNavigation'
 import ConfirmModal from '@components/ConfirmModal'
 import { manageClient, manageCountry, manageCity } from '@api/masters.api'
 import { toast } from 'react-hot-toast'
+import { useAuth } from '@hooks/useAuth'
 
 const ClientMaster = () => {
+    const { user } = useAuth()
     const [clients, setClients] = useState([])
     const [isLoading, setIsLoading] = useState(false)
     const [countries, setCountries] = useState([])
@@ -67,7 +69,10 @@ const ClientMaster = () => {
                 countryId: 0,
                 countryName: "string",
                 isActive: true,
-                isDeleted: false,
+                isDeleted: true,
+                roleId: 0,
+                createdBy: 0,
+                modifiedBy: 0,
                 spType: "R"
             }
             const response = await manageCountry(payload)
@@ -94,7 +99,10 @@ const ClientMaster = () => {
                 countryId: parseInt(countryId),
                 stateId: 0,
                 isActive: true,
-                isDeleted: false,
+                isDeleted: true,
+                roleId: 0,
+                createdBy: 0,
+                modifiedBy: 0,
                 spType: "R"
             }
             const response = await manageCity(payload)
@@ -139,9 +147,11 @@ const ClientMaster = () => {
                 cityId: 0,
                 pincode: "string",
                 contacts: [],
+                isActive: true,
+                isDeleted: true,
+                roleId: 0,
                 createdBy: 0,
                 modifiedBy: 0,
-                isActive: true,
                 spType: "R"
             }
             const response = await manageClient(payload)
@@ -225,8 +235,9 @@ const ClientMaster = () => {
                 cityId: 0,
                 pincode: "string",
                 contacts: [],
-                createdBy: 0,
-                modifiedBy: 0,
+                createdBy: user?.id || 0,
+                roleId: user?.roleId || 0,
+                modifiedBy: user?.id || 0,
                 isActive: true,
                 spType: "E"
             }
@@ -273,8 +284,9 @@ const ClientMaster = () => {
                 cityId: 0,
                 pincode: "string",
                 contacts: [],
-                createdBy: 0,
-                modifiedBy: 0,
+                createdBy: user?.id || 0,
+                roleId: user?.roleId || 0,
+                modifiedBy: user?.id || 0,
                 isActive: true,
                 spType: "E"
             }
@@ -360,8 +372,9 @@ const ClientMaster = () => {
                     contactEmail: c.contactEmail || c.email || "",
                     spType: editingId && c.contactId ? "U" : "C"
                 })),
-                createdBy: 0,
-                modifiedBy: 0,
+                createdBy: user?.id || 0,
+                roleId: user?.roleId || 0,
+                modifiedBy: user?.id || 0,
                 isActive: formData.isActive,
                 spType: editingId ? "U" : "C"
             }
@@ -395,7 +408,10 @@ const ClientMaster = () => {
                 // dummy fields strictly for schema compliance if needed
                 firstName: "", lastName: "", mobileNo: "", companyName: "", emailId: "",
                 gstNumber: "", gstCertificate: "", address: "", landmark: "", pincode: "",
-                contacts: [], isActive: false
+                contacts: [], isActive: false,
+                createdBy: user?.id || 0,
+                roleId: user?.roleId || 0,
+                spType: "D"
             }
             const response = await manageClient(payload)
             if (response.data && (response.data.success || response.data.isValid)) {

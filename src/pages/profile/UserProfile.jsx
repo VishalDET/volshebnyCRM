@@ -29,12 +29,13 @@ const UserProfile = () => {
                 const mappedUser = {
                     ...user,
                     id: profileData.userId,
-                    userId: profileData.userId,
+                    userId: profileData.userId, // Added for display as requested
                     name: profileData.fullName,
                     email: profileData.emailId,
                     roleId: profileData.roleId,
                     role: profileData.roleName, // Use roleName, ignore Authority
                     roleName: profileData.roleName,
+                    roleId: profileData.roleId,
                     mobileNo: profileData.mobileNo,
                     companyName: profileData.companyName,
                     isActive: profileData.isActive
@@ -87,7 +88,7 @@ const UserProfile = () => {
                         </div>
                         <div className='flex items-center justify-between w-full'>
                             <div className="ml-4">
-                                <h2 className="text-2xl font-bold text-gray-100">{user?.name || 'User Name'}</h2>
+                                <h2 className="text-2xl font-bold text-gray-100">{user?.name || 'User Name'} | {user.userId}</h2>
                                 <p className="text-gray-300 text-sm">Member since {new Date().getFullYear()}</p>
                             </div>
                             {/* <Button

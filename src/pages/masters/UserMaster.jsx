@@ -4,8 +4,10 @@ import { toast } from 'react-hot-toast'
 import Button from '@components/Button'
 import Input from '@components/Input'
 import { manageUser, manageUserRoleMapping } from '@api/userRole.api'
+import { useAuth } from '@hooks/useAuth'
 
 const UserMaster = () => {
+    const { user: currentUser } = useAuth()
     const [users, setUsers] = useState([])
     const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState('')
@@ -29,7 +31,15 @@ const UserMaster = () => {
     const fetchUsers = async () => {
         try {
             setLoading(true)
-            const response = await manageUser({ id: 0, spType: 'R', isActive: true })
+            const response = await manageUser({
+                id: 0,
+                spType: 'R',
+                isActive: true,
+                isDeleted: true,
+                roleId: 0,
+                createdBy: 0,
+                modifiedBy: 0
+            })
             // API returns { statusCode, success, message, data: [...], totalCount, error }
             const userData = response.data?.data || []
 
@@ -41,7 +51,8 @@ const UserMaster = () => {
                             userRoleId: 0,
                             userId: user.id,
                             roleId: 0,
-                            isDeleted: false,
+                            isDeleted: true,
+                            createdBy: 0,
                             spType: 'R'
                         })
                         const roleData = roleResponse.data?.data?.[0]
@@ -133,8 +144,9 @@ const UserMaster = () => {
                 } : {}),
 
                 authority: "",
-                createdBy: 0,
-                modifiedBy: 0,
+                createdBy: currentUser?.id || 0,
+                roleId: currentUser?.roleId || 0,
+                modifiedBy: currentUser?.id || 0,
                 isActive: true,
                 spType: modalMode === 'add' ? 'C' : 'U'
             }
@@ -155,6 +167,7 @@ const UserMaster = () => {
                 userId: userId,
                 roleId: roleId,
                 isDeleted: false,
+                createdBy: currentUser?.id || 0,
                 spType: modalMode === 'add' ? 'C' : 'U'
             })
 
@@ -186,8 +199,9 @@ const UserMaster = () => {
                     stateId: 0,
                     cityId: 0,
                     pincode: "",
-                    createdBy: 0,
-                    modifiedBy: 0,
+                    createdBy: currentUser?.id || 0,
+                    roleId: currentUser?.roleId || 0,
+                    modifiedBy: currentUser?.id || 0,
                     isActive: false,
                     spType: 'D'
                 }

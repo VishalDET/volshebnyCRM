@@ -12,8 +12,10 @@ import ConfirmModal from '@components/ConfirmModal'
 import SupplierViewModal from '@components/SupplierViewModal'
 import { manageSupplier, manageCountry, manageCity, manageServiceType } from '@api/masters.api'
 import { toast } from 'react-hot-toast'
+import { useAuth } from '@hooks/useAuth'
 
 const SupplierMaster = () => {
+    const { user } = useAuth()
     const [suppliers, setSuppliers] = useState([])
     const [isLoading, setIsLoading] = useState(false)
     const [countries, setCountries] = useState([])
@@ -67,7 +69,10 @@ const SupplierMaster = () => {
                 countryId: 0,
                 countryName: "string",
                 isActive: true,
-                isDeleted: false,
+                isDeleted: true,
+                roleId: 0,
+                createdBy: 0,
+                modifiedBy: 0,
                 spType: "R"
             }
             const response = await manageCountry(payload)
@@ -94,7 +99,10 @@ const SupplierMaster = () => {
                 countryId: parseInt(countryId),
                 stateId: 0,
                 isActive: true,
-                isDeleted: false,
+                isDeleted: true,
+                roleId: 0,
+                createdBy: 0,
+                modifiedBy: 0,
                 spType: "R"
             }
             const response = await manageCity(payload)
@@ -122,7 +130,10 @@ const SupplierMaster = () => {
                 serviceName: "string",
                 description: "string",
                 isActive: true,
-                isDeleted: false,
+                isDeleted: true,
+                roleId: 0,
+                createdBy: 0,
+                modifiedBy: 0,
                 spType: "R"
             }
             const response = await manageServiceType(payload)
@@ -159,18 +170,14 @@ const SupplierMaster = () => {
                 id: 0,
                 fullName: "string",
                 companyContactNo: "string",
-                companyEmailId: "string",
-                companyName: "string",
-                gstCertificate: "string",
-                isGSTIN: true,
-                gstNumber: "string",
-                address: "string",
                 countryId: 0,
                 stateId: 0,
                 cityId: 0,
                 createdBy: 0,
                 modifiedBy: 0,
+                roleId: 0,
                 isActive: true,
+                isDeleted: true,
                 spType: "R"
             }
             const response = await manageSupplier(payload)
@@ -221,6 +228,8 @@ const SupplierMaster = () => {
         try {
             const payload = {
                 id: row.id,
+                createdBy: user?.id || 0,
+                roleId: user?.roleId || 0,
                 spType: "E"
             }
             const response = await manageSupplier(payload)
@@ -252,6 +261,8 @@ const SupplierMaster = () => {
             // Fetch detailed supplier info
             const payload = {
                 id: row.id,
+                createdBy: user?.id || 0,
+                roleId: user?.roleId || 0,
                 spType: "E"
             }
             const response = await manageSupplier(payload)
@@ -348,8 +359,9 @@ const SupplierMaster = () => {
                 countryId: parseInt(formData.countryId) || 0,
                 stateId: parseInt(formData.stateId) || 0,
                 cityId: parseInt(formData.cityId) || 0,
-                createdBy: 0,
-                modifiedBy: 0,
+                createdBy: user?.id || 0,
+                roleId: user?.roleId || 0,
+                modifiedBy: user?.id || 0,
                 isActive: true,
                 spType: editingId ? "U" : "C",
                 contacts: validContacts.map(c => ({
@@ -413,6 +425,8 @@ const SupplierMaster = () => {
             try {
                 const payload = {
                     id: deleteId,
+                    createdBy: user?.id || 0,
+                    roleId: user?.roleId || 0,
                     spType: "D"
                 }
 
