@@ -49,6 +49,8 @@ const CreateClientInvoice = () => {
     const [gstAmount, setGstAmount] = useState(0)
     const [serviceCharge, setServiceCharge] = useState(0)
     const [isNettMode, setIsNettMode] = useState(false) // If true, manually override calculations
+    const [taxOption, setTaxOption] = useState("no_tax") // 'no_tax', 'gst_5', 'service_charge'
+    const [manualServiceCharge, setManualServiceCharge] = useState(0) // Input for Service Charge option
 
     useEffect(() => {
         fetchMetadata()
@@ -82,10 +84,20 @@ const CreateClientInvoice = () => {
         let roe = parseFloat(rateOfExchange) || 1
 
         if (paymentMethod === "Bank Account in India") {
-            // Apply 5% GST on total
-            tax = total * 0.05
-            // Apply 18% Service Charge on GST amount
-            sc = tax * 0.18
+            if (taxOption === 'gst_5') {
+                // Apply 5% GST on total
+                tax = total * 0.05
+                sc = 0
+            } else if (taxOption === 'service_charge') {
+                // Service Charge is manually entered
+                sc = parseFloat(manualServiceCharge) || 0
+                // GST is 18% on Service Charge
+                tax = sc * 0.18
+            } else {
+                // No Tax
+                tax = 0
+                sc = 0
+            }
         }
 
         setGstAmount(tax.toFixed(2))
@@ -109,7 +121,7 @@ const CreateClientInvoice = () => {
             netAmount: finalNet.toFixed(2),
             currencySign: sign
         }))
-    }, [formData.totalAmount, formData.currencyId, paymentMethod, remittanceCharge, rateOfExchange, isNettMode, currencies])
+    }, [formData.totalAmount, formData.currencyId, paymentMethod, remittanceCharge, rateOfExchange, isNettMode, currencies, taxOption, manualServiceCharge])
 
     const fetchMetadata = async () => {
         try {
@@ -508,14 +520,64 @@ const CreateClientInvoice = () => {
                                 </div>
 
                                 {paymentMethod === 'Bank Account in India' && (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-blue-50 p-3 rounded">
-                                        <div>
-                                            <span className="text-xs text-gray-500 block">GST (5%)</span>
-                                            <span className="font-semibold">{gstAmount}</span>
+                                    <div className="space-y-4">
+                                        <div className="bg-blue-50 p-4 rounded-lg space-y-3">
+                                            <label className="block text-sm font-semibold text-gray-700">Tax Applicability</label>
+                                            <div className="flex gap-4">
+                                                <label className="flex items-center gap-2 cursor-pointer">
+                                                    <input
+                                                        type="radio"
+                                                        name="taxOption"
+                                                        value="no_tax"
+                                                        checked={taxOption === 'no_tax'}
+                                                        onChange={(e) => setTaxOption(e.target.value)}
+                                                    />
+                                                    No Tax
+                                                </label>
+                                                <label className="flex items-center gap-2 cursor-pointer">
+                                                    <input
+                                                        type="radio"
+                                                        name="taxOption"
+                                                        value="gst_5"
+                                                        checked={taxOption === 'gst_5'}
+                                                        onChange={(e) => setTaxOption(e.target.value)}
+                                                    />
+                                                    5% GST
+                                                </label>
+                                                <label className="flex items-center gap-2 cursor-pointer">
+                                                    <input
+                                                        type="radio"
+                                                        name="taxOption"
+                                                        value="service_charge"
+                                                        checked={taxOption === 'service_charge'}
+                                                        onChange={(e) => setTaxOption(e.target.value)}
+                                                    />
+                                                    Service Charge
+                                                </label>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <span className="text-xs text-gray-500 block">Service Charge (18% on GST)</span>
-                                            <span className="font-semibold">{serviceCharge}</span>
+
+                                        {taxOption === 'service_charge' && (
+                                            <Input
+                                                type="number"
+                                                label="Service Charge Amount"
+                                                value={manualServiceCharge}
+                                                onChange={(e) => setManualServiceCharge(e.target.value)}
+                                                placeholder="Enter Service Charge"
+                                            />
+                                        )}
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-100 p-3 rounded">
+                                            <div>
+                                                <span className="text-xs text-gray-500 block">GST Amount</span>
+                                                <span className="font-semibold">{gstAmount}</span>
+                                                {taxOption === 'gst_5' && <span className="text-xs text-blue-600 block">(5% of Total)</span>}
+                                                {taxOption === 'service_charge' && <span className="text-xs text-blue-600 block">(18% of SC)</span>}
+                                            </div>
+                                            <div>
+                                                <span className="text-xs text-gray-500 block">Service Charge</span>
+                                                <span className="font-semibold">{serviceCharge}</span>
+                                            </div>
                                         </div>
                                     </div>
                                 )}

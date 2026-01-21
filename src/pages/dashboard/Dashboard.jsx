@@ -67,7 +67,7 @@ const Dashboard = () => {
             const [qRes, cRes, sRes] = await Promise.all([
                 manageQuery({ id: 0, queryNo: "", handlerId: 0, clientId: 0, originCountryId: 0, originCityId: 0, travelDate: null, returnDate: null, totalDays: 0, adults: 0, children: 0, infants: 0, budget: 0, queryStatus: "", specialRequirements: "", createdBy: 0, modifiedBy: 0, isActive: true, spType: "R", destinations: [], childAges: [] }),
                 manageClientInvoice({ id: 0, queryId: 0, clientId: 0, invoiceNo: "string", invoiceDate: new Date().toISOString(), dueDate: new Date().toISOString(), currencyId: 0, isDomestic: true, totalAmount: 0, gst: 0, serviceCharge: 0, remittance: 0, rateOfExchange: 0, paymentMethod: "string", comments: "string", netAmount: 0, paymentStatus: "string", userId: 0, roleId: 0, isActive: true, isDeleted: false, spType: "R" }),
-                manageSupplierInvoice({ id: 0, queryId: 0, supplierId: 0, serviceType: "string", supplierInvNo: "string", invoiceDate: new Date().toISOString(), dueDate: new Date().toISOString(), currencyId: 0, isDomestic: true, totalAmount: 0, gst: 0, serviceCharge: 0, remittance: 0, rateOfExchange: 0, paymentMethod: "string", comments: "string", netAmount: 0, paymentStatus: "string", userId: 0, roleId: 0, isActive: true, isDeleted: false, spType: "R" })
+                manageSupplierInvoice({ id: 0, queryId: 0, supplierId: 0, serviceType: "", supplierInvNo: "", invoiceDate: new Date().toISOString(), dueDate: new Date().toISOString(), currencyId: 0, isDomestic: true, totalAmount: 0, gst: 0, serviceCharge: 0, bankName: "", bankDetails: "", remittance: 0, rateOfExchange: 0, paymentMethod: "", comments: "", netAmount: 0, paymentStatus: "", userId: 0, roleId: 0, isActive: true, isDeleted: false, spType: "R" })
             ])
 
             const allQueries = qRes.data?.data || []
@@ -309,7 +309,7 @@ const Dashboard = () => {
                         <div className="grid grid-cols-1 lg:grid-cols-5 gap-0  bg-gradient-to-br from-primary-600 to-primary-900 rounded-2xl">
                             {/* Query Counter */}
                             <div className="lg:col-span-3 p-0 overflow-hidden border-0 text-white">
-                                <div className="p-6 border-b border-white/10 flex items-center justify-between">
+                                <div className="p-4 border-b border-white/10 flex items-center justify-between">
                                     <div>
                                         <h3 className="text-lg font-semibold">Query Pipeline</h3>
                                         <p className="text-xs text-secondary-400">Current status of all active leads</p>
@@ -379,7 +379,7 @@ const Dashboard = () => {
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                             {/* Top Clients by Revenue */}
                             <div className="rounded-2xl bg-white border border-secondary-100 shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden">
-                                <div className="p-6 border-b border-secondary-50 flex items-center justify-between">
+                                <div className="p-4 border-b border-secondary-50 flex items-center justify-between">
                                     <div>
                                         <h3 className="text-sm font-black text-secondary-900 uppercase tracking-widest">Top Clients</h3>
                                         <p className="text-[11px] text-secondary-400 font-medium mt-1">Highest revenue achievers</p>
@@ -421,7 +421,7 @@ const Dashboard = () => {
 
                             {/* Supplier Expenditure */}
                             <div className="rounded-2xl bg-white border border-secondary-100 shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden flex flex-col">
-                                <div className="p-6 border-b border-secondary-50 flex items-center justify-between shrink-0">
+                                <div className="p-4 border-b border-secondary-50 flex items-center justify-between shrink-0">
                                     <div>
                                         <h3 className="text-sm font-black text-secondary-900 uppercase tracking-widest">Supplier Stats</h3>
                                         <p className="text-[11px] text-secondary-400 font-medium mt-1">Expenditure volume by partner</p>
@@ -430,7 +430,7 @@ const Dashboard = () => {
                                         <Ship className="w-4 h-4 text-blue-500" />
                                     </div>
                                 </div>
-                                <div className="p-6 flex-1 flex flex-col justify-center">
+                                <div className="p-4 flex-1 flex flex-col justify-center">
                                     {supplierChartData.length > 0 ? (
                                         <div className="flex items-center gap-8">
                                             {/* Nightingale (Rose) Chart */}
@@ -662,7 +662,7 @@ const Dashboard = () => {
                                 <TrendingUp className="w-4 h-4 text-blue-500" />
                                 Recent Activity
                             </h3>
-                            <div className="space-y-2 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-secondary-100 before:to-transparent">
+                            <div className="space-y-2 h-[300px] overflow-y-auto custom-scrollbar pr-2 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-secondary-100 before:to-transparent">
                                 {recentActivity.map((act, idx) => (
                                     <div key={idx} className="relative flex items-center justify-between group bg-primary-500/10 rounded-xl p-2">
                                         <div className="flex items-center w-full gap-3">

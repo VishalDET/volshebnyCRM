@@ -21,6 +21,7 @@ const CreateSupplierInvoice = () => {
     const [query, setQuery] = useState(null)
     const [suppliers, setSuppliers] = useState([]) // Master list
     const [querySupplierIds, setQuerySupplierIds] = useState(null)
+    const [supplierServicesMap, setSupplierServicesMap] = useState({}) // { supplierId: [serviceTypes] }
     const [currencies, setCurrencies] = useState([])
     const [serviceTypes, setServiceTypes] = useState([])
     const [queries, setQueries] = useState([])
@@ -41,6 +42,8 @@ const CreateSupplierInvoice = () => {
         totalAmount: 0,
         gst: 0,
         serviceCharge: 0,
+        bankName: "",
+        bankDetails: "",
         remittance: 0,
         rateOfExchange: 1,
         paymentMethod: "",
@@ -61,6 +64,8 @@ const CreateSupplierInvoice = () => {
             fetchExistingInvoices(formData.queryId)
         } else {
             setQuery(null)
+            setQuerySupplierIds(null)
+            setSupplierServicesMap({})
             setExistingInvoices([])
             setInitialLoading(false)
         }
@@ -243,7 +248,7 @@ const CreateSupplierInvoice = () => {
                 createdBy: 0,
                 modifiedBy: 0,
                 isActive: true,
-                spType: "R",
+                spType: "E",
                 destinations: [],
                 childAges: []
             }
@@ -278,14 +283,38 @@ const CreateSupplierInvoice = () => {
 
             if (confirmedData) {
                 const ids = new Set()
+                const sMap = {}
+
+                const addToMap = (supId, sType) => {
+                    if (!sMap[supId]) sMap[supId] = new Set()
+                    sMap[supId].add(sType)
+                }
+
                 if (confirmedData.services) {
-                    confirmedData.services.forEach(s => { if (s.supplierId) ids.add(s.supplierId) })
+                    confirmedData.services.forEach(s => {
+                        if (s.supplierId) {
+                            ids.add(s.supplierId)
+                            addToMap(s.supplierId, s.serviceType)
+                        }
+                    })
                 }
                 if (confirmedData.guides) {
-                    confirmedData.guides.forEach(g => { if (g.supplierId) ids.add(g.supplierId) })
+                    confirmedData.guides.forEach(g => {
+                        if (g.supplierId) {
+                            ids.add(g.supplierId)
+                            addToMap(g.supplierId, "Guide")
+                        }
+                    })
                 }
                 if (ids.size > 0) {
                     setQuerySupplierIds(ids)
+
+                    // Convert Sets to Arrays for state
+                    const finalMap = {}
+                    Object.keys(sMap).forEach(k => {
+                        finalMap[k] = Array.from(sMap[k])
+                    })
+                    setSupplierServicesMap(finalMap)
                 }
             }
         } catch (error) {
@@ -293,9 +322,15 @@ const CreateSupplierInvoice = () => {
         }
     }
 
+    // Filter suppliers based on query
     const filteredSuppliers = querySupplierIds
         ? suppliers.filter(s => querySupplierIds.has(s.value))
         : suppliers
+
+    // Filter service types based on selected supplier
+    const filteredServiceTypes = (querySupplierIds && formData.supplierId)
+        ? (supplierServicesMap[formData.supplierId] || []).map(st => ({ value: st, label: st }))
+        : serviceTypes
 
     const fetchExistingInvoices = async (qId) => {
         try {
@@ -312,6 +347,8 @@ const CreateSupplierInvoice = () => {
                 totalAmount: 0,
                 gst: 0,
                 serviceCharge: 0,
+                bankName: "",
+                bankDetails: "",
                 remittance: 0,
                 rateOfExchange: 0,
                 paymentMethod: "string",
@@ -361,8 +398,8 @@ const CreateSupplierInvoice = () => {
                 id: isEdit ? parseInt(id) : 0,
                 queryId: parseInt(formData.queryId) || 0,
                 supplierId: parseInt(formData.supplierId) || 0,
-                serviceType: formData.serviceType || "string",
-                supplierInvNo: formData.supplierInvNo || "string",
+                serviceType: formData.serviceType || "",
+                supplierInvNo: formData.supplierInvNo || "",
                 invoiceDate: new Date(formData.invoiceDate).toISOString(),
                 dueDate: new Date(formData.dueDate).toISOString(),
                 currencyId: parseInt(formData.currencyId) || 0,
@@ -370,12 +407,14 @@ const CreateSupplierInvoice = () => {
                 totalAmount: parseFloat(formData.totalAmount) || 0,
                 gst: parseFloat(formData.gst) || 0,
                 serviceCharge: parseFloat(formData.serviceCharge) || 0,
+                bankName: formData.paymentMethod === "Bank" ? (formData.bankName || "") : null,
+                bankDetails: formData.paymentMethod === "Bank" ? (formData.bankDetails || "") : null,
                 remittance: parseFloat(formData.remittance) || 0,
                 rateOfExchange: parseFloat(formData.rateOfExchange) || 0,
                 paymentMethod: formData.paymentMethod === "Credit Card"
                     ? `Credit Card: ${creditCards.find(c => c.value === parseInt(selectedBankId))?.label || "Unknown Bank"}`
                     : formData.paymentMethod || "Cash",
-                comments: formData.comments || "string",
+                comments: formData.comments || "",
                 netAmount: parseFloat(formData.netAmount) || 0,
                 paymentStatus: formData.paymentStatus || "Unpaid",
                 userId: 0,
@@ -441,7 +480,7 @@ const CreateSupplierInvoice = () => {
                                 label="Service Type"
                                 name="serviceType"
                                 value={formData.serviceType}
-                                options={serviceTypes}
+                                options={filteredServiceTypes}
                                 onChange={handleInputChange}
                                 required
                             />
@@ -504,7 +543,8 @@ const CreateSupplierInvoice = () => {
                                 value={formData.paymentMethod}
                                 options={[
                                     { value: 'Cash', label: 'Cash' },
-                                    { value: 'Credit Card', label: 'Credit Card' }
+                                    { value: 'Credit Card', label: 'Credit Card' },
+                                    { value: 'Bank', label: 'Bank' }
                                 ]}
                                 onChange={handleInputChange}
                                 required
@@ -533,6 +573,26 @@ const CreateSupplierInvoice = () => {
                                         Domestic Payment
                                     </label>
                                 </div>
+                            )}
+                            {formData.paymentMethod === "Bank" && (
+                                <>
+                                    <Input
+                                        label="Bank Name"
+                                        name="bankName"
+                                        value={formData.bankName}
+                                        onChange={handleInputChange}
+                                        placeholder="e.g. HDFC Bank"
+                                        required
+                                    />
+                                    <Input
+                                        label="Bank Details"
+                                        name="bankDetails"
+                                        value={formData.bankDetails}
+                                        onChange={handleInputChange}
+                                        placeholder="Account Number, IFSC, etc."
+                                        required
+                                    />
+                                </>
                             )}
                         </div>
 

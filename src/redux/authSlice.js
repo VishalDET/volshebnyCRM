@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
-import { getUserProfile } from '@api/auth.api'
+import { getUserProfileByEmail } from '@api/userRole.api'
 import { loginWithFirebase, logoutFromFirebase } from '../services/firebase.service'
 
 // Async thunks
@@ -15,8 +15,8 @@ export const login = createAsyncThunk(
             // 2. Get User Token (optional, if needed for backend calls immediately)
             const token = await firebaseUser.getIdToken()
 
-            // 3. Get Backend User Details using UID
-            const userResponse = await getUserProfile(firebaseUser.uid)
+            // 3. Get Backend User Details using Email (more reliable endpoint)
+            const userResponse = await getUserProfileByEmail(firebaseUser.email)
             const backendUser = userResponse.data
 
             const userData = {

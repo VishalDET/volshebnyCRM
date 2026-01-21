@@ -63,6 +63,8 @@ const SupplierInvoiceList = () => {
             comments: "string",
             netAmount: 0,
             paymentStatus: "string",
+            bankName: "string",
+            bankDetails: "string",
             userId: 0,
             roleId: 0,
             isActive: true,

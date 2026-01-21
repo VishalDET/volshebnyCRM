@@ -162,7 +162,7 @@ const Login = () => {
                     Sign In
                 </Button>
 
-                <div className="mt-4 text-center">
+                {/* <div className="mt-4 text-center">
                     <Button
                         type="button"
                         variant="outline"
@@ -175,7 +175,7 @@ const Login = () => {
                     <p className="text-xs text-secondary-500 mt-2">
                         Skip authentication to preview all UIs
                     </p>
-                </div>
+                </div> */}
             </form>
         </div>
     )

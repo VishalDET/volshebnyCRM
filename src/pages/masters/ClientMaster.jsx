@@ -410,8 +410,7 @@ const ClientMaster = () => {
                 gstNumber: "", gstCertificate: "", address: "", landmark: "", pincode: "",
                 contacts: [], isActive: false,
                 createdBy: user?.id || 0,
-                roleId: user?.roleId || 0,
-                spType: "D"
+                roleId: user?.roleId || 0
             }
             const response = await manageClient(payload)
             if (response.data && (response.data.success || response.data.isValid)) {
