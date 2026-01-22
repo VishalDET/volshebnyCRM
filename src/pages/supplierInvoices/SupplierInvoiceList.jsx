@@ -114,15 +114,29 @@ const SupplierInvoiceList = () => {
                 id: 0,
                 fullName: "string",
                 companyContactNo: "string",
+                companyEmailId: "string",
+                companyName: "string",
+                gstCertificate: "string",
+                isGSTIN: true,
+                gstNumber: "string",
+                address: "string",
                 countryId: 0,
                 stateId: 0,
                 cityId: 0,
+                roleId: 0,
                 createdBy: 0,
                 modifiedBy: 0,
-                roleId: 0,
                 isActive: true,
-                isDeleted: false,
-                spType: "R"
+                spType: "R",
+                contacts: [{
+                    contactId: 0,
+                    supplierId: 0,
+                    contactName: "string",
+                    contactNumber: "string",
+                    contactEmail: "string",
+                    spType: "string"
+                }],
+                serviceIds: [0]
             }
             const res = await manageSupplier(payload)
             setSuppliers(res.data?.data || [])
@@ -133,7 +147,7 @@ const SupplierInvoiceList = () => {
 
     const getSupplierName = (sId) => {
         const supplier = suppliers.find(s => s.id === sId)
-        return supplier ? supplier.supplierName : `Supplier #${sId}`
+        return supplier ? (supplier.companyName || supplier.fullName || supplier.supplierName) : `Supplier #${sId}`
     }
 
     const openViewModal = (invoice) => {

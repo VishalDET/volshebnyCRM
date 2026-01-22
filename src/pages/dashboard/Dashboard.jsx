@@ -348,7 +348,7 @@ const Dashboard = () => {
                                                 </div>
                                             </div>
                                             <div className=''>
-                                                <Link to="/finance" className="flex-1 bg-white/20 text-white py-2 px-4 rounded-lg font-semibold tracking-wider text-xs text-center hover:bg-secondary-50 transition-colors">View</Link>
+                                                <Link to="/finance" className="flex-1 bg-white/20 hover:text-gray-500 text-white py-2 px-4 rounded-lg font-semibold tracking-wider text-xs text-center hover:bg-secondary-50 transition-colors">View</Link>
                                             </div>
                                         </div>
                                         <div className='flex justify-between items-center'>
@@ -363,7 +363,7 @@ const Dashboard = () => {
 
                                             </div>
                                             <div className=''>
-                                                <Link to="/finance" className="flex-1 bg-white/20 text-white py-2 px-4 rounded-lg font-semibold tracking-wider text-xs text-center hover:bg-secondary-50 transition-colors">View</Link>
+                                                <Link to="/finance" className="flex-1 bg-white/20 hover:text-gray-500 text-white py-2 px-4 rounded-lg font-semibold tracking-wider text-xs text-center hover:bg-secondary-50 transition-colors">View</Link>
                                             </div>
                                         </div>
                                     </div>

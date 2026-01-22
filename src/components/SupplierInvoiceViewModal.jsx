@@ -1,9 +1,95 @@
+import { useState, useEffect } from 'react'
 import Modal from '@components/Modal'
 import Button from '@components/Button'
 import { X, ExternalLink } from 'lucide-react'
+import { manageQuery } from '@api/query.api'
+import { manageSupplier, manageCurrency } from '@api/masters.api'
 
 const SupplierInvoiceViewModal = ({ isOpen, onClose, invoice, query, supplierName }) => {
+    const [details, setDetails] = useState({
+        supplier: null,
+        query: null,
+        currencySign: null
+    })
+    const [loading, setLoading] = useState(false)
+
+    useEffect(() => {
+        if (isOpen && invoice) {
+            fetchDetails()
+        } else {
+            setDetails({ supplier: null, query: null, currencySign: null })
+        }
+    }, [isOpen, invoice])
+
+    const fetchDetails = async () => {
+        setLoading(true)
+        try {
+            const updates = { ...details }
+
+            // 1. Fetch Supplier if missing (for name)
+            if (!supplierName && invoice.supplierId) {
+                const res = await manageSupplier({
+                    id: parseInt(invoice.supplierId),
+                    fullName: "string",
+                    companyContactNo: "string",
+                    companyEmailId: "string",
+                    companyName: "string",
+                    gstCertificate: "string",
+                    isGSTIN: true,
+                    gstNumber: "string",
+                    address: "string",
+                    countryId: 0,
+                    stateId: 0,
+                    cityId: 0,
+                    roleId: 0,
+                    createdBy: 0,
+                    modifiedBy: 0,
+                    isActive: true,
+                    spType: "E",
+                    contacts: [{
+                        contactId: 0,
+                        supplierId: 0,
+                        contactName: "string",
+                        contactNumber: "string",
+                        contactEmail: "string",
+                        spType: "string"
+                    }],
+                    serviceIds: [0]
+                })
+                updates.supplier = Array.isArray(res.data?.data) ? res.data.data[0] : res.data?.data
+            }
+
+            // 2. Fetch Query if missing
+            if (!query && invoice.queryId) {
+                const res = await manageQuery({
+                    id: parseInt(invoice.queryId),
+                    queryNo: "", handlerId: 0, clientId: 0, originCountryId: 0, originCityId: 0, travelDate: null, returnDate: null, totalDays: 0, adults: 0, children: 0, infants: 0, budget: 0, queryStatus: "", specialRequirements: "", createdBy: 0, modifiedBy: 0, isActive: true, spType: "E", destinations: [], childAges: []
+                })
+                updates.query = Array.isArray(res.data?.data) ? res.data.data[0] : res.data?.data
+            }
+
+            // 3. Fetch Currency
+            if (invoice.currencyId) {
+                const res = await manageCurrency({
+                    id: 0, roleId: 0, createdBy: 0, modifiedBy: 0, currencyName: "", currencySign: "", isActive: true, isDeleted: false, spType: "R"
+                })
+                const curr = res.data?.data?.find(c => c.id === parseInt(invoice.currencyId) || c.currencyId === parseInt(invoice.currencyId))
+                updates.currencySign = curr?.currencySign || "$"
+            }
+
+            setDetails(updates)
+        } catch (error) {
+            console.error("Failed to fetch invoice details", error)
+        } finally {
+            setLoading(false)
+        }
+    }
+
     if (!invoice) return null
+
+    const displaySupplierName = supplierName || details.supplier?.companyName || details.supplier?.fullName
+    const displayQuery = query || details.query
+    const currencySign = details.currencySign || (invoice.currencySign || "$")
 
     return (
         <Modal
@@ -43,20 +129,20 @@ const SupplierInvoiceViewModal = ({ isOpen, onClose, invoice, query, supplierNam
 
                     <div>
                         <h4 className="text-xs font-bold text-gray-500 uppercase mb-1">Supplier Details</h4>
-                        <p className="text-sm font-semibold">{supplierName}</p>
+                        <p className="text-sm font-semibold">{displaySupplierName || (loading ? 'Loading...' : 'Unknown Supplier')}</p>
                         <p className="text-sm text-gray-600">Service: {invoice.serviceType}</p>
                     </div>
 
                     <div>
                         <h4 className="text-xs font-bold text-gray-500 uppercase mb-1">Query Context</h4>
-                        {query ? (
+                        {displayQuery ? (
                             <div className="space-y-1">
-                                <p className="text-sm font-semibold">Query #{query.id}</p>
-                                <p className="text-sm text-gray-600">{query.queryNo}</p>
-                                <p className="text-sm text-gray-600">{new Date(query.travelDate).toLocaleDateString('en-GB')}</p>
+                                <p className="text-sm font-semibold">Query #{displayQuery.queryNo || displayQuery.id}</p>
+                                <p className="text-sm text-gray-600 truncate max-w-[150px]">{displayQuery.originCityId ? `${displayQuery.originCityId} Trip` : ''}</p>
+                                <p className="text-sm text-gray-600">{displayQuery.travelDate ? new Date(displayQuery.travelDate).toLocaleDateString('en-GB') : '-'}</p>
                             </div>
                         ) : (
-                            <p className="text-sm text-gray-400 italic">No query context</p>
+                            <p className="text-sm text-gray-400 italic">{loading ? 'Loading...' : 'No query context'}</p>
                         )}
                     </div>
                 </div>
@@ -67,19 +153,19 @@ const SupplierInvoiceViewModal = ({ isOpen, onClose, invoice, query, supplierNam
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
                         <div className="space-y-1 md:border-r border-gray-200">
                             <p className="text-xs text-gray-500 uppercase">Subtotal</p>
-                            <p className="text-lg font-bold text-gray-900">₹{invoice.totalAmount?.toLocaleString()}</p>
+                            <p className="text-lg font-bold text-gray-900">{currencySign}{invoice.totalAmount?.toLocaleString()}</p>
                         </div>
                         <div className="space-y-1 md:border-r border-gray-200">
                             <p className="text-xs text-gray-500 uppercase">GST</p>
-                            <p className="text-lg font-bold text-blue-600">₹{invoice.gst?.toLocaleString() || '0'}</p>
+                            <p className="text-lg font-bold text-blue-600">{currencySign}{invoice.gst?.toLocaleString() || '0'}</p>
                         </div>
                         <div className="space-y-1 md:border-r border-gray-200">
                             <p className="text-xs text-gray-500 uppercase">Service Charge</p>
-                            <p className="text-lg font-bold text-blue-600">₹{invoice.serviceCharge?.toLocaleString() || '0'}</p>
+                            <p className="text-lg font-bold text-blue-600">{currencySign}{invoice.serviceCharge?.toLocaleString() || '0'}</p>
                         </div>
                         <div className="space-y-1">
                             <p className="text-xs text-gray-500 uppercase font-bold text-blue-600">Net Amount</p>
-                            <p className="text-xl font-black text-gray-900">₹{invoice.netAmount?.toLocaleString()}</p>
+                            <p className="text-xl font-black text-gray-900">{currencySign}{invoice.netAmount?.toLocaleString()}</p>
                         </div>
                     </div>
 
@@ -87,7 +173,7 @@ const SupplierInvoiceViewModal = ({ isOpen, onClose, invoice, query, supplierNam
                         <div className="grid grid-cols-2 gap-4 mt-6 pt-6 border-t border-gray-200 text-center">
                             <div className="space-y-1">
                                 <p className="text-xs text-gray-500 uppercase">Remittance</p>
-                                <p className="text-md font-semibold text-gray-700">₹{invoice.remittance?.toLocaleString()}</p>
+                                <p className="text-md font-semibold text-gray-700">{currencySign}{invoice.remittance?.toLocaleString()}</p>
                             </div>
                             <div className="space-y-1">
                                 <p className="text-xs text-gray-500 uppercase">Rate of Exchange</p>

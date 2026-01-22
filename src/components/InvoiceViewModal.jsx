@@ -1,9 +1,71 @@
+import { useState, useEffect } from 'react'
 import Modal from '@components/Modal'
 import Button from '@components/Button'
 import { Printer, X, Download } from 'lucide-react'
+import { manageQuery } from '@api/query.api'
+import { manageClient, manageCurrency } from '@api/masters.api'
 
 const InvoiceViewModal = ({ isOpen, onClose, invoice, query, client }) => {
+    const [details, setDetails] = useState({
+        client: null,
+        query: null,
+        currencySign: null
+    })
+    const [loading, setLoading] = useState(false)
+
+    useEffect(() => {
+        if (isOpen && invoice) {
+            fetchDetails()
+        } else {
+            setDetails({ client: null, query: null, currencySign: null })
+        }
+    }, [isOpen, invoice])
+
+    const fetchDetails = async () => {
+        setLoading(true)
+        try {
+            const updates = { ...details }
+
+            // 1. Fetch Client if missing
+            if (!client && invoice.clientId) {
+                const res = await manageClient({
+                    id: parseInt(invoice.clientId),
+                    firstName: "", lastName: "", mobileNo: "", companyName: "", emailId: "", isGSTIN: true, gstNumber: "", gstCertificate: "", address: "", landmark: "", countryId: 0, stateId: 0, cityId: 0, pincode: "", contacts: [], createdBy: 0, modifiedBy: 0, isActive: true, spType: "E"
+                })
+                updates.client = Array.isArray(res.data?.data) ? res.data.data[0] : res.data?.data
+            }
+
+            // 2. Fetch Query if missing
+            if (!query && invoice.queryId) {
+                const res = await manageQuery({
+                    id: parseInt(invoice.queryId),
+                    queryNo: "", handlerId: 0, clientId: 0, originCountryId: 0, originCityId: 0, travelDate: null, returnDate: null, totalDays: 0, adults: 0, children: 0, infants: 0, budget: 0, queryStatus: "", specialRequirements: "", createdBy: 0, modifiedBy: 0, isActive: true, spType: "E", destinations: [], childAges: []
+                })
+                updates.query = Array.isArray(res.data?.data) ? res.data.data[0] : res.data?.data
+            }
+
+            // 3. Fetch Currency (always needed for sign if not passed, assuming parent doesn't pass currency object)
+            if (invoice.currencyId) {
+                const res = await manageCurrency({
+                    id: 0, roleId: 0, createdBy: 0, modifiedBy: 0, currencyName: "", currencySign: "", isActive: true, isDeleted: false, spType: "R"
+                })
+                const curr = res.data?.data?.find(c => c.id === parseInt(invoice.currencyId) || c.currencyId === parseInt(invoice.currencyId))
+                updates.currencySign = curr?.currencySign || "$"
+            }
+
+            setDetails(updates)
+        } catch (error) {
+            console.error("Failed to fetch invoice details", error)
+        } finally {
+            setLoading(false)
+        }
+    }
+
     if (!invoice) return null
+
+    const displayClient = client || details.client
+    const displayQuery = query || details.query
+    const currencySign = details.currencySign || (invoice.currencySign || "$") // Fallback
 
     return (
         <Modal
@@ -45,27 +107,29 @@ const InvoiceViewModal = ({ isOpen, onClose, invoice, query, client }) => {
 
                     <div>
                         <h4 className="text-xs font-bold text-gray-500 uppercase mb-1">Client Details</h4>
-                        {client ? (
+                        {displayClient ? (
                             <div className="space-y-1">
-                                <p className="text-sm font-semibold">{client.firstName} {client.lastName}</p>
-                                <p className="text-sm text-gray-600">{client.email}</p>
-                                <p className="text-sm text-gray-600">{client.phone}</p>
+                                <p className="text-sm font-semibold">{displayClient.firstName} {displayClient.lastName}</p>
+                                <p className="text-sm text-gray-600">{displayClient.email || displayClient.emailId}</p>
+                                <p className="text-sm text-gray-600">{displayClient.phone || displayClient.mobileNo}</p>
                             </div>
                         ) : (
-                            <p className="text-sm text-gray-400 italic">No client details available</p>
+                            <p className="text-sm text-gray-400 italic">{loading ? 'Loading...' : 'No client details available'}</p>
                         )}
                     </div>
 
                     <div>
                         <h4 className="text-xs font-bold text-gray-500 uppercase mb-1">Query Context</h4>
-                        {query ? (
+                        {displayQuery ? (
                             <div className="space-y-1">
-                                <p className="text-sm font-semibold">Query #{query.id}</p>
-                                <p className="text-sm text-gray-600">{query.originCityId} to {query.destinations?.map(d => d.cityName).join(', ')}</p>
-                                <p className="text-sm text-gray-600">{new Date(query.travelDate).toLocaleDateString('en-GB')}</p>
+                                <p className="text-sm font-semibold">Query #{displayQuery.queryNo || displayQuery.id}</p>
+                                <p className="text-sm text-gray-600 truncate max-w-[150px]" title={displayQuery.originCityId}>
+                                    {displayQuery.destinations?.length > 0 ? displayQuery.destinations.map(d => d.cityName).join(', ') : 'No Destinations'}
+                                </p>
+                                <p className="text-sm text-gray-600">{displayQuery.travelDate ? new Date(displayQuery.travelDate).toLocaleDateString('en-GB') : 'Date TBD'}</p>
                             </div>
                         ) : (
-                            <p className="text-sm text-gray-400 italic">No query context</p>
+                            <p className="text-sm text-gray-400 italic">{loading ? 'Loading...' : 'No query context'}</p>
                         )}
                     </div>
                 </div>
@@ -75,16 +139,16 @@ const InvoiceViewModal = ({ isOpen, onClose, invoice, query, client }) => {
                     <h4 className="text-sm font-bold text-gray-700 mb-4">Financial Summary</h4>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
                         <div className="space-y-1 border-r border-gray-200">
-                            <p className="text-xs text-gray-500 uppercase">Subtotal (USD)</p>
-                            <p className="text-2xl font-black text-gray-900">${invoice.totalAmount?.toLocaleString()}</p>
+                            <p className="text-xs text-gray-500 uppercase">Subtotal (Budget)</p>
+                            <p className="text-2xl font-black text-gray-900">{currencySign}{invoice.totalAmount?.toLocaleString()}</p>
                         </div>
                         <div className="space-y-1 border-r border-gray-200">
                             <p className="text-xs text-gray-500 uppercase">Tax / Adjustments</p>
-                            <p className="text-2xl font-black text-blue-600">₹{invoice.taxAmount?.toLocaleString()}</p>
+                            <p className="text-2xl font-black text-blue-600">{currencySign}{invoice.taxAmount?.toLocaleString()}</p>
                         </div>
                         <div className="space-y-1">
                             <p className="text-xs text-gray-500 uppercase font-bold text-blue-600">Net Amount</p>
-                            <p className="text-3xl font-black text-gray-900">₹{invoice.netAmount?.toLocaleString()}</p>
+                            <p className="text-3xl font-black text-gray-900">{currencySign}{invoice.netAmount?.toLocaleString()}</p>
                         </div>
                     </div>
                 </div>

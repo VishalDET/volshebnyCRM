@@ -42,7 +42,67 @@ const CreateQuery = () => {
 
     useEffect(() => {
         fetchMasters()
+        generateQueryNumber()
     }, [])
+
+    const generateQueryNumber = async () => {
+        try {
+            // Fetch all queries to determine the next number
+            const payload = {
+                id: 0,
+                queryNo: "",
+                handlerId: 0,
+                clientId: 0,
+                originCountryId: 0,
+                originCityId: 0,
+                travelDate: null,
+                returnDate: null,
+                totalDays: 0,
+                adults: 0,
+                children: 0,
+                infants: 0,
+                budget: 0,
+                queryStatus: "",
+                specialRequirements: "",
+                createdBy: 0,
+                modifiedBy: 0,
+                isActive: true, // Fetch active queries
+                spType: "R", // Read all
+                destinations: [],
+                childAges: []
+            }
+            const res = await manageQuery(payload)
+            const queries = res.data?.data || []
+
+            const currentYear = new Date().getFullYear().toString()
+            const prefix = `VH`
+
+            // Filter queries matching the current year's pattern: VH{seq}{Year}
+            // Pattern regex: ^VH(\d{3})2025$ (dynamically)
+            const pattern = new RegExp(`^VH(\\d{3})${currentYear}$`)
+
+            let maxSeq = 0
+            queries.forEach(q => {
+                if (q.queryNo) {
+                    const match = q.queryNo.match(pattern)
+                    if (match) {
+                        const seq = parseInt(match[1])
+                        if (seq > maxSeq) maxSeq = seq
+                    }
+                }
+            })
+
+            const nextSeq = (maxSeq + 1).toString().padStart(3, '0')
+            const newQueryNo = `${prefix}${nextSeq}${currentYear}`
+
+            setFormData(prev => ({ ...prev, queryNo: newQueryNo }))
+        } catch (error) {
+            console.error("Error generating query number:", error)
+            // Fallback or leave empty? Maybe set a default starting point if fetch fails
+            const currentYear = new Date().getFullYear().toString()
+            setFormData(prev => ({ ...prev, queryNo: `VH001${currentYear}` }))
+        }
+    }
 
     useEffect(() => {
         if (formData.travelDate && formData.returnDate) {
@@ -330,9 +390,10 @@ const CreateQuery = () => {
                             name="queryNo"
                             value={formData.queryNo}
                             onChange={handleInputChange}
-                            placeholder="e.g. Q-2025-001"
+                            placeholder="Generating..."
+                            readOnly
                             required
-                            className="w-48"
+                            className="w-48 bg-gray-100 cursor-not-allowed"
                         />
                         <Select
                             label="Handler"
