@@ -564,8 +564,7 @@ const CreateQuery = () => {
                             onChange={handleInputChange}
                             options={[
                                 { value: 'Pending', label: 'Pending' },
-                                { value: 'Confirmed', label: 'Confirmed' },
-                                { value: 'Cancelled', label: 'Cancelled' }
+
                             ]}
                         />
                     </div>

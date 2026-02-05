@@ -39,6 +39,7 @@ const MainLayout = ({ children }) => {
             title: 'OPERATIONS',
             items: [
                 { name: 'Queries', href: '/queries', icon: FileText },
+                { name: 'Service Bookings', href: '/service-bookings', icon: Ticket },
                 // { name: 'Service Vouchers', href: '/vouchers', icon: Ticket },
             ]
         },

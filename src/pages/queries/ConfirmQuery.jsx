@@ -8,7 +8,7 @@ import { manageQuery, manageConfirmQuery } from '@api/query.api'
 import { manageClient, manageHandler, manageSupplier, manageCurrency, manageCountry, manageCity } from '@api/masters.api'
 import { toast } from 'react-hot-toast'
 import Loader from '@components/Loader'
-import { Calendar, User, Building, Users, Banknote, FileText, Briefcase } from 'lucide-react'
+import { Calendar, User, Building, Users, Banknote, FileText, Briefcase, Trash2 } from 'lucide-react'
 
 const ConfirmQuery = () => {
     const { id } = useParams()
@@ -26,7 +26,7 @@ const ConfirmQuery = () => {
 
     // Form State
     const [tourLeads, setTourLeads] = useState([
-        { leadName: '', gender: '', age: '', visaStatus: '' }
+        { leadName: '', gender: '', age: '', passportNumber: '', visaStatus: '' }
     ])
 
     // Group services by destination index for UI, flatten on submit
@@ -349,8 +349,14 @@ const ConfirmQuery = () => {
     }
 
     // --- Tour Leads Handlers ---
+    const totalPax = query ? (query.adults || 0) + (query.children || 0) + (query.infants || 0) : 0
+
     const addTourLead = () => {
-        setTourLeads([...tourLeads, { leadName: '', gender: '', age: '', visaStatus: '' }])
+        if (tourLeads.length >= totalPax) {
+            toast.error(`Cannot add more than ${totalPax} travellers`)
+            return
+        }
+        setTourLeads([...tourLeads, { leadName: '', gender: '', age: '', passportNumber: '', visaStatus: '' }])
     }
     const removeTourLead = (index) => {
         if (tourLeads.length > 1) {
@@ -464,6 +470,7 @@ const ConfirmQuery = () => {
                     leadName: tl.leadName || "",
                     gender: tl.gender || "",
                     age: parseInt(tl.age) || 0,
+                    passportNumber: tl.passportNumber || "",
                     visaStatus: tl.visaStatus || ""
                 })),
                 services: flatServices,
@@ -520,13 +527,14 @@ const ConfirmQuery = () => {
                         <h3 className="text-lg font-semibold mb-4 border-b pb-2">Client Information</h3>
                         {client ? (
                             <dl className="grid grid-cols-1 gap-2">
-                                <div>
-                                    <dt className="text-sm text-secondary-600">Full Name</dt>
-                                    <dd className="font-medium">{client.firstName} {client.lastName}</dd>
-                                </div>
+
                                 <div>
                                     <dt className="text-sm text-secondary-600">Company</dt>
                                     <dd className="font-medium">{client.companyName || '-'}</dd>
+                                </div>
+                                <div>
+                                    <dt className="text-sm text-secondary-600">Full Name</dt>
+                                    <dd className="font-medium">{client.firstName} {client.lastName}</dd>
                                 </div>
                                 <div>
                                     <dt className="text-sm text-secondary-600">Contact</dt>
@@ -604,19 +612,73 @@ const ConfirmQuery = () => {
                 {/* 1. Tour Leads */}
                 <div className="card">
                     <div className="flex justify-between items-center mb-4 border-b pb-2">
-                        <h3 className="text-lg font-semibold">Tour Leads / Travellers</h3>
-                        <Button size="sm" onClick={addTourLead}>+ Add Lead</Button>
+                        <h3 className="text-lg font-semibold">
+                            Tour Leads / Travellers
+                            <span className="text-sm font-normal text-gray-500 ml-2">
+                                ({tourLeads.length} / {totalPax})
+                            </span>
+                        </h3>
+                        <Button size="sm" onClick={addTourLead} disabled={tourLeads.length >= totalPax}>+ Add Lead</Button>
                     </div>
                     {tourLeads.map((lead, idx) => (
-                        <div key={idx} className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4 items-end bg-gray-50 p-3 rounded">
-                            <Input label="Name" value={lead.leadName} onChange={e => updateTourLead(idx, 'leadName', e.target.value)} />
-                            <Select label="Gender" value={lead.gender} onChange={e => updateTourLead(idx, 'gender', e.target.value)}
-                                options={[{ value: 'Male', label: 'Male' }, { value: 'Female', label: 'Female' }]} />
-                            <Input type="number" label="Age" value={lead.age} onChange={e => updateTourLead(idx, 'age', e.target.value)} />
-                            <Input label="Visa Status" value={lead.visaStatus} onChange={e => updateTourLead(idx, 'visaStatus', e.target.value)} />
+                        <div key={idx} className="relative bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow mb-4 group">
                             {tourLeads.length > 1 && (
-                                <button onClick={() => removeTourLead(idx)} className="text-red-500 pb-2">Remove</button>
+                                <button
+                                    onClick={() => removeTourLead(idx)}
+                                    className="absolute top-4 right-4 text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-full transition-all opacity-0 group-hover:opacity-100"
+                                    title="Remove Traveller"
+                                >
+                                    <Trash2 size={18} />
+                                </button>
                             )}
+
+                            <div className="flex items-center gap-2 mb-3">
+                                <span className="bg-blue-50 text-blue-700 text-xs font-bold px-2 py-1 rounded uppercase tracking-wider">
+                                    Traveller {idx + 1}
+                                </span>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
+                                <div className="col-span-12">
+                                    <Input
+                                        label="Full Name"
+                                        placeholder="Full Name as per Passport"
+                                        value={lead.leadName}
+                                        onChange={e => updateTourLead(idx, 'leadName', e.target.value)}
+                                    />
+                                </div>
+                                <div className="col-span-12 md:col-span-4">
+                                    <Input
+                                        label="Passport Number"
+                                        value={lead.passportNumber}
+                                        onChange={e => updateTourLead(idx, 'passportNumber', e.target.value)}
+                                    />
+                                </div>
+                                <div className="col-span-12 md:col-span-3">
+                                    <Select
+                                        label="Visa Status"
+                                        value={lead.visaStatus}
+                                        onChange={e => updateTourLead(idx, 'visaStatus', e.target.value)}
+                                        options={[{ value: 'Approved', label: 'Approved' }, { value: 'Pending', label: 'Pending' }]}
+                                    />
+                                </div>
+                                <div className="col-span-6 md:col-span-3">
+                                    <Select
+                                        label="Gender"
+                                        value={lead.gender}
+                                        onChange={e => updateTourLead(idx, 'gender', e.target.value)}
+                                        options={[{ value: 'Male', label: 'Male' }, { value: 'Female', label: 'Female' }]}
+                                    />
+                                </div>
+                                <div className="col-span-6 md:col-span-2">
+                                    <Input
+                                        type="number"
+                                        label="Age"
+                                        value={lead.age}
+                                        onChange={e => updateTourLead(idx, 'age', e.target.value)}
+                                    />
+                                </div>
+                            </div>
                         </div>
                     ))}
                 </div>

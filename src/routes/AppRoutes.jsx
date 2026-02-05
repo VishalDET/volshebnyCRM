@@ -26,6 +26,11 @@ const PaxDetails = lazy(() => import('@pages/queryDetails/PaxDetails'))
 // Service Voucher
 const ServiceVoucher = lazy(() => import('@pages/serviceVoucher/ServiceVoucher'))
 
+// Service Booking
+const ServiceBookingList = lazy(() => import('@pages/bookings/ServiceBookingList'))
+const ServiceBooking = lazy(() => import('@pages/bookings/ServiceBooking'))
+const ServiceBookingInvoicePDF = lazy(() => import('@pages/bookings/ServiceBookingInvoicePDF'))
+
 // Client Invoices
 const ClientInvoiceList = lazy(() => import('@pages/clientInvoices/ClientInvoiceList'))
 const CreateClientInvoice = lazy(() => import('@pages/clientInvoices/CreateClientInvoice'))
@@ -110,8 +115,12 @@ const AppRoutes = () => {
                 <Route path="/queries/:id/details" element={<ProtectedRoute><DetailsForm /></ProtectedRoute>} />
                 <Route path="/queries/:id/pax" element={<ProtectedRoute><PaxDetails /></ProtectedRoute>} />
 
-                {/* Service Vouchers */}
+                {/* Service Vouchers & Bookings */}
                 <Route path="/service-voucher/:id" element={<ProtectedRoute><ServiceVoucher /></ProtectedRoute>} />
+                <Route path="/service-bookings" element={<ProtectedRoute><ServiceBookingList /></ProtectedRoute>} />
+                <Route path="/service-bookings/create" element={<ProtectedRoute><ServiceBooking /></ProtectedRoute>} />
+                <Route path="/service-bookings/edit/:id" element={<ProtectedRoute><ServiceBooking /></ProtectedRoute>} />
+                <Route path="/service-bookings/print/:id" element={<ProtectedRoute><ServiceBookingInvoicePDF /></ProtectedRoute>} />
 
                 {/* Client Invoices */}
                 <Route path="/invoices/client" element={<ProtectedRoute><ClientInvoiceList /></ProtectedRoute>} />

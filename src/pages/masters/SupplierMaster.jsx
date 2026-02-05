@@ -5,7 +5,7 @@ import Table from '@components/Table'
 import Modal from '@components/Modal'
 import Input from '@components/Input'
 import Select from '@components/Select'
-import { Pencil, Trash2, Eye } from 'lucide-react'
+import { Pencil, Trash2, Eye, X, ChevronDown } from 'lucide-react'
 
 import MastersNavigation from '@components/MastersNavigation'
 import ConfirmModal from '@components/ConfirmModal'
@@ -38,7 +38,8 @@ const SupplierMaster = () => {
         address: '',
         countryId: '',
         stateId: 0,
-        cityId: '',
+        cityId: '', // Keep for backward compatibility if needed, but primary is cityIds
+        cityIds: [],
         isActive: true,
         spType: 'R',
         contacts: [
@@ -279,6 +280,11 @@ const SupplierMaster = () => {
                 await fetchCities(supplierData.countryId)
             }
 
+            // Map cities
+            const currentCityIds = supplierData.cityIds && supplierData.cityIds.length > 0
+                ? supplierData.cityIds
+                : (supplierData.cityId ? [supplierData.cityId] : [])
+
             // Map services to IDs
             const currentServiceIds = supplierData.services
                 ? supplierData.services.map(s => s.serviceId)
@@ -296,6 +302,7 @@ const SupplierMaster = () => {
                 countryId: supplierData.countryId || '',
                 stateId: supplierData.stateId || 0,
                 cityId: supplierData.cityId || '',
+                cityIds: currentCityIds,
                 isActive: supplierData.isActive ?? true,
                 spType: 'U',
                 contacts: supplierData.contacts && supplierData.contacts.length > 0
@@ -358,7 +365,8 @@ const SupplierMaster = () => {
                 address: formData.address || "",
                 countryId: parseInt(formData.countryId) || 0,
                 stateId: parseInt(formData.stateId) || 0,
-                cityId: parseInt(formData.cityId) || 0,
+                cityId: (formData.cityIds && formData.cityIds.length > 0) ? formData.cityIds[0] : 0, // Send first as primary if API requires single
+                cityIds: formData.cityIds || [],
                 createdBy: user?.id || 0,
                 roleId: user?.roleId || 0,
                 modifiedBy: user?.id || 0,
@@ -456,8 +464,27 @@ const SupplierMaster = () => {
     const closeModal = () => {
         setFormData(initialFormState)
         setEditingId(null)
+        setFormData(initialFormState)
+        setEditingId(null)
         setCityOptions([])
+        setCityDropdownOpen(false)
         setIsModalOpen(false)
+    }
+
+    // --- custom multi select toggle ---
+    const [cityDropdownOpen, setCityDropdownOpen] = useState(false)
+    const toggleCitySelection = (cityId) => {
+        setFormData(prev => {
+            const currentIds = prev.cityIds || []
+            const exists = currentIds.includes(cityId)
+            let newIds
+            if (exists) {
+                newIds = currentIds.filter(id => id !== cityId)
+            } else {
+                newIds = [...currentIds, cityId]
+            }
+            return { ...prev, cityIds: newIds, cityId: newIds.length > 0 ? newIds[0] : '' }
+        })
     }
 
     return (
@@ -513,21 +540,70 @@ const SupplierMaster = () => {
                             value={formData.countryId}
                             onChange={(e) => {
                                 const newCountryId = e.target.value;
-                                setFormData({ ...formData, countryId: newCountryId, cityId: '' })
+                                setFormData({ ...formData, countryId: newCountryId, cityId: '', cityIds: [] })
                                 fetchCities(newCountryId)
                             }}
                             options={countries}
                             placeholder="Select Country"
                         />
-                        <Select
-                            label="City"
-                            name="cityId"
-                            value={formData.cityId}
-                            onChange={(e) => setFormData({ ...formData, cityId: e.target.value })}
-                            options={cityOptions}
-                            placeholder="Select City"
-                            disabled={!formData.countryId}
-                        />
+                        {/* Custom Multi-Select for City */}
+                        <div className="relative">
+                            <label className="block text-sm font-medium text-secondary-700 mb-1">City</label>
+                            <div
+                                className={`input min-h-[42px] h-auto flex flex-wrap items-center gap-1 cursor-pointer ${!formData.countryId ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                                onClick={() => formData.countryId && setCityDropdownOpen(!cityDropdownOpen)}
+                            >
+                                {(!formData.cityIds || formData.cityIds.length === 0) && (
+                                    <span className="text-gray-400">Select Cities</span>
+                                )}
+                                {formData.cityIds && formData.cityIds.map(cId => {
+                                    const city = cityOptions.find(opt => opt.value === cId)
+                                    if (!city) return null
+                                    return (
+                                        <span key={cId} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded flex items-center gap-1">
+                                            {city.label}
+                                            <X size={12} className="cursor-pointer hover:text-blue-900"
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    toggleCitySelection(cId)
+                                                }}
+                                            />
+                                        </span>
+                                    )
+                                })}
+                                <div className="ml-auto pointer-events-none text-gray-400">
+                                    <ChevronDown size={16} />
+                                </div>
+                            </div>
+
+                            {/* Dropdown Menu */}
+                            {cityDropdownOpen && formData.countryId && (
+                                <div className="absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                                    {cityOptions.length === 0 ? (
+                                        <div className="p-3 text-sm text-gray-500">No cities found</div>
+                                    ) : (
+                                        cityOptions.map(city => (
+                                            <div
+                                                key={city.value}
+                                                className="flex items-center px-4 py-2 hover:bg-gray-50 cursor-pointer"
+                                                onClick={() => toggleCitySelection(city.value)}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    checked={(formData.cityIds || []).includes(city.value)}
+                                                    readOnly
+                                                    className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded mr-2"
+                                                />
+                                                <span className="text-sm text-gray-700">{city.label}</span>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            )}
+                            {cityDropdownOpen && (
+                                <div className="fixed inset-0 z-40" onClick={() => setCityDropdownOpen(false)}></div>
+                            )}
+                        </div>
                     </div>
 
                     <Input

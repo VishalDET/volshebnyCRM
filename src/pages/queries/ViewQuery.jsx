@@ -11,7 +11,8 @@ import { manageClient, manageCity, manageCountry, manageSupplier, manageCurrency
 
 import { toast } from 'react-hot-toast'
 
-import { Calendar, User, Building, Users, Banknote, FileText, Briefcase, Printer } from 'lucide-react'
+import { Calendar, User, Building, Users, Banknote, FileText, Briefcase, Printer, UserPlus, ClipboardPlus } from 'lucide-react'
+import Tooltip from '@components/Tooltip'
 
 const ViewQuery = () => {
     const { id } = useParams()
@@ -220,15 +221,22 @@ const ViewQuery = () => {
                         id: 0,
                         queryId: parseInt(queryId),
                         clientId: 0,
-                        invoiceNo: "",
-                        invoiceDate: null,
-                        dueDate: null,
+                        invoiceNo: "string",
+                        invoiceDate: new Date().toISOString(),
+                        dueDate: new Date().toISOString(),
                         currencyId: 0,
+                        isDomestic: true,
                         totalAmount: 0,
-                        taxAmount: 0,
+                        gst: 0,
+                        serviceCharge: 0,
+                        remittance: 0,
+                        rateOfExchange: 0,
+                        paymentMethod: "string",
+                        comments: "string",
                         netAmount: 0,
-                        paymentStatus: "",
+                        paymentStatus: "string",
                         userId: 0,
+                        roleId: 0,
                         isActive: true,
                         isDeleted: false,
                         createdBy: 0,
@@ -244,16 +252,29 @@ const ViewQuery = () => {
                         id: 0,
                         queryId: parseInt(queryId),
                         supplierId: 0,
-                        serviceType: "",
-                        supplierInvNo: "",
-                        invoiceDate: null,
-                        dueDate: null,
+                        serviceType: "string",
+                        supplierInvNo: "string",
+                        invoiceDate: new Date().toISOString(),
+                        dueDate: new Date().toISOString(),
                         currencyId: 0,
+                        isDomestic: true,
                         totalAmount: 0,
-                        taxAmount: 0,
+                        gst: 0,
+                        serviceCharge: 0,
+                        bankName: "",
+                        bankDetails: "",
+                        remittance: 0,
+                        rateOfExchange: 0,
+                        paymentMethod: "string",
+                        comments: "string",
                         netAmount: 0,
-                        paymentStatus: "",
+                        paymentStatus: "string",
                         userId: 0,
+                        roleId: 0,
+                        isActive: true,
+                        isDeleted: false,
+                        createdBy: 0,
+                        modifiedBy: 0,
                         spType: "R"
                     }
                     const supInvRes = await manageSupplierInvoice(supInvPayload)
@@ -359,25 +380,61 @@ const ViewQuery = () => {
                     { label: `View` }
                 ]}
                 actions={
-                    <div className="flex gap-3">
+                    <div className="flex gap-2">
                         {query.queryStatus?.toLowerCase() === 'confirmed' && (
+                            <>
+                                <Tooltip text="Generate Service Voucher">
+                                    <Button
+                                        variant="outline"
+                                        onClick={handleGenerateVoucher}
+                                        icon={<Printer size={18} />}
+                                        className="p-2"
+                                    />
+                                </Tooltip>
+                                <Tooltip text="Create Client Invoice">
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => navigate(`/invoices/client/create/${id}`)}
+                                        icon={<UserPlus size={18} />}
+                                        className="p-2 text-blue-600 border-blue-200 hover:bg-blue-50"
+                                    />
+                                </Tooltip>
+                                <Tooltip text="Create Supplier Invoice">
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => navigate(`/invoices/supplier/create/${id}`)}
+                                        icon={<ClipboardPlus size={18} />}
+                                        className="p-2 text-red-600 border-red-200 hover:bg-red-50"
+                                    />
+                                </Tooltip>
+                            </>
+                        )}
+                        <Tooltip text="Edit Query Details">
                             <Button
                                 variant="outline"
-                                onClick={handleGenerateVoucher}
-                                disabled={false}
-                                icon={<Printer size={18} />}
-                            >
-                                Generate Service Voucher
-                            </Button>
-                        )}
-                        <Button variant="outline" onClick={() => navigate(`/queries/edit/${id}`)}>
-                            Edit Details
-                        </Button>
+                                onClick={() => navigate(`/queries/edit/${id}`)}
+                                icon={<Pencil size={18} />}
+                                className="p-2"
+                            />
+                        </Tooltip>
                         {query.queryStatus?.toLowerCase() !== 'confirmed' && (
-                            <Button variant="primary" onClick={() => navigate(`/queries/${id}/confirm`)}>
-                                Confirm Query
-                            </Button>
+                            <Tooltip text="Confirm Query">
+                                <Button
+                                    variant="primary"
+                                    onClick={() => navigate(`/queries/${id}/confirm`)}
+                                    icon={<CheckCircle size={18} />}
+                                    className="p-2"
+                                />
+                            </Tooltip>
                         )}
+                        <Tooltip text="Current Query Status">
+                            <span className={`badge ml-2 ${(query.queryStatus || '').toLowerCase() === 'confirmed' ? 'badge-success' :
+                                (query.queryStatus || '').toLowerCase() === 'pending' ? 'badge-warning' :
+                                    'badge-info'
+                                }`}>
+                                {query.queryStatus || 'Pending'}
+                            </span>
+                        </Tooltip>
                     </div>
                 }
             />
@@ -773,40 +830,7 @@ const ViewQuery = () => {
                         </>
                     )}
 
-                    <div className="card">
-                        <h3 className="text-lg font-semibold mb-4 border-b pb-2">Status</h3>
-                        <span className={`badge ${(query.queryStatus || '').toLowerCase() === 'confirmed' ? 'badge-success' :
-                            (query.queryStatus || '').toLowerCase() === 'pending' ? 'badge-warning' :
-                                'badge-info'
-                            }`}>
-                            {query.queryStatus || 'Pending'}
-                        </span>
-                    </div>
 
-                    <div className="card">
-                        <h3 className="text-lg font-semibold mb-4 border-b pb-2">Quick Actions</h3>
-                        <div className="space-y-2">
-                            <Button variant="outline" className="w-full text-left justify-start" onClick={() => navigate(`/queries/edit/${id}`)}>
-                                <Pencil size={16} className="mr-2" /> Edit Query Details
-                            </Button>
-                            {query.queryStatus?.toLowerCase() === 'confirmed' && (
-                                <>
-                                    <Button variant="outline" className="w-full text-left justify-start" onClick={() => navigate(`/invoices/client/create/${id}`)}>
-                                        <Plus size={16} className="mr-2" /> Create Client Invoice
-                                    </Button>
-                                    <Button variant="outline" className="w-full text-left justify-start" onClick={() => navigate(`/invoices/supplier/create/${id}`)}>
-                                        <Plus size={16} className="mr-2" /> Create Supplier Invoice
-                                    </Button>
-                                    <Button variant="outline" className="w-full text-left justify-start" onClick={() => navigate(`/invoices/client/query/${id}`)}>
-                                        <FileText size={16} className="mr-2" /> View Client Invoices
-                                    </Button>
-                                    <Button variant="outline" className="w-full text-left justify-start" onClick={() => navigate(`/invoices/supplier/query/${id}`)}>
-                                        <FileText size={16} className="mr-2" /> View Supplier Invoices
-                                    </Button>
-                                </>
-                            )}
-                        </div>
-                    </div>
 
                     {query.childAges && query.childAges.length > 0 && (
                         <div className="card">
