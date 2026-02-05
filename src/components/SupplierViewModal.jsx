@@ -9,9 +9,17 @@ const SupplierViewModal = ({ isOpen, onClose, supplier, countries, cities, servi
         return country ? country.label : 'N/A'
     }
 
-    const getCityName = (cityId) => {
-        const city = cities?.find(c => c.value === cityId)
-        return city ? city.label : cityId || 'N/A'
+    const getCityNames = (cityIds, singleCityId) => {
+        const ids = cityIds && cityIds.length > 0 ? cityIds : (singleCityId ? [singleCityId] : [])
+        if (!ids || ids.length === 0) return 'N/A'
+
+        return ids
+            .map(id => {
+                const city = cities?.find(c => c.value === id)
+                return city ? city.label : null
+            })
+            .filter(Boolean)
+            .join(', ') || 'N/A'
     }
 
     const getServiceNames = (serviceIds) => {
@@ -60,8 +68,8 @@ const SupplierViewModal = ({ isOpen, onClose, supplier, countries, cities, servi
                             <p className="text-secondary-900">{getCountryName(supplier.countryId)}</p>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-secondary-600 mb-1">City</label>
-                            <p className="text-secondary-900">{getCityName(supplier.cityId)}</p>
+                            <label className="block text-sm font-medium text-secondary-600 mb-1">Cities</label>
+                            <p className="text-secondary-900">{getCityNames(supplier.cityIds, supplier.cityId)}</p>
                         </div>
                         <div className="col-span-2">
                             <label className="block text-sm font-medium text-secondary-600 mb-1">Address</label>

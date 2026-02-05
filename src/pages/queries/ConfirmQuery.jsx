@@ -43,6 +43,13 @@ const ConfirmQuery = () => {
         miscellaneous: '' // Note: Payload doesn't have misc, but user asked. Will keep in state, maybe append to itinerary?
     })
 
+    const formatDate = (dateString) => {
+        if (!dateString) return '-';
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return '-';
+        return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' });
+    };
+
     useEffect(() => {
         fetchInitialData()
     }, [id])
@@ -63,7 +70,9 @@ const ConfirmQuery = () => {
                 adults: 0,
                 children: 0,
                 infants: 0,
-                budget: 0,
+                adultBudget: 0,
+                childBudget: 0,
+                totalBudget: 0,
                 queryStatus: "",
                 specialRequirements: "",
                 createdBy: 0,
@@ -356,7 +365,7 @@ const ConfirmQuery = () => {
             toast.error(`Cannot add more than ${totalPax} travellers`)
             return
         }
-        setTourLeads([...tourLeads, { leadName: '', gender: '', age: '', passportNumber: '', visaStatus: '' }])
+        setTourLeads([...tourLeads, { leadName: '', gender: '', age: '', visaStatus: '' }])
     }
     const removeTourLead = (index) => {
         if (tourLeads.length > 1) {
@@ -470,7 +479,6 @@ const ConfirmQuery = () => {
                     leadName: tl.leadName || "",
                     gender: tl.gender || "",
                     age: parseInt(tl.age) || 0,
-                    passportNumber: tl.passportNumber || "",
                     visaStatus: tl.visaStatus || ""
                 })),
                 services: flatServices,
@@ -553,7 +561,7 @@ const ConfirmQuery = () => {
                             <div>
                                 <dt className="text-sm text-secondary-600">Dates</dt>
                                 <dd className="font-medium">
-                                    {query.travelDate && new Date(query.travelDate).toLocaleDateString()} - {query.returnDate && new Date(query.returnDate).toLocaleDateString()}
+                                    {formatDate(query.travelDate)} - {formatDate(query.returnDate)}
                                 </dd>
                             </div>
                             <div>
@@ -566,9 +574,20 @@ const ConfirmQuery = () => {
                                     {query.adults} Ad, {query.children} Ch, {query.infants} In
                                 </dd>
                             </div>
-                            <div>
-                                <dt className="text-sm text-secondary-600">Budget</dt>
-                                <dd className="font-medium">${query.budget?.toLocaleString()}</dd>
+                            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4 border mt-2 bg-primary-50/30 p-3 rounded-lg">
+
+                                <div>
+                                    <dt className="text-sm text-secondary-600">Adult Budget</dt>
+                                    <dd className="font-medium">${query.adultBudget?.toLocaleString()}*{query.adults}</dd>
+                                </div>
+                                <div>
+                                    <dt className="text-sm text-secondary-600">Child Budget</dt>
+                                    <dd className="font-medium">${query.childBudget?.toLocaleString()}*{query.children}</dd>
+                                </div>
+                                <div>
+                                    <dt className="text-sm text-secondary-600">Total Budget</dt>
+                                    <dd className="font-medium">${query.totalBudget?.toLocaleString()}</dd>
+                                </div>
                             </div>
                             {query.specialRequirements && (
                                 <div className="col-span-2 mt-2">
@@ -647,30 +666,28 @@ const ConfirmQuery = () => {
                                         onChange={e => updateTourLead(idx, 'leadName', e.target.value)}
                                     />
                                 </div>
-                                <div className="col-span-12 md:col-span-4">
-                                    <Input
-                                        label="Passport Number"
-                                        value={lead.passportNumber}
-                                        onChange={e => updateTourLead(idx, 'passportNumber', e.target.value)}
-                                    />
-                                </div>
-                                <div className="col-span-12 md:col-span-3">
+                                <div className="col-span-12 md:col-span-6">
                                     <Select
                                         label="Visa Status"
                                         value={lead.visaStatus}
                                         onChange={e => updateTourLead(idx, 'visaStatus', e.target.value)}
-                                        options={[{ value: 'Approved', label: 'Approved' }, { value: 'Pending', label: 'Pending' }]}
+                                        options={[
+                                            { value: 'Applied', label: 'Applied' },
+                                            { value: 'Approved', label: 'Approved' },
+                                            { value: 'Pending', label: 'Pending' },
+                                            { value: 'Not Required', label: 'Not Required' }
+                                        ]}
                                     />
                                 </div>
-                                <div className="col-span-6 md:col-span-3">
+                                <div className="col-span-12 md:col-span-4">
                                     <Select
                                         label="Gender"
                                         value={lead.gender}
                                         onChange={e => updateTourLead(idx, 'gender', e.target.value)}
-                                        options={[{ value: 'Male', label: 'Male' }, { value: 'Female', label: 'Female' }]}
+                                        options={[{ value: 'Male', label: 'Male' }, { value: 'Female', label: 'Female' }, { value: 'Other', label: 'Other' }]}
                                     />
                                 </div>
-                                <div className="col-span-6 md:col-span-2">
+                                <div className="col-span-12 md:col-span-2">
                                     <Input
                                         type="number"
                                         label="Age"
@@ -708,8 +725,10 @@ const ConfirmQuery = () => {
                                                 onChange={e => updateService(dIdx, sIdx, 'serviceType', e.target.value)}
                                                 options={[
                                                     { value: 'Transportation', label: 'Transportation' },
-                                                    { value: 'Hotels', label: 'Hotels' },
-                                                    { value: 'Restaurants', label: 'Restaurants' }
+                                                    { value: 'Hotel', label: 'Hotel' },
+                                                    { value: 'Meal', label: 'Meal' },
+                                                    { value: 'Sightseeing', label: 'Sightseeing' },
+                                                    { value: 'Others', label: 'Others' }
                                                 ]}
                                             />
                                             <Select label="Supplier" value={srv.supplierId}
@@ -735,17 +754,22 @@ const ConfirmQuery = () => {
                                                     <Input type="datetime-local" label="Service Date" value={srv.serviceDate} onChange={e => updateService(dIdx, sIdx, 'serviceDate', e.target.value)} />
                                                 </>
                                             )}
-                                            {srv.serviceType === 'Hotels' && (
+                                            {srv.serviceType === 'Hotel' && (
                                                 <>
                                                     <Input type="datetime-local" label="Check-In" value={srv.checkInDate} onChange={e => updateService(dIdx, sIdx, 'checkInDate', e.target.value)} />
                                                     <Input type="datetime-local" label="Check-Out" value={srv.checkOutDate} onChange={e => updateService(dIdx, sIdx, 'checkOutDate', e.target.value)} />
                                                 </>
                                             )}
-                                            {srv.serviceType === 'Restaurants' && (
+                                            {srv.serviceType === 'Meal' && (
                                                 <>
                                                     <Input type="datetime-local" label="Date" value={srv.serviceDate} onChange={e => updateService(dIdx, sIdx, 'serviceDate', e.target.value)} />
                                                     <Select label="Meal Type" value={srv.mealType} onChange={e => updateService(dIdx, sIdx, 'mealType', e.target.value)}
-                                                        options={[{ value: 'Lunch', label: 'Lunch' }, { value: 'Dinner', label: 'Dinner' }]} />
+                                                        options={[{ value: 'BF', label: 'Breakfast' }, { value: 'LN', label: 'Lunch' }, { value: 'DN', label: 'Dinner' }]} />
+                                                </>
+                                            )}
+                                            {(srv.serviceType === 'Sightseeing' || srv.serviceType === 'Others') && (
+                                                <>
+                                                    <Input type="datetime-local" label="Date" value={srv.serviceDate} onChange={e => updateService(dIdx, sIdx, 'serviceDate', e.target.value)} />
                                                 </>
                                             )}
                                         </div>

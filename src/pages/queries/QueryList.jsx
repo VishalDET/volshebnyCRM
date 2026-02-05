@@ -13,6 +13,13 @@ const QueryList = () => {
     const { search } = useLocation()
     const urlStatus = new URLSearchParams(search).get('status')
 
+    const formatDate = (dateString) => {
+        if (!dateString) return '-';
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return '-';
+        return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' });
+    };
+
     const [queries, setQueries] = useState([])
     const [isLoading, setIsLoading] = useState(false)
     const [filters, setFilters] = useState({ status: urlStatus || '' })
@@ -133,7 +140,7 @@ const QueryList = () => {
             key: 'travelDate',
             label: 'Travel Date',
             width: '15%',
-            render: (value) => value ? new Date(value).toLocaleDateString() : '-'
+            render: (value) => formatDate(value)
         },
         { key: 'totalDays', label: 'Days', width: '10%' },
         {

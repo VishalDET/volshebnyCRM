@@ -5,6 +5,7 @@ import Button from '@components/Button'
 import Input from '@components/Input'
 import Select from '@components/Select'
 import { manageQuery, manageConfirmQuery } from '@api/query.api'
+import { toast } from 'react-hot-toast'
 import { manageClient, manageHandler, manageCountry, manageCity, manageSupplier, manageCurrency } from '@api/masters.api'
 import Loader from '@components/Loader'
 import { Plus, Trash2, Calendar, User, Building, Users, Banknote, FileText, Briefcase } from 'lucide-react'
@@ -40,7 +41,9 @@ const EditQuery = () => {
         children: 0,
         infants: 0,
         childAges: [],
-        budget: '',
+        budget: 0,
+        adultBudget: 0,
+        childBudget: 0,
         queryStatus: 'Pending',
         specialRequirements: ''
     }
@@ -88,6 +91,17 @@ const EditQuery = () => {
             return { ...prev, childAges: newAges }
         })
     }, [formData.children])
+
+    // Auto-calculate budget
+    useEffect(() => {
+        const adults = parseInt(formData.adults) || 0
+        const children = parseInt(formData.children) || 0
+        const adultRate = parseFloat(formData.adultBudget) || 0
+        const childRate = parseFloat(formData.childBudget) || 0
+
+        const total = (adults * adultRate) + (children * childRate)
+        setFormData(prev => ({ ...prev, budget: total }))
+    }, [formData.adults, formData.children, formData.adultBudget, formData.childBudget])
 
     const fetchMasters = async () => {
         try {
@@ -367,7 +381,9 @@ const EditQuery = () => {
                             id: c.id || c.ageId || 0
                         }))
                         : [],
-                    budget: queryData.budget || '',
+                    budget: queryData.totalBudget || queryData.budget || 0,
+                    adultBudget: queryData.adultBudget || 0,
+                    childBudget: queryData.childBudget || 0,
                     queryStatus: queryData.queryStatus || 'Pending',
                     specialRequirements: queryData.specialRequirements || ''
                 })
@@ -649,6 +665,9 @@ const EditQuery = () => {
                 children: parseInt(formData.children) || 0,
                 infants: parseInt(formData.infants) || 0,
                 budget: parseFloat(formData.budget) || 0,
+                totalBudget: parseFloat(formData.budget) || 0,
+                adultBudget: parseFloat(formData.adultBudget) || 0,
+                childBudget: parseFloat(formData.childBudget) || 0,
                 queryStatus: formData.queryStatus || 'Pending',
                 specialRequirements: formData.specialRequirements,
                 createdBy: 0,
@@ -875,39 +894,69 @@ const EditQuery = () => {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <Input
-                            label="Adults"
-                            name="adults"
-                            type="number"
-                            min="1"
-                            value={formData.adults}
-                            onChange={handleInputChange}
-                        />
-                        <Input
-                            label="Children"
-                            name="children"
-                            type="number"
-                            min="0"
-                            value={formData.children}
-                            onChange={handleInputChange}
-                        />
-                        <Input
-                            label="Infants"
-                            name="infants"
-                            type="number"
-                            min="0"
-                            value={formData.infants}
-                            onChange={handleInputChange}
-                        />
-                        <Input
-                            label="Budget"
-                            name="budget"
-                            type="number"
-                            value={formData.budget}
-                            onChange={handleInputChange}
-                            placeholder="Budget"
-                        />
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch">
+                        <div className="md:col-span-8 space-y-4">
+                            <div className="grid grid-cols-3 gap-4 p-4 border rounded-lg bg-gray-50/50">
+                                <Input
+                                    label="Adults (no. of)"
+                                    name="adults"
+                                    type="number"
+                                    min="1"
+                                    value={formData.adults}
+                                    onChange={handleInputChange}
+                                />
+                                <Input
+                                    label="Adult Charge ($)"
+                                    name="adultBudget"
+                                    type="number"
+                                    value={formData.adultBudget}
+                                    onChange={handleInputChange}
+                                    placeholder="Charge per adult"
+                                />
+                                <div className="flex flex-col justify-end">
+                                    <label className="text-sm font-bold text-gray-500 mb-1">Total Budget</label>
+                                    <div className="p-2 bg-gray-100 rounded text-center font-bold">${formData.adultBudget * formData.adults}</div>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-4 p-4 border rounded-lg bg-gray-50/50">
+                                <Input
+                                    label="Children (no. of)"
+                                    name="children"
+                                    type="number"
+                                    min="0"
+                                    value={formData.children}
+                                    onChange={handleInputChange}
+                                />
+                                <Input
+                                    label="Child Charge ($)"
+                                    name="childBudget"
+                                    type="number"
+                                    value={formData.childBudget}
+                                    onChange={handleInputChange}
+                                    placeholder="Charge per child"
+                                />
+                                <div className="flex flex-col justify-end">
+                                    <label className="text-sm font-bold text-gray-500 mb-1">Total Budget</label>
+                                    <div className="p-2 bg-gray-100 rounded text-center font-bold">${formData.childBudget * formData.children}</div>
+                                </div>
+                                <Input
+                                    label="Infants (no. of)"
+                                    name="infants"
+                                    type="number"
+                                    min="0"
+                                    value={formData.infants}
+                                    onChange={handleInputChange}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="md:col-span-4 flex flex-col items-center justify-center bg-primary-50 rounded-lg border-2 border-primary-100 p-6">
+                            <span className="text-primary-700 font-bold uppercase tracking-wider text-sm mb-2">Total Budget</span>
+                            <div className="text-4xl font-black text-primary-900">
+                                ${formData.budget?.toLocaleString() || 0}
+                            </div>
+                        </div>
                     </div>
 
                     {formData.children > 0 && (

@@ -34,6 +34,13 @@ const ViewQuery = () => {
         navigate(`/service-voucher/${id}`)
     }
 
+    const formatDate = (dateString) => {
+        if (!dateString) return '-';
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return '-';
+        return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' });
+    };
+
     useEffect(() => {
         if (id) {
             fetchQueryData()
@@ -56,7 +63,9 @@ const ViewQuery = () => {
                 adults: 0,
                 children: 0,
                 infants: 0,
-                budget: 0,
+                adultBudget: 0,
+                childBudget: 0,
+                totalBudget: 0,
                 queryStatus: "",
                 specialRequirements: "",
                 createdBy: 0,
@@ -309,6 +318,7 @@ const ViewQuery = () => {
                 countryId: 0,
                 stateId: 0,
                 cityId: 0,
+                cityIds: [],
                 createdBy: 0,
                 modifiedBy: 0,
                 isActive: true,
@@ -497,11 +507,11 @@ const ViewQuery = () => {
                             </div>
                             <div>
                                 <dt className="text-sm text-secondary-600">Travel Date</dt>
-                                <dd className="font-medium">{query.travelDate ? new Date(query.travelDate).toLocaleDateString() : '-'}</dd>
+                                <dd className="font-medium">{formatDate(query.travelDate)}</dd>
                             </div>
                             <div>
                                 <dt className="text-sm text-secondary-600">Return Date</dt>
-                                <dd className="font-medium">{query.returnDate ? new Date(query.returnDate).toLocaleDateString() : '-'}</dd>
+                                <dd className="font-medium">{formatDate(query.returnDate)}</dd>
                             </div>
                             <div>
                                 <dt className="text-sm text-secondary-600">Pax</dt>
@@ -509,14 +519,24 @@ const ViewQuery = () => {
                                     {query.adults} Adults, {query.children} Children, {query.infants} Infants
                                 </dd>
                             </div>
-                            <div>
-                                <dt className="text-sm text-secondary-600">Budget</dt>
-                                <dd className="font-medium">${query.budget?.toLocaleString()}</dd>
+                            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border mt-2 bg-primary-50/30 p-3 pb-0 rounded-lg">
+                                <div>
+                                    <dt className="text-sm text-secondary-600 uppercase font-bold tracking-wider">Adult Budget</dt>
+                                    <dd className="text-lg font-semibold">${query.adultBudget?.toLocaleString() || 0}</dd>
+                                </div>
+                                <div>
+                                    <dt className="text-sm text-secondary-600 uppercase font-bold tracking-wider">Child Budget</dt>
+                                    <dd className="text-lg font-semibold">${query.childBudget?.toLocaleString() || 0}</dd>
+                                </div>
+                                <div>
+                                    <dt className="text-sm text-primary-700 uppercase font-black tracking-wider">Total Budget</dt>
+                                    <dd className="text-2xl font-black text-primary-900 font-mono">${query.totalBudget?.toLocaleString() || 0}</dd>
+                                </div>
                             </div>
                         </dl>
 
                         {query.specialRequirements && (
-                            <div className="mt-4 pt-4 border-t">
+                            <div className="mt-4 pt-4">
                                 <dt className="text-sm text-secondary-600 mb-1">Special Requirements</dt>
                                 <dd className="font-medium text-sm bg-gray-50 p-3 rounded">{query.specialRequirements}</dd>
                             </div>
@@ -632,7 +652,7 @@ const ViewQuery = () => {
                                                                             </div>
                                                                             <div>
                                                                                 <dt className="text-xs text-secondary-600">Date</dt>
-                                                                                <dd className="text-sm">{srv.serviceDate ? new Date(srv.serviceDate).toLocaleString() : '-'}</dd>
+                                                                                <dd className="text-sm">{formatDate(srv.serviceDate)}</dd>
                                                                             </div>
                                                                         </div>
                                                                     )}
@@ -641,11 +661,11 @@ const ViewQuery = () => {
                                                                         <div className="grid grid-cols-2 gap-3 mt-2 pt-2 border-t">
                                                                             <div>
                                                                                 <dt className="text-xs text-secondary-600">Check-In</dt>
-                                                                                <dd className="text-sm">{srv.checkInDate ? new Date(srv.checkInDate).toLocaleString() : '-'}</dd>
+                                                                                <dd className="text-sm">{formatDate(srv.checkInDate)}</dd>
                                                                             </div>
                                                                             <div>
                                                                                 <dt className="text-xs text-secondary-600">Check-Out</dt>
-                                                                                <dd className="text-sm">{srv.checkOutDate ? new Date(srv.checkOutDate).toLocaleString() : '-'}</dd>
+                                                                                <dd className="text-sm">{formatDate(srv.checkOutDate)}</dd>
                                                                             </div>
                                                                         </div>
                                                                     )}
@@ -654,7 +674,7 @@ const ViewQuery = () => {
                                                                         <div className="grid grid-cols-2 gap-3 mt-2 pt-2 border-t">
                                                                             <div>
                                                                                 <dt className="text-xs text-secondary-600">Date</dt>
-                                                                                <dd className="text-sm">{srv.serviceDate ? new Date(srv.serviceDate).toLocaleString() : '-'}</dd>
+                                                                                <dd className="text-sm">{formatDate(srv.serviceDate)}</dd>
                                                                             </div>
                                                                             <div>
                                                                                 <dt className="text-xs text-secondary-600">Meal Type</dt>
