@@ -444,11 +444,11 @@ const CreateSupplierInvoice = () => {
     return (
         <div className="p-6 max-w-5xl mx-auto">
             <PageHeader
-                title={isEdit ? "Edit Supplier Invoice" : "Create Supplier Invoice"}
+                title={isEdit ? "Edit Supplier Invoice" : "Add Supplier Payment"}
                 breadcrumbs={[
                     { label: 'Dashboard', href: '/dashboard' },
-                    { label: 'Supplier Invoices', href: '/invoices/supplier' },
-                    { label: isEdit ? 'Edit' : 'Create' }
+                    { label: 'Supplier Payments', href: '/invoices/supplier' },
+                    { label: isEdit ? 'Edit' : 'Add' }
                 ]}
             />
 

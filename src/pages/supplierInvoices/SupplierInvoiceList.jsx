@@ -222,11 +222,11 @@ const SupplierInvoiceList = () => {
     return (
         <div className="p-6">
             <PageHeader
-                title={queryId ? `Supplier Invoices for Query #${queryId}` : "Supplier Invoices"}
+                title={queryId ? `Supplier Payments for Query #${queryId}` : "Supplier Payments"}
                 breadcrumbs={[
                     { label: 'Dashboard', href: '/dashboard' },
                     { label: 'Queries', href: '/queries' },
-                    { label: 'Supplier Invoices' }
+                    { label: 'Supplier Payments' }
                 ]}
                 actions={
                     <Button
@@ -234,7 +234,7 @@ const SupplierInvoiceList = () => {
                         onClick={() => navigate(queryId ? `/invoices/supplier/create/${queryId}` : '/invoices/supplier/create')}
                         icon={<Plus size={16} />}
                     >
-                        New Supplier Invoice
+                        New Supplier Payment
                     </Button>
                 }
             />

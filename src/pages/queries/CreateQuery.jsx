@@ -5,8 +5,9 @@ import Button from '@components/Button'
 import Input from '@components/Input'
 import Select from '@components/Select'
 import { toast } from 'react-hot-toast'
+import { CircleDollarSign, TrendingUp } from 'lucide-react'
 import { manageQuery } from '@api/query.api'
-import { manageClient, manageHandler, manageCountry, manageCity } from '@api/masters.api'
+import { manageClient, manageHandler, manageCountry, manageCity, manageCurrency } from '@api/masters.api'
 
 const CreateQuery = () => {
     const navigate = useNavigate()
@@ -16,6 +17,7 @@ const CreateQuery = () => {
     const [clients, setClients] = useState([])
     const [handlers, setHandlers] = useState([])
     const [countries, setCountries] = useState([])
+    const [currencies, setCurrencies] = useState([])
     const [cityOptions, setCityOptions] = useState({}) // Cache cities by countryId
 
     // Form State
@@ -23,6 +25,7 @@ const CreateQuery = () => {
         queryNo: '',
         handlerId: '',
         clientId: '',
+        currencyId: '',
         clientName: '',
         originCountryId: '',
         originCityId: '',
@@ -239,6 +242,27 @@ const CreateQuery = () => {
                 })
                 setCountries(uniqueCountries)
             }
+
+            // Fetch Currencies
+            const currencyPayload = {
+                id: 0,
+                spType: "R",
+                isActive: true
+            }
+            const currencyRes = await manageCurrency(currencyPayload)
+            if (currencyRes.data && currencyRes.data.data) {
+                setCurrencies(currencyRes.data.data.map(c => ({
+                    value: c.id,
+                    label: `${c.currencyName} (${c.currencySign})`,
+                    sign: c.currencySign
+                })))
+            } else if (Array.isArray(currencyRes.data)) {
+                setCurrencies(currencyRes.data.map(c => ({
+                    value: c.id,
+                    label: `${c.currencyName} (${c.currencySign})`,
+                    sign: c.currencySign
+                })))
+            }
         } catch (error) {
             console.error("Error fetching masters:", error)
             toast.error("Failed to load master data")
@@ -345,6 +369,7 @@ const CreateQuery = () => {
                 adults: parseInt(formData.adults) || 0,
                 children: parseInt(formData.children) || 0,
                 infants: parseInt(formData.infants) || 0,
+                currencyId: parseInt(formData.currencyId) || 0,
                 budget: parseFloat(formData.budget) || 0,
                 totalBudget: parseFloat(formData.budget) || 0,
                 adultBudget: parseFloat(formData.adultBudget) || 0,
@@ -385,6 +410,11 @@ const CreateQuery = () => {
         } finally {
             setIsLoading(false)
         }
+    }
+
+    const getCurrencySign = () => {
+        const selected = currencies.find(c => c.value === parseInt(formData.currencyId))
+        return selected ? selected.sign : '$'
     }
 
     return (
@@ -503,6 +533,7 @@ const CreateQuery = () => {
                             value={formData.travelDate}
                             onChange={handleInputChange}
                             required
+                            min={new Date().toISOString().split('T')[0]}
                         />
                         <Input
                             label="Return Date"
@@ -511,6 +542,7 @@ const CreateQuery = () => {
                             value={formData.returnDate}
                             onChange={handleInputChange}
                             required
+                            min={formData.travelDate || new Date().toISOString().split('T')[0]}
                         />
                         <div className="flex flex-col justify-end">
                             <label className="text-sm font-bold text-gray-500 mb-1">Total Days</label>
@@ -530,7 +562,7 @@ const CreateQuery = () => {
                                     onChange={handleInputChange}
                                 />
                                 <Input
-                                    label="Adult Charge ($)"
+                                    label={`Adult Charge (${getCurrencySign()})`}
                                     name="adultBudget"
                                     type="number"
                                     value={formData.adultBudget}
@@ -538,8 +570,8 @@ const CreateQuery = () => {
                                     placeholder="Charge per adult"
                                 />
                                 <div className="flex flex-col justify-end">
-                                    <label className="text-sm font-bold text-gray-500 mb-1">Total Budget</label>
-                                    <div className="p-2 bg-gray-100 rounded text-center font-bold">${formData.adultBudget * formData.adults}</div>
+                                    <label className="text-sm font-bold text-gray-500 mb-1">Total</label>
+                                    <div className="p-2 bg-gray-100 rounded text-center font-normal">{getCurrencySign()}{formData.adultBudget * formData.adults}</div>
                                 </div>
                             </div>
 
@@ -553,7 +585,7 @@ const CreateQuery = () => {
                                     onChange={handleInputChange}
                                 />
                                 <Input
-                                    label="Child Charge ($)"
+                                    label={`Child Charge (${getCurrencySign()})`}
                                     name="childBudget"
                                     type="number"
                                     value={formData.childBudget}
@@ -561,18 +593,50 @@ const CreateQuery = () => {
                                     placeholder="Charge per child"
                                 />
                                 <div className="flex flex-col justify-end">
-                                    <label className="text-sm font-bold text-gray-500 mb-1">Total Budget</label>
-                                    <div className="p-2 bg-gray-100 rounded text-center font-bold">${formData.childBudget * formData.children}</div>
+                                    <label className="text-sm font-bold text-gray-500 mb-1">Total</label>
+                                    <div className="p-2 bg-gray-100 rounded text-center font-normal">{getCurrencySign()}{formData.childBudget * formData.children}</div>
                                 </div>
 
                             </div>
 
                         </div>
 
-                        <div className="md:col-span-4 flex flex-col items-center justify-center bg-primary-50 rounded-lg border-2 border-primary-100 p-6">
-                            <span className="text-primary-700 font-bold uppercase tracking-wider text-sm mb-2">Total Budget</span>
-                            <div className="text-4xl font-black text-primary-900">
-                                ${formData.budget?.toLocaleString() || 0}
+                        <div className="md:col-span-4 flex flex-col bg-white rounded-2xl border border-primary-100 shadow-sm overflow-hidden min-h-[220px]">
+                            {/* Header Partition */}
+                            <div className="bg-primary-600 p-4 text-white">
+                                <div className="flex items-center gap-2 mb-3">
+                                    {/* <div className="p-1.5 bg-white/20 rounded-lg">
+                                        <CircleDollarSign className="w-5 h-5 text-white" />
+                                    </div> */}
+                                    <span className="font-normal uppercase tracking-wider text-sm tracking-tight">Select Currency</span>
+                                </div>
+                                <Select
+                                    label=""
+                                    name="currencyId"
+                                    value={formData.currencyId}
+                                    onChange={handleInputChange}
+                                    options={currencies}
+                                    required
+                                    className="!bg-white/10 !border-white/20 !text-white placeholder-white/60 focus:ring-white/30 rounded-xl h-11"
+                                    style={{ colorScheme: 'dark' }}
+                                />
+                            </div>
+
+                            {/* Main Body */}
+                            <div className="p-5 flex flex-col items-center justify-center flex-1 bg-gradient-to-b from-primary-50/30 to-white">
+                                <div className="flex items-center gap-1.5 px-3 py-0 bg-none text-primary-700 rounded-full mb-3 shadow-none border-none border-primary-200/50">
+                                    {/* <TrendingUp className="w-3.5 h-3.5" /> */}
+                                    <span className="text-[12px] font-bold uppercase tracking-widest">Sale Price</span>
+                                </div>
+
+                                <div className="flex items-baseline gap-1">
+                                    <span className="text-lg font-normal text-primary-600 mb-1">{getCurrencySign()}</span>
+                                    <span className="text-2xl font-black text-secondary-900 tracking-tighter">
+                                        {formData.budget?.toLocaleString() || 0}
+                                    </span>
+                                </div>
+
+                                {/* <p className="text-[11px] text-secondary-400 mt-2 font-medium">Automatic calculation based on occupancy</p> */}
                             </div>
                         </div>
                     </div>

@@ -56,6 +56,7 @@ const SupplierMaster = lazy(() => import('@pages/masters/SupplierMaster'))
 const ClientMaster = lazy(() => import('@pages/masters/ClientMaster'))
 const HandlerMaster = lazy(() => import('@pages/masters/HandlerMaster'))
 const UserMaster = lazy(() => import('@pages/masters/UserMaster'))
+const OfficeMaster = lazy(() => import('@pages/offices/OfficeList'))
 
 /**
  * Protected Route Component
@@ -153,6 +154,7 @@ const AppRoutes = () => {
                 <Route path="/masters/suppliers" element={<ProtectedRoute><SupplierMaster /></ProtectedRoute>} />
                 <Route path="/masters/clients" element={<ProtectedRoute><ClientMaster /></ProtectedRoute>} />
                 <Route path="/masters/handlers" element={<ProtectedRoute><HandlerMaster /></ProtectedRoute>} />
+                <Route path="/masters/offices" element={<ProtectedRoute><OfficeMaster /></ProtectedRoute>} />
                 <Route path="/masters/users" element={<ProtectedRoute><UserMaster /></ProtectedRoute>} />
 
                 {/* Default Route */}

@@ -84,3 +84,10 @@ export const manageClient = async (data) => {
 export const getAllHotels = async (filters = {}) => {
     return await axiosInstance.get('/masters/hotels', { params: filters })
 }
+/**
+ * Manage Office (Create, Read, Update, Delete)
+ * @param {Object} data - Payload with spType (C, R, U, D)
+ */
+export const manageOffice = async (data) => {
+    return await axiosInstance.post('/api/Office/ManageOfficeMaster', data)
+}

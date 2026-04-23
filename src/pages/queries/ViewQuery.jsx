@@ -104,11 +104,12 @@ const ViewQuery = () => {
                 // Fetch location names (updates the map with full data)
                 fetchCountriesAndMap(queryData)
 
+                await fetchCurrencies()
+
                 // Fetch confirmed query details if status is Confirmed
                 if (queryData.queryStatus?.toLowerCase() === 'confirmed') {
                     await fetchConfirmedQueryDetails(queryData.id)
                     await fetchSuppliers()
-                    await fetchCurrencies()
                 }
             } else {
                 toast.error("Query not found")
@@ -346,38 +347,23 @@ const ViewQuery = () => {
 
     const fetchCurrencies = async () => {
         try {
-            const payload = {
-                id: 0,
-                currencyName: "string",
-                currencySign: "string",
-                isActive: true,
-                isDeleted: false,
-                spType: "R"
-            }
-            const res = await manageCurrency(payload)
+            const res = await manageCurrency({ spType: "R", isActive: true })
             const data = res.data?.data || (Array.isArray(res.data) ? res.data : []) || []
-
-            const uniqueCurrencies = []
-            const cIds = new Set()
-            data.forEach(c => {
-                if (!cIds.has(c.id)) {
-                    cIds.add(c.id)
-                    uniqueCurrencies.push({
-                        value: c.id,
-                        label: `${c.currencyName} (${c.currencySign})`
-                    })
-                }
-            })
-            setCurrencies(uniqueCurrencies)
+            setCurrencies(data)
         } catch (error) {
             console.error("Error fetching currencies:", error)
         }
     }
 
+    const getCurrencySign = () => {
+        const currency = currencies.find(c => c.id === query?.currencyId)
+        return currency ? currency.currencySign : '$'
+    }
+
     if (loading) return <Loader fullScreen text="Loading query..." />
     if (!query) return <div className="p-8 text-center">Query not found</div>
 
-    const clientName = client ? `${client.firstName} ${client.lastName}` : (query.clientName || 'Unknown')
+    const clientName = client ? client.companyName : (query.clientName || 'Unknown')
 
     return (
         <div className="pb-10">
@@ -456,12 +442,12 @@ const ViewQuery = () => {
                         {client ? (
                             <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <dt className="text-sm text-secondary-600">Full Name</dt>
-                                    <dd className="font-medium">{client.firstName} {client.lastName}</dd>
+                                    <dt className="text-sm text-secondary-600">Company Name</dt>
+                                    <dd className="font-medium text-lg">{client.companyName || '-'}</dd>
                                 </div>
                                 <div>
-                                    <dt className="text-sm text-secondary-600">Company Name</dt>
-                                    <dd className="font-medium">{client.companyName || '-'}</dd>
+                                    <dt className="text-sm text-secondary-600">Contact</dt>
+                                    <dd className="font-medium">{client.mobileNo || '-'} / {client.emailId || '-'}</dd>
                                 </div>
                                 <div>
                                     <dt className="text-sm text-secondary-600">Mobile No</dt>
@@ -522,15 +508,15 @@ const ViewQuery = () => {
                             <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border mt-2 bg-primary-50/30 p-3 pb-0 rounded-lg">
                                 <div>
                                     <dt className="text-sm text-secondary-600 uppercase font-bold tracking-wider">Adult Budget</dt>
-                                    <dd className="text-lg font-semibold">${query.adultBudget?.toLocaleString() || 0}</dd>
+                                    <dd className="text-lg font-semibold">{getCurrencySign()}{query.adultBudget?.toLocaleString() || 0}</dd>
                                 </div>
                                 <div>
                                     <dt className="text-sm text-secondary-600 uppercase font-bold tracking-wider">Child Budget</dt>
-                                    <dd className="text-lg font-semibold">${query.childBudget?.toLocaleString() || 0}</dd>
+                                    <dd className="text-lg font-semibold">{getCurrencySign()}{query.childBudget?.toLocaleString() || 0}</dd>
                                 </div>
                                 <div>
                                     <dt className="text-sm text-primary-700 uppercase font-black tracking-wider">Total Budget</dt>
-                                    <dd className="text-2xl font-black text-primary-900 font-mono">${query.totalBudget?.toLocaleString() || 0}</dd>
+                                    <dd className="text-2xl font-black text-primary-900 font-mono">{getCurrencySign()}{query.totalBudget?.toLocaleString() || 0}</dd>
                                 </div>
                             </div>
                         </dl>
@@ -584,6 +570,10 @@ const ViewQuery = () => {
                                                 <div>
                                                     <dt className="text-xs text-secondary-600">Age</dt>
                                                     <dd className="font-medium">{lead.age || '-'}</dd>
+                                                </div>
+                                                <div>
+                                                    <dt className="text-xs text-secondary-600">Passport Number</dt>
+                                                    <dd className="font-medium">{lead.passportNumber || '-'}</dd>
                                                 </div>
                                                 <div>
                                                     <dt className="text-xs text-secondary-600">Visa Status</dt>
@@ -778,8 +768,8 @@ const ViewQuery = () => {
                                 {/* Budget Stats Summary */}
                                 <div className="grid grid-cols-1 gap-2 mb-4">
                                     <div className="flex justify-between text-xs font-bold px-2">
-                                        <span className="text-gray-500">BUDGET: ${query.budget?.toLocaleString() || 0}</span>
-                                        <span className="text-blue-600">REMAINING: ${((query.budget || 0) - (confirmedQuery?.totalInvoiced || 0)).toLocaleString()}</span>
+                                        <span className="text-gray-500 uppercase tracking-tight">BUDGET: {getCurrencySign()}{query.budget?.toLocaleString() || query.totalBudget?.toLocaleString() || 0}</span>
+                                        <span className="text-blue-600 uppercase tracking-tight">REMAINING: {getCurrencySign()}{((query.budget || query.totalBudget || 0) - (confirmedQuery?.totalInvoiced || 0)).toLocaleString()}</span>
                                     </div>
                                     <div className="w-full bg-gray-200 rounded-full h-1.5 px-0">
                                         <div
@@ -826,7 +816,7 @@ const ViewQuery = () => {
                                 {/* Cost Summary */}
                                 <div className="grid grid-cols-1 gap-2 mb-4">
                                     <div className="flex justify-between text-xs font-bold px-2">
-                                        <span className="text-gray-500 uppercase tracking-tight">TOTAL COST: ${confirmedQuery?.totalSupplierCost?.toLocaleString() || 0}</span>
+                                        <span className="text-gray-500 uppercase tracking-tight">TOTAL COST: {getCurrencySign()}{confirmedQuery?.totalSupplierCost?.toLocaleString() || 0}</span>
                                         <span className="text-red-600 uppercase tracking-tight">COUNT: {confirmedQuery?.supplierInvoiceCount || 0}</span>
                                     </div>
                                     <div className="w-full bg-gray-200 rounded-full h-1.5 px-0">

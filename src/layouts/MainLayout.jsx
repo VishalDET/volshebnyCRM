@@ -47,7 +47,7 @@ const MainLayout = ({ children }) => {
             title: 'BILLING',
             items: [
                 { name: 'Client Invoices', href: '/invoices/client', icon: Receipt },
-                { name: 'Supplier Invoices', href: '/invoices/supplier', icon: FileSignature },
+                { name: 'Supplier Payments', href: '/invoices/supplier', icon: FileSignature },
             ]
         },
         {
@@ -67,6 +67,7 @@ const MainLayout = ({ children }) => {
                         { name: 'Suppliers', href: '/masters/suppliers' },
                         { name: 'Clients', href: '/masters/clients' },
                         { name: 'Handlers', href: '/masters/handlers' },
+                        { name: 'Offices', href: '/masters/offices' },
                     ]
                 },
             ]

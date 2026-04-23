@@ -10,6 +10,7 @@ import { Pencil, Trash2, Eye, X, ChevronDown } from 'lucide-react'
 import MastersNavigation from '@components/MastersNavigation'
 import ConfirmModal from '@components/ConfirmModal'
 import SupplierViewModal from '@components/SupplierViewModal'
+import SearchableSelect from '@components/SearchableSelect'
 import { manageSupplier, manageCountry, manageCity, manageServiceType } from '@api/masters.api'
 import { toast } from 'react-hot-toast'
 import { useAuth } from '@hooks/useAuth'
@@ -57,12 +58,16 @@ const SupplierMaster = () => {
     const [formData, setFormData] = useState(initialFormState)
     const [editingId, setEditingId] = useState(null)
     const [deleteId, setDeleteId] = useState(null)
+    const [filterCountryId, setFilterCountryId] = useState('')
 
     useEffect(() => {
-        fetchSuppliers()
         fetchCountries()
         fetchServiceTypes()
     }, [])
+
+    useEffect(() => {
+        fetchSuppliers()
+    }, [filterCountryId])
 
     const fetchCountries = async () => {
         try {
@@ -171,7 +176,7 @@ const SupplierMaster = () => {
                 id: 0,
                 fullName: "string",
                 companyContactNo: "string",
-                countryId: 0,
+                countryId: parseInt(filterCountryId) || 0,
                 stateId: 0,
                 cityId: 0,
                 createdBy: 0,
@@ -497,7 +502,20 @@ const SupplierMaster = () => {
 
             <MastersNavigation />
 
+
+
             <div className="card">
+                <div className="flex justify-end pt-0 p-4 mb-2 bg-white rounded-lg shadow-none">
+                    <div className="w-64">
+                        <SearchableSelect
+                            label="Filter by Country"
+                            placeholder="All Countries"
+                            value={filterCountryId}
+                            options={countries}
+                            onChange={(e) => setFilterCountryId(e.target.value)}
+                        />
+                    </div>
+                </div>
                 <Table columns={columns} data={suppliers} emptyMessage="No suppliers added" />
             </div>
             <Modal isOpen={isModalOpen} onClose={closeModal} title={editingId ? "Edit Supplier" : "Add Supplier"}>

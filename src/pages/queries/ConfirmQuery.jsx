@@ -8,7 +8,8 @@ import { manageQuery, manageConfirmQuery } from '@api/query.api'
 import { manageClient, manageHandler, manageSupplier, manageCurrency, manageCountry, manageCity } from '@api/masters.api'
 import { toast } from 'react-hot-toast'
 import Loader from '@components/Loader'
-import { Calendar, User, Building, Users, Banknote, FileText, Briefcase, Trash2 } from 'lucide-react'
+import { Calendar, User, Building, Users, Banknote, FileText, Briefcase, Trash2, Import } from 'lucide-react'
+import ImportTravellerModal from '@components/ImportTravellerModal'
 
 const ConfirmQuery = () => {
     const { id } = useParams()
@@ -28,6 +29,7 @@ const ConfirmQuery = () => {
     const [tourLeads, setTourLeads] = useState([
         { leadName: '', gender: '', age: '', passportNumber: '', visaStatus: '' }
     ])
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false)
 
     // Group services by destination index for UI, flatten on submit
     // Structure: { [destIndex]: [ { serviceType: '', ... } ] }
@@ -162,28 +164,7 @@ const ConfirmQuery = () => {
             }
 
             // 3. Fetch Currencies
-            const cPayload = {
-                id: 0,
-                currencyName: "string",
-                currencySign: "string",
-                isActive: true,
-                isDeleted: false,
-                spType: "R"
-            }
-            const cRes = await manageCurrency(cPayload)
-            const cData = cRes.data?.data || (Array.isArray(cRes.data) ? cRes.data : []) || []
-            const uniqueCurrencies = []
-            const cIds = new Set()
-            cData.forEach(c => {
-                if (!cIds.has(c.id)) {
-                    cIds.add(c.id)
-                    uniqueCurrencies.push({
-                        value: c.id,
-                        label: `${c.currencyName} (${c.currencySign})`
-                    })
-                }
-            })
-            setCurrencies(uniqueCurrencies)
+            await fetchCurrencies()
 
             // 4. Fetch additional details for display (Client Name, Handler Name)
             // Note: manageQuery might return names, but if not we fetch.
@@ -221,7 +202,7 @@ const ConfirmQuery = () => {
                 // But usually R with ID returns that item. Let's assume it returns items.
                 const actualClient = Array.isArray(clData) ? clData.find(c => c.id === qData.clientId) || clData[0] : clData
 
-                if (actualClient) qData.clientName = `${actualClient.firstName} ${actualClient.lastName} (${actualClient.companyName})`
+                if (actualClient) qData.clientName = actualClient.companyName
             }
 
             if (qData.handlerId && !qData.handlerName) {
@@ -310,6 +291,34 @@ const ConfirmQuery = () => {
             }
         } catch (e) { console.error(e) }
     }
+    const fetchCurrencies = async () => {
+        try {
+            const res = await manageCurrency({ spType: "R", isActive: true })
+            const data = res.data?.data || (Array.isArray(res.data) ? res.data : []) || []
+            
+            // Map for Select options while preserving raw data for lookup
+            const uniqueCurrencies = []
+            const cIds = new Set()
+            data.forEach(c => {
+                if (!cIds.has(c.id)) {
+                    cIds.add(c.id)
+                    uniqueCurrencies.push({
+                        ...c,
+                        value: c.id,
+                        label: `${c.currencyName} (${c.currencySign})`
+                    })
+                }
+            })
+            setCurrencies(uniqueCurrencies)
+        } catch (error) {
+            console.error("Error fetching currencies:", error)
+        }
+    }
+    
+    const getCurrencySign = () => {
+        const currency = currencies.find(c => Number(c.id) === Number(query?.currencyId))
+        return currency ? currency.currencySign : '$'
+    }
 
     const fetchSuppliersForDestination = async (countryId, cityId) => {
         try {
@@ -365,7 +374,7 @@ const ConfirmQuery = () => {
             toast.error(`Cannot add more than ${totalPax} travellers`)
             return
         }
-        setTourLeads([...tourLeads, { leadName: '', gender: '', age: '', visaStatus: '' }])
+        setTourLeads([...tourLeads, { leadName: '', gender: '', age: '', passportNumber: '', visaStatus: '' }])
     }
     const removeTourLead = (index) => {
         if (tourLeads.length > 1) {
@@ -376,6 +385,32 @@ const ConfirmQuery = () => {
         const updated = [...tourLeads]
         updated[index][field] = value
         setTourLeads(updated)
+    }
+
+    const handleImportTravellers = (imported) => {
+        const remainingSpace = totalPax - tourLeads.filter(t => t.leadName.trim()).length
+        
+        if (imported.length > remainingSpace) {
+            toast.error(`Cannot import all. Only ${remainingSpace} spots remaining.`)
+            // Still import what fits
+            imported = imported.slice(0, remainingSpace)
+        }
+
+        if (imported.length > 0) {
+            // If the first lead is empty, replace it, otherwise append
+            const currentLeads = [...tourLeads]
+            const firstEmptyIndex = currentLeads.findIndex(t => !t.leadName.trim())
+            
+            if (firstEmptyIndex !== -1) {
+                // Replace the first empty one and append rest
+                currentLeads[firstEmptyIndex] = imported[0]
+                setTourLeads([...currentLeads, ...imported.slice(1)])
+            } else {
+                setTourLeads([...currentLeads, ...imported])
+            }
+            
+            toast.success(`Imported ${imported.length} travellers`)
+        }
     }
 
     // --- Services Handlers ---
@@ -448,8 +483,8 @@ const ConfirmQuery = () => {
                         }
 
                         flatServices.push({
-                            countryId: dest.countryId,
-                            cityId: dest.cityId,
+                            countryId: parseInt(dest.countryId) || 0,
+                            cityId: parseInt(dest.cityId) || 0,
                             serviceType: srv.serviceType,
                             serviceCharge: parseFloat(srv.serviceCharge) || 0,
                             currencyId: parseInt(srv.currencyId) || 0,
@@ -474,15 +509,19 @@ const ConfirmQuery = () => {
                 queryId: parseInt(id),
                 isVisaIncluded: generalInfo.isVisaIncluded,
                 finalItinerary: generalInfo.finalItinerary || "",
-                spType: "C", // Confirming usually creates a confirmed record
-                tourLeads: tourLeads.map(tl => ({
+                miscellaneous: generalInfo.miscellaneous || "",
+                spType: "C",
+                userId: parseInt(localStorage.getItem('userId')) || 0,
+                roleId: parseInt(localStorage.getItem('roleId')) || 0,
+                tourLeads: tourLeads.filter(tl => tl.leadName).map(tl => ({
                     leadName: tl.leadName || "",
                     gender: tl.gender || "",
                     age: parseInt(tl.age) || 0,
+                    passportNumber: tl.passportNumber || "",
                     visaStatus: tl.visaStatus || ""
                 })),
-                services: flatServices,
-                guides: guides.map(g => ({
+                services: flatServices.filter(s => s.serviceType && s.supplierId),
+                guides: guides.filter(g => g.supplierId).map(g => ({
                     supplierId: parseInt(g.supplierId) || 0,
                     supplierName: g.supplierName || "",
                     guideName: g.guideName || "",
@@ -490,11 +529,6 @@ const ConfirmQuery = () => {
                     contactNumber: g.contactNumber || "",
                     language: g.language || ""
                 }))
-            }
-
-            // Append miscellaneous to itinerary if needed, or ignore if API strictly forbids extra fields
-            if (generalInfo.miscellaneous) {
-                payload.finalItinerary += `\n\nMiscellaneous:\n${generalInfo.miscellaneous}`
             }
 
             console.log("Confirm Payload:", payload)
@@ -538,11 +572,7 @@ const ConfirmQuery = () => {
 
                                 <div>
                                     <dt className="text-sm text-secondary-600">Company</dt>
-                                    <dd className="font-medium">{client.companyName || '-'}</dd>
-                                </div>
-                                <div>
-                                    <dt className="text-sm text-secondary-600">Full Name</dt>
-                                    <dd className="font-medium">{client.firstName} {client.lastName}</dd>
+                                    <dd className="font-medium text-lg">{client.companyName || '-'}</dd>
                                 </div>
                                 <div>
                                     <dt className="text-sm text-secondary-600">Contact</dt>
@@ -574,19 +604,18 @@ const ConfirmQuery = () => {
                                     {query.adults} Ad, {query.children} Ch, {query.infants} In
                                 </dd>
                             </div>
-                            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4 border mt-2 bg-primary-50/30 p-3 rounded-lg">
-
+                            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border mt-2 bg-primary-50/30 p-3 pb-0 rounded-lg">
                                 <div>
-                                    <dt className="text-sm text-secondary-600">Adult Budget</dt>
-                                    <dd className="font-medium">${query.adultBudget?.toLocaleString()}*{query.adults}</dd>
+                                    <dt className="text-sm text-secondary-600 uppercase font-bold tracking-wider">Adult Budget</dt>
+                                    <dd className="text-lg font-semibold">{getCurrencySign()}{query.adultBudget?.toLocaleString() || 0}</dd>
                                 </div>
                                 <div>
-                                    <dt className="text-sm text-secondary-600">Child Budget</dt>
-                                    <dd className="font-medium">${query.childBudget?.toLocaleString()}*{query.children}</dd>
+                                    <dt className="text-sm text-secondary-600 uppercase font-bold tracking-wider">Child Budget</dt>
+                                    <dd className="text-lg font-semibold">{getCurrencySign()}{query.childBudget?.toLocaleString() || 0}</dd>
                                 </div>
                                 <div>
-                                    <dt className="text-sm text-secondary-600">Total Budget</dt>
-                                    <dd className="font-medium">${query.totalBudget?.toLocaleString()}</dd>
+                                    <dt className="text-sm text-primary-700 uppercase font-black tracking-wider">Total Budget</dt>
+                                    <dd className="text-2xl font-black text-primary-900 font-mono">{getCurrencySign()}{query.totalBudget?.toLocaleString() || 0}</dd>
                                 </div>
                             </div>
                             {query.specialRequirements && (
@@ -637,7 +666,17 @@ const ConfirmQuery = () => {
                                 ({tourLeads.length} / {totalPax})
                             </span>
                         </h3>
-                        <Button size="sm" onClick={addTourLead} disabled={tourLeads.length >= totalPax}>+ Add Lead</Button>
+                        <div className="flex gap-2">
+                            <Button 
+                                size="sm" 
+                                variant="outline" 
+                                onClick={() => setIsImportModalOpen(true)} 
+                                disabled={totalPax === 0 || tourLeads.filter(t => t.leadName.trim()).length >= totalPax}
+                            >
+                                <Import size={16} className="mr-1" /> Import
+                            </Button>
+                            <Button size="sm" onClick={addTourLead} disabled={tourLeads.length >= totalPax}>+ Add Lead</Button>
+                        </div>
                     </div>
                     {tourLeads.map((lead, idx) => (
                         <div key={idx} className="relative bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow mb-4 group">
@@ -658,12 +697,22 @@ const ConfirmQuery = () => {
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
-                                <div className="col-span-12">
+                                <div className="col-span-12 md:col-span-8">
                                     <Input
                                         label="Full Name"
                                         placeholder="Full Name as per Passport"
                                         value={lead.leadName}
                                         onChange={e => updateTourLead(idx, 'leadName', e.target.value)}
+                                        className="uppercase"
+                                    />
+                                </div>
+                                <div className="col-span-12 md:col-span-4">
+                                    <Input
+                                        label="Passport Number"
+                                        placeholder="Enter Passport Number"
+                                        value={lead.passportNumber}
+                                        onChange={e => updateTourLead(idx, 'passportNumber', e.target.value)}
+                                        className="uppercase"
                                     />
                                 </div>
                                 <div className="col-span-12 md:col-span-6">
@@ -672,10 +721,8 @@ const ConfirmQuery = () => {
                                         value={lead.visaStatus}
                                         onChange={e => updateTourLead(idx, 'visaStatus', e.target.value)}
                                         options={[
-                                            { value: 'Applied', label: 'Applied' },
                                             { value: 'Approved', label: 'Approved' },
-                                            { value: 'Pending', label: 'Pending' },
-                                            { value: 'Not Required', label: 'Not Required' }
+                                            { value: 'Pending', label: 'Pending' }
                                         ]}
                                     />
                                 </div>
@@ -847,6 +894,13 @@ const ConfirmQuery = () => {
                     <Button variant="secondary" onClick={() => navigate('/queries')}>Cancel</Button>
                     <Button variant="primary" onClick={handleSubmit} loading={submitting}>Confirm Query</Button>
                 </div>
+                <ImportTravellerModal 
+                    isOpen={isImportModalOpen}
+                    onClose={() => setIsImportModalOpen(false)}
+                    onImport={handleImportTravellers}
+                    clientContacts={client?.contacts || []}
+                    maxAllowed={totalPax - tourLeads.filter(t => t.leadName.trim()).length}
+                />
             </div>
         </div>
     )

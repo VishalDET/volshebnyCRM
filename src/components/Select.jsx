@@ -47,6 +47,7 @@ const Select = ({
                     <option
                         key={`${option.value || option.id}-${index}`}
                         value={option.value || option.id}
+                        className="text-slate-900 bg-white"
                     >
                         {option.label || option.name}
                     </option>

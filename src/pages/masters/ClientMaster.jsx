@@ -26,10 +26,8 @@ const ClientMaster = () => {
     const [isViewModalOpen, setIsViewModalOpen] = useState(false)
 
     const initialFormState = {
-        firstName: '',
-        lastName: '',
-        mobileNo: '',
         companyName: '',
+        mobileNo: '',
         emailId: '',
         isGSTIN: true,
         gstNumber: '',
@@ -170,11 +168,6 @@ const ClientMaster = () => {
 
     const columns = [
         { key: 'companyName', label: 'Company Name' },
-        {
-            key: 'firstName',
-            label: 'Contact Person',
-            render: (value, row) => `${row.firstName || ''} ${row.lastName || ''}`
-        },
         { key: 'mobileNo', label: 'Mobile' },
         { key: 'emailId', label: 'Email' },
         {
@@ -304,10 +297,8 @@ const ClientMaster = () => {
             }
 
             setFormData({
-                firstName: clientData.firstName || '',
-                lastName: clientData.lastName || '',
-                mobileNo: clientData.mobileNo || '',
                 companyName: clientData.companyName || '',
+                mobileNo: clientData.mobileNo || '',
                 emailId: clientData.emailId || '',
                 isGSTIN: clientData.isGSTIN || false,
                 gstNumber: clientData.gstNumber || '',
@@ -342,7 +333,7 @@ const ClientMaster = () => {
     }
 
     const handleSave = async () => {
-        if (!formData.companyName || !formData.firstName) {
+        if (!formData.companyName) {
             toast.error("Please fill required fields")
             return
         }
@@ -350,8 +341,8 @@ const ClientMaster = () => {
         try {
             const payload = {
                 id: editingId || 0,
-                firstName: formData.firstName,
-                lastName: formData.lastName,
+                firstName: "",
+                lastName: "",
                 mobileNo: formData.mobileNo,
                 companyName: formData.companyName,
                 emailId: formData.emailId,
@@ -458,7 +449,7 @@ const ClientMaster = () => {
                     {/* Company Details */}
                     <div className="space-y-4">
                         <h3 className="text-sm font-bold text-secondary-900 border-b pb-2">Company Details</h3>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-3 gap-4">
                             <Input
                                 label="Company Name"
                                 value={formData.companyName}
@@ -481,21 +472,6 @@ const ClientMaster = () => {
                             />
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                            <Input
-                                label="First Name"
-                                value={formData.firstName}
-                                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                                placeholder="First Name"
-                                required
-                            />
-                            <Input
-                                label="Last Name"
-                                value={formData.lastName}
-                                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                                placeholder="Last Name"
-                            />
-                        </div>
 
                         <div className="grid grid-cols-3 gap-4">
                             <Select
@@ -638,7 +614,6 @@ const ClientMaster = () => {
                         <>
                             <div className="grid grid-cols-2 gap-4">
                                 <div><label className="text-xs font-bold text-gray-500">Company</label><p>{viewClient.companyName}</p></div>
-                                <div><label className="text-xs font-bold text-gray-500">Contact Person</label><p>{viewClient.firstName} {viewClient.lastName}</p></div>
                                 <div><label className="text-xs font-bold text-gray-500">Mobile</label><p>{viewClient.mobileNo}</p></div>
                                 <div><label className="text-xs font-bold text-gray-500">Email</label><p>{viewClient.emailId}</p></div>
                                 <div><label className="text-xs font-bold text-gray-500">Address</label><p>{viewClient.address}</p></div>
