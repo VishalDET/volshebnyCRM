@@ -13,6 +13,7 @@ const MastersNavigation = () => {
         { name: 'Clients', path: '/masters/clients' },
         { name: 'Handlers', path: '/masters/handlers' },
         { name: 'Offices', path: '/masters/offices' },
+        { name: 'Users', path: '/masters/users' },
     ]
 
     return (

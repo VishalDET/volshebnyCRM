@@ -69,6 +69,13 @@ const MastersDashboard = () => {
             icon: UserCog,
             path: '/masters/users',
             color: 'bg-red-100 text-red-600'
+        },
+        {
+            title: 'Office Master',
+            description: 'Manage company offices and branches',
+            icon: Building2,
+            path: '/masters/offices',
+            color: 'bg-cyan-100 text-cyan-600'
         }
     ]
 

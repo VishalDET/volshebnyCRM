@@ -8,11 +8,13 @@ import { getGeneralStats, getClientStats, getSupplierStats, getFinancialReport }
 import { manageQuery } from '@api/query.api'
 import { manageClientInvoice } from '@api/clientInvoice.api'
 import { manageSupplierInvoice } from '@api/supplierInvoice.api'
+import { useAuth } from '@hooks/useAuth'
 
 /**
  * Dashboard Page
  */
 const Dashboard = () => {
+    const { user } = useAuth()
     const [generalStats, setGeneralStats] = useState(null)
     const [clientStats, setClientStats] = useState([])
     const [supplierStats, setSupplierStats] = useState(null)
@@ -62,10 +64,12 @@ const Dashboard = () => {
     }
 
     const fetchAdvancedWidgets = async () => {
+        if (!user) return
+        
         try {
             setIsRightColLoading(true)
             const [qRes, cRes, sRes] = await Promise.all([
-                manageQuery({ id: 0, queryNo: "", handlerId: 0, clientId: 0, originCountryId: 0, originCityId: 0, travelDate: null, returnDate: null, totalDays: 0, adults: 0, children: 0, infants: 0, budget: 0, queryStatus: "", specialRequirements: "", createdBy: 0, modifiedBy: 0, isActive: true, spType: "R", destinations: [], childAges: [] }),
+                manageQuery({ id: 0, queryNo: "", handlerId: 0, clientId: 0, originCountryId: user.officeId === 1 ? 0 : (user.countryId || 0), originCityId: 0, travelDate: null, returnDate: null, totalDays: 0, adults: 0, children: 0, infants: 0, budget: 0, queryStatus: "", specialRequirements: "", createdBy: 0, modifiedBy: 0, isActive: true, spType: "R", destinations: [], childAges: [], officeId: user.officeId === 1 ? 0 : (user.officeId || 0) }),
                 manageClientInvoice({ id: 0, queryId: 0, clientId: 0, invoiceNo: "string", invoiceDate: new Date().toISOString(), dueDate: new Date().toISOString(), currencyId: 0, isDomestic: true, totalAmount: 0, gst: 0, serviceCharge: 0, remittance: 0, rateOfExchange: 0, paymentMethod: "string", comments: "string", netAmount: 0, paymentStatus: "string", userId: 0, roleId: 0, isActive: true, isDeleted: false, spType: "R" }),
                 manageSupplierInvoice({ id: 0, queryId: 0, supplierId: 0, serviceType: "", supplierInvNo: "", invoiceDate: new Date().toISOString(), dueDate: new Date().toISOString(), currencyId: 0, isDomestic: true, totalAmount: 0, gst: 0, serviceCharge: 0, bankName: "", bankDetails: "", remittance: 0, rateOfExchange: 0, paymentMethod: "", comments: "", netAmount: 0, paymentStatus: "", userId: 0, roleId: 0, isActive: true, isDeleted: false, spType: "R" })
             ])

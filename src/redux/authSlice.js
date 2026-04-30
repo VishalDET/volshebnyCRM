@@ -1,42 +1,88 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
-import { getUserProfileByEmail } from '@api/userRole.api'
-import { loginWithFirebase, logoutFromFirebase } from '../services/firebase.service'
+import { getUserProfileByEmail, manageUser } from '@api/userRole.api'
+import { login as loginApi } from '@api/auth.api'
 
-// Async thunks
 // Async thunks
 export const login = createAsyncThunk(
     'auth/login',
     async ({ email, password }, { rejectWithValue }) => {
         try {
-            // 1. Login with Firebase
-            const { user: firebaseUser, error } = await loginWithFirebase(email, password)
-            if (error) throw new Error(error)
+            // 1. Login with Custom API
+            console.log('[Auth] Calling /api/Auth/Login...')
+            const response = await loginApi({ email, password })
+            console.log('[Auth] Login response:', response.data)
 
-            // 2. Get User Token (optional, if needed for backend calls immediately)
-            const token = await firebaseUser.getIdToken()
+            // ✅ Check success flag — backend returns HTTP 200 even on auth failure
+            if (response.data?.success === false) {
+                return rejectWithValue(response.data.message || 'Invalid email or password')
+            }
 
-            // 3. Get Backend User Details using Email (more reliable endpoint)
-            const userResponse = await getUserProfileByEmail(firebaseUser.email)
-            const backendUser = userResponse.data
+            const loginData = response.data?.data || response.data
 
-            const userData = {
-                ...backendUser,
-                uid: firebaseUser.uid,
-                email: firebaseUser.email,
-                photoURL: firebaseUser.photoURL
+            // Handle different token field names from backend
+            const token =
+                loginData?.token ||
+                loginData?.accessToken ||
+                loginData?.jwtToken ||
+                loginData?.authToken ||
+                null
+
+            if (!loginData) {
+                return rejectWithValue('Invalid response from login API')
+            }
+
+            // 2. Fetch basic profile to get userId
+            console.log('[Auth] Calling GetUserProfileByEmail...')
+            let userData = { email }
+
+            try {
+                const profileRes = await getUserProfileByEmail(email)
+                console.log('[Auth] Profile response:', profileRes.data)
+                const profileData = profileRes.data?.data || profileRes.data
+
+                if (profileData && profileData.userId) {
+                    // 3. Fetch full user details using manageUser (spType: 'E')
+                    console.log('[Auth] Calling ManageUser for full profile...')
+                    const userRes = await manageUser({ id: profileData.userId, spType: "E" })
+                    console.log('[Auth] ManageUser response:', userRes.data)
+                    const fullUserDataArray = userRes.data?.data || []
+                    const fullUserData = fullUserDataArray.length > 0 ? fullUserDataArray[0] : {}
+
+                    userData = {
+                        ...profileData,
+                        ...fullUserData,
+                        email: profileData.emailId || fullUserData.emailId || email
+                    }
+                } else {
+                    // Profile not found — store minimal info from login response
+                    console.warn('[Auth] User profile not found, using login data only')
+                    userData = {
+                        ...loginData,
+                        email
+                    }
+                }
+            } catch (profileError) {
+                console.warn('[Auth] Profile fetch failed, using login data only:', profileError.message)
+                userData = { ...loginData, email }
             }
 
             // Store in LocalStorage
-            localStorage.setItem('authToken', token)
+            if (token) {
+                localStorage.setItem('authToken', token)
+            }
             localStorage.setItem('user', JSON.stringify(userData))
-            localStorage.setItem('userEmail', firebaseUser.email)
-            localStorage.setItem('userId', backendUser.userId)
-            localStorage.setItem('roleId', backendUser.roleId)
-            sessionStorage.setItem('userId', backendUser.userId)
-            sessionStorage.setItem('roleId', backendUser.roleId)
+            localStorage.setItem('userEmail', userData.email)
+            if (userData.userId) localStorage.setItem('userId', userData.userId)
+            if (userData.roleId) localStorage.setItem('roleId', userData.roleId)
+            if (userData.officeId) localStorage.setItem('officeId', userData.officeId)
 
-            return { user: userData, token }
+            if (userData.userId) sessionStorage.setItem('userId', userData.userId)
+            if (userData.roleId) sessionStorage.setItem('roleId', userData.roleId)
+            if (userData.officeId) sessionStorage.setItem('officeId', userData.officeId)
+
+            return { user: userData, token: token || 'no-token' }
         } catch (error) {
+            console.error('[Auth] Login failed:', error.response?.data || error.message)
             return rejectWithValue(error.response?.data?.message || error.message || 'Login failed')
         }
     }
@@ -46,9 +92,10 @@ export const logout = createAsyncThunk(
     'auth/logout',
     async (_, { rejectWithValue }) => {
         try {
-            await logoutFromFirebase()
+            // 1. Clear LocalStorage
             localStorage.removeItem('authToken')
             localStorage.removeItem('user')
+            localStorage.removeItem('userEmail')
             localStorage.removeItem('userId')
             localStorage.removeItem('roleId')
             sessionStorage.removeItem('userId')

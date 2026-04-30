@@ -5,7 +5,12 @@ import axiosInstance from '@config/axiosConfig'
  * @param {Object} credentials - { email, password }
  */
 export const login = async (credentials) => {
-    return await axiosInstance.post('/auth/login', credentials)
+    // Map email to emailId for the new API
+    const payload = {
+        emailId: credentials.email,
+        password: credentials.password
+    }
+    return await axiosInstance.post('/api/Auth/Login', payload)
 }
 
 /**
@@ -57,9 +62,3 @@ export const resetPassword = async (token, newPassword) => {
     return await axiosInstance.post('/auth/reset-password', { token, newPassword })
 }
 
-/**
- * Get user profile by Firebase UID
- */
-export const getUserProfile = async (uid) => {
-    return await axiosInstance.get(`/users/${uid}`)
-}

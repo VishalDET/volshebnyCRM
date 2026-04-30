@@ -53,7 +53,7 @@ const MainLayout = ({ children }) => {
         {
             title: 'ADMIN',
             items: [
-                { name: 'Finance', href: '/finance', icon: Landmark },
+                ...(user?.officeId === 1 ? [{ name: 'Finance', href: '/finance', icon: Landmark }] : []),
                 {
                     name: 'Masters',
                     href: '/masters',
@@ -68,6 +68,7 @@ const MainLayout = ({ children }) => {
                         { name: 'Clients', href: '/masters/clients' },
                         { name: 'Handlers', href: '/masters/handlers' },
                         { name: 'Offices', href: '/masters/offices' },
+                        { name: 'Users', href: '/masters/users' },
                     ]
                 },
             ]

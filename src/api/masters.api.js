@@ -84,10 +84,34 @@ export const manageClient = async (data) => {
 export const getAllHotels = async (filters = {}) => {
     return await axiosInstance.get('/masters/hotels', { params: filters })
 }
+const defaultOfficePayload = {
+    officeId: 0,
+    officeName: "string",
+    currencyId: 0,
+    countryId: 0,
+    cityId: 0,
+    address: "string",
+    createdBy: 0,
+    modifiedBy: 0,
+    isActive: true,
+    spType: "R",
+    contacts: [
+        {
+            contactId: 0,
+            officeId: 0,
+            contactName: "string",
+            contactNumber: "string",
+            contactEmail: "string",
+            spType: "string"
+        }
+    ]
+}
+
 /**
  * Manage Office (Create, Read, Update, Delete)
  * @param {Object} data - Payload with spType (C, R, U, D)
  */
 export const manageOffice = async (data) => {
-    return await axiosInstance.post('/api/Office/ManageOfficeMaster', data)
+    const payload = { ...defaultOfficePayload, ...data }
+    return await axiosInstance.post('/api/Office/ManageOfficeMaster', payload)
 }

@@ -1,15 +1,20 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useDispatch } from 'react-redux'
 import { useAuth } from '@hooks/useAuth'
+import { setUser } from '@redux/authSlice'
 import Button from '@components/Button'
 import Input from '@components/Input'
 import { Rocket } from 'lucide-react'
+
+const IS_DEV = import.meta.env.DEV
 
 /**
  * Login Page
  */
 const Login = () => {
     const navigate = useNavigate()
+    const dispatch = useDispatch()
     const { login } = useAuth()
     const [formData, setFormData] = useState({
         email: '',
@@ -59,35 +64,31 @@ const Login = () => {
         } else {
             let errorMessage = result.error || 'Login failed. Please try again.'
 
-            // Map Firebase error codes to user-friendly messages
-            if (errorMessage.includes('auth/invalid-credential') || errorMessage.includes('auth/user-not-found') || errorMessage.includes('auth/wrong-password')) {
-                errorMessage = 'Invalid email or password.'
-            } else if (errorMessage.includes('auth/too-many-requests')) {
-                errorMessage = 'Too many failed login attempts. Please try again later.'
-            } else if (errorMessage.includes('auth/network-request-failed')) {
-                errorMessage = 'Network error. Please check your connection.'
-            }
 
             setErrors({ general: errorMessage })
         }
     }
 
     const handleBypass = () => {
-        // Set mock user data for demo purposes
+        // DEV ONLY — inject a mock SuperAdmin user into Redux + localStorage
         const mockUser = {
-            id: 1,
-            name: 'Demo User',
-            email: 'demo@volshebnyCRM.com',
-            role: 'admin'
+            userId: 1,
+            firstName: 'Dev',
+            lastName: 'Admin',
+            email: 'dev@volshebnyCRM.com',
+            emailId: 'dev@volshebnyCRM.com',
+            roleId: 1,        // 1 = SuperAdmin (sees Finance tab, all offices)
+            officeId: 0,
+            countryId: 0,
         }
-        const mockToken = 'demo-token-12345'
+        const mockToken = 'dev-bypass-token'
 
         localStorage.setItem('authToken', mockToken)
         localStorage.setItem('user', JSON.stringify(mockUser))
 
-        // Navigate to dashboard
+        // Properly hydrate Redux state — no reload needed
+        dispatch(setUser(mockUser))
         navigate('/dashboard')
-        window.location.reload() // Reload to update auth state
     }
 
     return (
@@ -162,20 +163,30 @@ const Login = () => {
                     Sign In
                 </Button>
 
-                {/* <div className="mt-4 text-center">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        className="w-full flex items-center justify-center gap-2"
-                        onClick={handleBypass}
-                    >
-                        <Rocket className="w-4 h-4" />
-                        <span>Bypass Login (Demo)</span>
-                    </Button>
-                    <p className="text-xs text-secondary-500 mt-2">
-                        Skip authentication to preview all UIs
-                    </p>
-                </div> */}
+                {IS_DEV && (
+                    <div className="mt-4">
+                        <div className="relative">
+                            <div className="absolute inset-0 flex items-center">
+                                <div className="w-full border-t border-dashed border-secondary-200" />
+                            </div>
+                            <div className="relative flex justify-center text-xs">
+                                <span className="px-2 bg-white text-secondary-400 uppercase tracking-widest font-semibold">Dev Only</span>
+                            </div>
+                        </div>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            className="w-full mt-3 flex items-center justify-center gap-2 border-dashed border-amber-400 text-amber-600 hover:bg-amber-50"
+                            onClick={handleBypass}
+                        >
+                            <Rocket className="w-4 h-4" />
+                            <span>Bypass Login (Dev Mode)</span>
+                        </Button>
+                        <p className="text-xs text-secondary-400 mt-1 text-center">
+                            Logs in as SuperAdmin without API call
+                        </p>
+                    </div>
+                )}
             </form>
         </div>
     )

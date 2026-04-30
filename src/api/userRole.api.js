@@ -12,6 +12,7 @@ const defaultUserPayload = {
     address: "string",
     landmark: "string",
     authority: "string",
+    officeId: 0,
     countryId: 0,
     stateId: 0,
     cityId: 0,
@@ -19,6 +20,8 @@ const defaultUserPayload = {
     createdBy: 0,
     modifiedBy: 0,
     isActive: true,
+    password: "",
+    passwordHash: "",
     spType: "string"
 }
 
@@ -33,13 +36,23 @@ export const manageUser = async (data) => {
     return await axiosInstance.post('/api/UserRole/ManageUser', payload)
 }
 
+const defaultRolePayload = {
+    roleId: 0,
+    roleName: "string",
+    description: "string",
+    isActive: true,
+    isDeleted: false,
+    spType: "R"
+}
+
 /**
  * Manage Role (Create, Update, Delete, Read)
  * @param {Object} data - Role data payload
  * @returns {Promise} Axios response
  */
 export const manageRole = async (data) => {
-    return await axiosInstance.post('/api/UserRole/ManageRole', data)
+    const payload = { ...defaultRolePayload, ...data }
+    return await axiosInstance.post('/api/UserRole/ManageRole', payload)
 }
 
 /**

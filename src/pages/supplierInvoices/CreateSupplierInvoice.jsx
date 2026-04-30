@@ -9,10 +9,12 @@ import { manageQuery, manageConfirmQuery } from '@api/query.api'
 import { manageSupplier, manageCurrency, manageServiceType, manageCreditcards } from '@api/masters.api'
 import { toast } from 'react-hot-toast'
 import Loader from '@components/Loader'
+import { useAuth } from '@hooks/useAuth'
 
 const CreateSupplierInvoice = () => {
     const { id, queryId: routeQueryId } = useParams()
     const navigate = useNavigate()
+    const { user } = useAuth()
     const isEdit = !!id
 
     // State
@@ -161,7 +163,7 @@ const CreateSupplierInvoice = () => {
                 queryNo: "",
                 handlerId: 0,
                 clientId: 0,
-                originCountryId: 0,
+                originCountryId: user?.officeId === 1 ? 0 : (user?.countryId || 0),
                 originCityId: 0,
                 travelDate: null,
                 returnDate: null,
@@ -177,7 +179,8 @@ const CreateSupplierInvoice = () => {
                 isDeleted: false,
                 spType: "R",
                 destinations: [],
-                childAges: []
+                childAges: [],
+                officeId: user?.officeId === 1 ? 0 : (user?.officeId || 0)
             }
             const qRes = await manageQuery(qPayload)
             const qList = (qRes.data?.data || []).map(q => ({

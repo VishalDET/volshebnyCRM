@@ -53,18 +53,42 @@ const OfficeFormModal = ({ isOpen, onClose, onSave, editingData, user }) => {
     const fetchInitialData = async () => {
         try {
             const [countryRes, currencyRes] = await Promise.all([
-                manageCountry({ spType: 'R', isDeleted: false }),
-                manageCurrency({ spType: 'R', isActive: true })
+                manageCountry({
+                    countryId: 0,
+                    countryName: "string",
+                    isActive: true,
+                    isDeleted: false,
+                    roleId: 0,
+                    createdBy: 0,
+                    modifiedBy: 0,
+                    spType: "R"
+                }),
+                manageCurrency({
+                    id: 0,
+                    currencyName: "string",
+                    currencySign: "string",
+                    isActive: true,
+                    isDeleted: false,
+                    roleId: 0,
+                    createdBy: 0,
+                    modifiedBy: 0,
+                    spType: "R"
+                })
             ])
 
-            if (countryRes.data?.data) {
-                setCountries(countryRes.data.data.map(c => ({ value: c.countryId, label: c.countryName })))
+            if (countryRes.data) {
+                const countryList = countryRes.data.data || (Array.isArray(countryRes.data) ? countryRes.data : [])
+                setCountries(countryList.map(c => ({ 
+                    value: c.countryId || c.id, 
+                    label: c.countryName || c.name 
+                })))
             }
 
-            if (currencyRes.data?.data) {
-                setCurrencies(currencyRes.data.data.map(c => ({
+            if (currencyRes.data) {
+                const currencyList = currencyRes.data.data || (Array.isArray(currencyRes.data) ? currencyRes.data : [])
+                setCurrencies(currencyList.map(c => ({
                     value: c.id || c.currencyId,
-                    label: c.currencyName
+                    label: c.currencyName || c.name || c.currencySign
                 })))
             }
         } catch (error) {
@@ -75,7 +99,18 @@ const OfficeFormModal = ({ isOpen, onClose, onSave, editingData, user }) => {
     const fetchCities = async (countryId) => {
         if (!countryId) return
         try {
-            const response = await manageCity({ spType: 'R', countryId: parseInt(countryId), isActive: true })
+            const response = await manageCity({
+                cityId: 0,
+                cityName: "string",
+                countryId: parseInt(countryId),
+                stateId: 0,
+                isActive: true,
+                isDeleted: false,
+                roleId: 0,
+                createdBy: 0,
+                modifiedBy: 0,
+                spType: "R"
+            })
             if (response.data?.data) {
                 // Backend might return all cities, so apply client-side filter
                 const filteredCities = response.data.data.filter(c => c.countryId === parseInt(countryId))

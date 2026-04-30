@@ -7,11 +7,13 @@ import { Eye, Pencil, Trash2, CheckCircle } from 'lucide-react'
 import ConfirmModal from '@components/ConfirmModal'
 import { manageQuery } from '@api/query.api'
 import { toast } from 'react-hot-toast'
+import { useAuth } from '@hooks/useAuth'
 
 const QueryList = () => {
     const navigate = useNavigate()
     const { search } = useLocation()
     const urlStatus = new URLSearchParams(search).get('status')
+    const { user } = useAuth()
 
     const formatDate = (dateString) => {
         if (!dateString) return '-';
@@ -30,18 +32,16 @@ const QueryList = () => {
         }
     }, [urlStatus])
 
-    useEffect(() => {
-        fetchQueries()
-    }, [filters])
-
     const [deleteId, setDeleteId] = useState(null)
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
 
     useEffect(() => {
         fetchQueries()
-    }, [filters])
+    }, [filters, user])
 
     const fetchQueries = async () => {
+        if (!user) return
+        
         setIsLoading(true)
         try {
             const payload = {
@@ -49,7 +49,7 @@ const QueryList = () => {
                 queryNo: "",
                 handlerId: 0,
                 clientId: 0,
-                originCountryId: 0,
+                originCountryId: user.officeId === 1 ? 0 : (user.countryId || 0),
                 originCityId: 0,
                 travelDate: null,
                 returnDate: null,
@@ -65,7 +65,8 @@ const QueryList = () => {
                 isActive: true,
                 spType: "R",
                 destinations: [],
-                childAges: []
+                childAges: [],
+                officeId: user.officeId === 1 ? 0 : (user.officeId || 0)
             }
 
             const response = await manageQuery(payload)
