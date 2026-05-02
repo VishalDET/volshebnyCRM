@@ -76,6 +76,27 @@ const ProtectedRoute = ({ children }) => {
 }
 
 /**
+ * Admin Route Component (HQ Only)
+ */
+const AdminRoute = ({ children }) => {
+    const { user, isAuthenticated, initialized } = useAuth()
+
+    if (!initialized) {
+        return <Loader fullScreen />
+    }
+
+    if (!isAuthenticated) {
+        return <Navigate to="/login" replace />
+    }
+
+    if (user?.officeId !== 1) {
+        return <Navigate to="/dashboard" replace />
+    }
+
+    return <MainLayout>{children}</MainLayout>
+}
+
+/**
  * Public Route Component (redirects to dashboard if authenticated)
  */
 const PublicRoute = ({ children }) => {
@@ -118,44 +139,44 @@ const AppRoutes = () => {
 
                 {/* Service Vouchers & Bookings */}
                 <Route path="/service-voucher/:id" element={<ProtectedRoute><ServiceVoucher /></ProtectedRoute>} />
-                <Route path="/service-bookings" element={<ProtectedRoute><ServiceBookingList /></ProtectedRoute>} />
-                <Route path="/service-bookings/create" element={<ProtectedRoute><ServiceBooking /></ProtectedRoute>} />
-                <Route path="/service-bookings/edit/:id" element={<ProtectedRoute><ServiceBooking /></ProtectedRoute>} />
-                <Route path="/service-bookings/print/:id" element={<ProtectedRoute><ServiceBookingInvoicePDF /></ProtectedRoute>} />
+                <Route path="/service-bookings" element={<AdminRoute><ServiceBookingList /></AdminRoute>} />
+                <Route path="/service-bookings/create" element={<AdminRoute><ServiceBooking /></AdminRoute>} />
+                <Route path="/service-bookings/edit/:id" element={<AdminRoute><ServiceBooking /></AdminRoute>} />
+                <Route path="/service-bookings/print/:id" element={<AdminRoute><ServiceBookingInvoicePDF /></AdminRoute>} />
 
                 {/* Client Invoices */}
-                <Route path="/invoices/client" element={<ProtectedRoute><ClientInvoiceList /></ProtectedRoute>} />
-                <Route path="/invoices/client/query/:queryId" element={<ProtectedRoute><ClientInvoiceList /></ProtectedRoute>} />
-                <Route path="/invoices/client/create" element={<ProtectedRoute><CreateClientInvoice /></ProtectedRoute>} />
-                <Route path="/invoices/client/create/:queryId" element={<ProtectedRoute><CreateClientInvoice /></ProtectedRoute>} />
-                <Route path="/invoices/client/edit/:id" element={<ProtectedRoute><CreateClientInvoice /></ProtectedRoute>} />
-                <Route path="/invoices/client/preview/:id" element={<ProtectedRoute><InvoicePDF /></ProtectedRoute>} />
-                <Route path="/invoices/client/accumulated/:queryId" element={<ProtectedRoute><InvoicePDF isAccumulated={true} /></ProtectedRoute>} />
-                <Route path="/invoices/client/:id/payment" element={<ProtectedRoute><AddClientPayment /></ProtectedRoute>} />
+                <Route path="/invoices/client" element={<AdminRoute><ClientInvoiceList /></AdminRoute>} />
+                <Route path="/invoices/client/query/:queryId" element={<AdminRoute><ClientInvoiceList /></AdminRoute>} />
+                <Route path="/invoices/client/create" element={<AdminRoute><CreateClientInvoice /></AdminRoute>} />
+                <Route path="/invoices/client/create/:queryId" element={<AdminRoute><CreateClientInvoice /></AdminRoute>} />
+                <Route path="/invoices/client/edit/:id" element={<AdminRoute><CreateClientInvoice /></AdminRoute>} />
+                <Route path="/invoices/client/preview/:id" element={<AdminRoute><InvoicePDF /></AdminRoute>} />
+                <Route path="/invoices/client/accumulated/:queryId" element={<AdminRoute><InvoicePDF isAccumulated={true} /></AdminRoute>} />
+                <Route path="/invoices/client/:id/payment" element={<AdminRoute><AddClientPayment /></AdminRoute>} />
 
                 {/* Supplier Invoices */}
-                <Route path="/invoices/supplier" element={<ProtectedRoute><SupplierInvoiceList /></ProtectedRoute>} />
-                <Route path="/invoices/supplier/query/:queryId" element={<ProtectedRoute><SupplierInvoiceList /></ProtectedRoute>} />
-                <Route path="/invoices/supplier/create" element={<ProtectedRoute><CreateSupplierInvoice /></ProtectedRoute>} />
-                <Route path="/invoices/supplier/create/:queryId" element={<ProtectedRoute><CreateSupplierInvoice /></ProtectedRoute>} />
-                <Route path="/invoices/supplier/edit/:id" element={<ProtectedRoute><CreateSupplierInvoice /></ProtectedRoute>} />
-                <Route path="/invoices/supplier/:id/payment" element={<ProtectedRoute><AddSupplierPayment /></ProtectedRoute>} />
+                <Route path="/invoices/supplier" element={<AdminRoute><SupplierInvoiceList /></AdminRoute>} />
+                <Route path="/invoices/supplier/query/:queryId" element={<AdminRoute><SupplierInvoiceList /></AdminRoute>} />
+                <Route path="/invoices/supplier/create" element={<AdminRoute><CreateSupplierInvoice /></AdminRoute>} />
+                <Route path="/invoices/supplier/create/:queryId" element={<AdminRoute><CreateSupplierInvoice /></AdminRoute>} />
+                <Route path="/invoices/supplier/edit/:id" element={<AdminRoute><CreateSupplierInvoice /></AdminRoute>} />
+                <Route path="/invoices/supplier/:id/payment" element={<AdminRoute><AddSupplierPayment /></AdminRoute>} />
 
                 {/* Finance */}
-                <Route path="/finance" element={<ProtectedRoute><FinanceSummary /></ProtectedRoute>} />
+                <Route path="/finance" element={<AdminRoute><FinanceSummary /></AdminRoute>} />
 
                 {/* Masters */}
                 <Route path="/masters" element={<ProtectedRoute><MastersDashboard /></ProtectedRoute>} />
-                <Route path="/masters/countries" element={<ProtectedRoute><CountryMaster /></ProtectedRoute>} />
+                <Route path="/masters/countries" element={<AdminRoute><CountryMaster /></AdminRoute>} />
                 <Route path="/masters/destinations" element={<ProtectedRoute><DestinationMaster /></ProtectedRoute>} />
-                <Route path="/masters/currencies" element={<ProtectedRoute><CurrencyMaster /></ProtectedRoute>} />
-                <Route path="/masters/credit-cards" element={<ProtectedRoute><CreditCardMaster /></ProtectedRoute>} />
+                <Route path="/masters/currencies" element={<AdminRoute><CurrencyMaster /></AdminRoute>} />
+                <Route path="/masters/credit-cards" element={<AdminRoute><CreditCardMaster /></AdminRoute>} />
                 <Route path="/masters/service-types" element={<ProtectedRoute><ServiceTypeMaster /></ProtectedRoute>} />
                 <Route path="/masters/suppliers" element={<ProtectedRoute><SupplierMaster /></ProtectedRoute>} />
-                <Route path="/masters/clients" element={<ProtectedRoute><ClientMaster /></ProtectedRoute>} />
-                <Route path="/masters/handlers" element={<ProtectedRoute><HandlerMaster /></ProtectedRoute>} />
-                <Route path="/masters/offices" element={<ProtectedRoute><OfficeMaster /></ProtectedRoute>} />
-                <Route path="/masters/users" element={<ProtectedRoute><UserMaster /></ProtectedRoute>} />
+                <Route path="/masters/clients" element={<AdminRoute><ClientMaster /></AdminRoute>} />
+                <Route path="/masters/handlers" element={<AdminRoute><HandlerMaster /></AdminRoute>} />
+                <Route path="/masters/offices" element={<AdminRoute><OfficeMaster /></AdminRoute>} />
+                <Route path="/masters/users" element={<AdminRoute><UserMaster /></AdminRoute>} />
 
                 {/* Default Route */}
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />

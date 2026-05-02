@@ -5,8 +5,11 @@ import {
     Bus, Building2, Users, UserCog
 } from 'lucide-react'
 
+import { useAuth } from '@hooks/useAuth'
+
 const MastersDashboard = () => {
-    const masterModules = [
+    const { user } = useAuth()
+    const allModules = [
         {
             title: 'Country Master',
             description: 'Manage countries',
@@ -78,6 +81,11 @@ const MastersDashboard = () => {
             color: 'bg-cyan-100 text-cyan-600'
         }
     ]
+
+    const masterModules = allModules.filter(module => {
+        if (user?.officeId === 1) return true
+        return ['Destination Master', 'Service Types', 'Supplier Master'].includes(module.title)
+    })
 
     return (
         <div>

@@ -1,9 +1,11 @@
 import { useLocation, Link } from 'react-router-dom'
+import { useAuth } from '@hooks/useAuth'
 
 const MastersNavigation = () => {
     const location = useLocation()
+    const { user } = useAuth()
 
-    const tabs = [
+    const allTabs = [
         { name: 'Countries', path: '/masters/countries' },
         { name: 'Destinations', path: '/masters/destinations' },
         { name: 'Currencies', path: '/masters/currencies' },
@@ -15,6 +17,11 @@ const MastersNavigation = () => {
         { name: 'Offices', path: '/masters/offices' },
         { name: 'Users', path: '/masters/users' },
     ]
+
+    const tabs = allTabs.filter(tab => {
+        if (user?.officeId === 1) return true
+        return ['Destinations', 'Service Types', 'Suppliers'].includes(tab.name)
+    })
 
     return (
         <div className="mb-6 overflow-x-auto">

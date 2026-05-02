@@ -39,17 +39,16 @@ const MainLayout = ({ children }) => {
             title: 'OPERATIONS',
             items: [
                 { name: 'Queries', href: '/queries', icon: FileText },
-                { name: 'Service Bookings', href: '/service-bookings', icon: Ticket },
-                // { name: 'Service Vouchers', href: '/vouchers', icon: Ticket },
+                ...(user?.officeId === 1 ? [{ name: 'Service Bookings', href: '/service-bookings', icon: Ticket }] : []),
             ]
         },
-        {
+        ...(user?.officeId === 1 ? [{
             title: 'BILLING',
             items: [
                 { name: 'Client Invoices', href: '/invoices/client', icon: Receipt },
                 { name: 'Supplier Payments', href: '/invoices/supplier', icon: FileSignature },
             ]
-        },
+        }] : []),
         {
             title: 'ADMIN',
             items: [
@@ -69,7 +68,10 @@ const MainLayout = ({ children }) => {
                         { name: 'Handlers', href: '/masters/handlers' },
                         { name: 'Offices', href: '/masters/offices' },
                         { name: 'Users', href: '/masters/users' },
-                    ]
+                    ].filter(item => {
+                        if (user?.officeId === 1) return true
+                        return ['Destinations', 'Service Types', 'Suppliers'].includes(item.name)
+                    })
                 },
             ]
         }

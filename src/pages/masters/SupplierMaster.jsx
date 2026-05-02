@@ -172,11 +172,17 @@ const SupplierMaster = () => {
     const fetchSuppliers = async () => {
         setIsLoading(true)
         try {
+            // HQ (officeId 1) can see all or filter by country
+            // Other offices are locked to their assigned countryId
+            const effectiveCountryId = user?.officeId === 1 
+                ? (parseInt(filterCountryId) || 0) 
+                : (user?.countryId || 0)
+
             const payload = {
                 id: 0,
                 fullName: "string",
                 companyContactNo: "string",
-                countryId: parseInt(filterCountryId) || 0,
+                countryId: effectiveCountryId,
                 stateId: 0,
                 cityId: 0,
                 createdBy: 0,
@@ -505,17 +511,19 @@ const SupplierMaster = () => {
 
 
             <div className="card">
-                <div className="flex justify-end pt-0 p-4 mb-2 bg-white rounded-lg shadow-none">
-                    <div className="w-64">
-                        <SearchableSelect
-                            label="Filter by Country"
-                            placeholder="All Countries"
-                            value={filterCountryId}
-                            options={countries}
-                            onChange={(e) => setFilterCountryId(e.target.value)}
-                        />
+                {user?.officeId === 1 && (
+                    <div className="flex justify-end pt-0 p-4 mb-2 bg-white rounded-lg shadow-none">
+                        <div className="w-64">
+                            <SearchableSelect
+                                label="Filter by Country"
+                                placeholder="All Countries"
+                                value={filterCountryId}
+                                options={countries}
+                                onChange={(e) => setFilterCountryId(e.target.value)}
+                            />
+                        </div>
                     </div>
-                </div>
+                )}
                 <Table columns={columns} data={suppliers} emptyMessage="No suppliers added" />
             </div>
             <Modal isOpen={isModalOpen} onClose={closeModal} title={editingId ? "Edit Supplier" : "Add Supplier"}>

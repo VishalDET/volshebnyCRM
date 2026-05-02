@@ -116,7 +116,7 @@ const DestinationMaster = () => {
             const payload = {
                 destinationId: 0,
                 destinationName: "string",
-                countryId: 0,
+                countryId: user?.officeId === 1 ? 0 : (user?.countryId || 0),
                 cityId: 0,
                 places: "string",
                 isActive: true,

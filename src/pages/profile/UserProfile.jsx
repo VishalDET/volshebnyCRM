@@ -6,6 +6,7 @@ import Button from '@components/Button'
 import EditProfileModal from '@components/EditProfileModal'
 import { setUser } from '@redux/authSlice'
 import { getUserProfileByEmail } from '@api/userRole.api'
+import { manageCountry, manageOffice } from '@api/masters.api'
 
 const UserProfile = () => {
     const { user } = useAuth()
@@ -26,18 +27,47 @@ const UserProfile = () => {
             const profileData = response.data?.data
 
             if (profileData) {
+                let officeName = profileData.officeName
+                let countryName = profileData.countryName
+
+                // Fetch office name if missing but officeId exists
+                if (!officeName && profileData.officeId) {
+                    try {
+                        const offRes = await manageOffice({ officeId: profileData.officeId, spType: 'R' })
+                        const offices = offRes.data?.data || []
+                        const foundOffice = offices.find(o => o.officeId === profileData.officeId)
+                        officeName = foundOffice?.officeName
+                    } catch (e) { console.error('Error fetching office name', e) }
+                }
+
+                // Fetch country name if missing but countryId exists
+                if (!countryName && profileData.countryId) {
+                    try {
+                        const countRes = await manageCountry({ countryId: profileData.countryId, spType: 'R' })
+                        const countries = countRes.data?.data || []
+                        const foundCountry = countries.find(c => c.countryId === profileData.countryId)
+                        countryName = foundCountry?.countryName
+                    } catch (e) { console.error('Error fetching country name', e) }
+                }
+
                 const mappedUser = {
                     ...user,
                     id: profileData.userId,
-                    userId: profileData.userId, // Added for display as requested
+                    userId: profileData.userId,
                     name: profileData.fullName,
                     email: profileData.emailId,
                     roleId: profileData.roleId,
-                    role: profileData.roleName, // Use roleName, ignore Authority
+                    role: profileData.roleName,
                     roleName: profileData.roleName,
                     mobileNo: profileData.mobileNo,
                     companyName: profileData.companyName,
-                    isActive: profileData.isActive
+                    isActive: profileData.isActive,
+                    countryId: profileData.countryId,
+                    countryName: countryName || 'N/A',
+                    officeId: profileData.officeId,
+                    officeName: officeName || 'N/A',
+                    cityId: profileData.cityId,
+                    cityName: profileData.cityName
                 }
 
                 dispatch(setUser(mappedUser))
@@ -159,12 +189,22 @@ const UserProfile = () => {
                                     <p className="text-slate-900 font-semibold">{user?.companyName || 'Not specified'}</p>
                                 </div>
                                 <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Official Role</p>
-                                    <p className="text-slate-900 font-semibold">{user?.roleName || 'User'}</p>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Office Location</p>
+                                    <p className="text-slate-900 font-semibold">{user?.officeName || 'Not specified'}</p>
+                                </div>
+                                <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Country/City</p>
+                                    <p className="text-slate-900 font-semibold">
+                                        {user?.countryName ? `${user.countryName}${user.cityName ? `, ${user.cityName}` : ''}` : 'Not specified'}
+                                    </p>
                                 </div>
                                 <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 sm:col-span-2">
                                     <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Account Permissions</p>
-                                    <p className="text-slate-600 text-sm">Full access to masters and dashboard tracking.</p>
+                                    <p className="text-slate-600 text-sm">
+                                        {user?.officeId === 1 
+                                            ? "Master Office access with full system oversight." 
+                                            : `Standard access restricted to ${user?.countryName || 'assigned country'} operations.`}
+                                    </p>
                                 </div>
                             </div>
                         </div>
