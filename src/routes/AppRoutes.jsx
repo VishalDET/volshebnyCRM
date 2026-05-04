@@ -129,9 +129,9 @@ const AppRoutes = () => {
 
                 {/* Queries */}
                 <Route path="/queries" element={<ProtectedRoute><QueryList /></ProtectedRoute>} />
-                <Route path="/queries/create" element={<ProtectedRoute><CreateQuery /></ProtectedRoute>} />
+                <Route path="/queries/create" element={<AdminRoute><CreateQuery /></AdminRoute>} />
                 <Route path="/queries/viewQuery/:id" element={<ProtectedRoute><ViewQuery /></ProtectedRoute>} />
-                <Route path="/queries/edit/:id" element={<ProtectedRoute><EditQuery /></ProtectedRoute>} />
+                <Route path="/queries/edit/:id" element={<AdminRoute><EditQuery /></AdminRoute>} />
                 <Route path="/queries/:id" element={<ProtectedRoute><ViewQuery /></ProtectedRoute>} />
                 <Route path="/queries/:id/confirm" element={<ProtectedRoute><ConfirmQuery /></ProtectedRoute>} />
                 <Route path="/queries/:id/details" element={<ProtectedRoute><DetailsForm /></ProtectedRoute>} />
@@ -155,12 +155,12 @@ const AppRoutes = () => {
                 <Route path="/invoices/client/:id/payment" element={<AdminRoute><AddClientPayment /></AdminRoute>} />
 
                 {/* Supplier Invoices */}
-                <Route path="/invoices/supplier" element={<AdminRoute><SupplierInvoiceList /></AdminRoute>} />
-                <Route path="/invoices/supplier/query/:queryId" element={<AdminRoute><SupplierInvoiceList /></AdminRoute>} />
-                <Route path="/invoices/supplier/create" element={<AdminRoute><CreateSupplierInvoice /></AdminRoute>} />
-                <Route path="/invoices/supplier/create/:queryId" element={<AdminRoute><CreateSupplierInvoice /></AdminRoute>} />
-                <Route path="/invoices/supplier/edit/:id" element={<AdminRoute><CreateSupplierInvoice /></AdminRoute>} />
-                <Route path="/invoices/supplier/:id/payment" element={<AdminRoute><AddSupplierPayment /></AdminRoute>} />
+                <Route path="/invoices/supplier" element={<ProtectedRoute><SupplierInvoiceList /></ProtectedRoute>} />
+                <Route path="/invoices/supplier/query/:queryId" element={<ProtectedRoute><SupplierInvoiceList /></ProtectedRoute>} />
+                <Route path="/invoices/supplier/create" element={<ProtectedRoute><CreateSupplierInvoice /></ProtectedRoute>} />
+                <Route path="/invoices/supplier/create/:queryId" element={<ProtectedRoute><CreateSupplierInvoice /></ProtectedRoute>} />
+                <Route path="/invoices/supplier/edit/:id" element={<ProtectedRoute><CreateSupplierInvoice /></ProtectedRoute>} />
+                <Route path="/invoices/supplier/:id/payment" element={<ProtectedRoute><AddSupplierPayment /></ProtectedRoute>} />
 
                 {/* Finance */}
                 <Route path="/finance" element={<AdminRoute><FinanceSummary /></AdminRoute>} />

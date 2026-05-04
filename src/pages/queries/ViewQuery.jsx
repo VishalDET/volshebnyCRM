@@ -10,13 +10,14 @@ import { manageSupplierInvoice } from '@api/supplierInvoice.api'
 import { manageClient, manageCity, manageCountry, manageSupplier, manageCurrency } from '@api/masters.api'
 
 import { toast } from 'react-hot-toast'
-
+import { useAuth } from '@hooks/useAuth'
 import { Calendar, User, Building, Users, Banknote, FileText, Briefcase, Printer, UserPlus, ClipboardPlus } from 'lucide-react'
 import Tooltip from '@components/Tooltip'
 
 const ViewQuery = () => {
     const { id } = useParams()
     const navigate = useNavigate()
+    const { user } = useAuth()
     const [query, setQuery] = useState(null)
     const [loading, setLoading] = useState(true)
 
@@ -106,10 +107,85 @@ const ViewQuery = () => {
 
                 await fetchCurrencies()
 
-                // Fetch confirmed query details if status is Confirmed
+                // Initialize confirmed query details from the main query data if status is Confirmed
                 if (queryData.queryStatus?.toLowerCase() === 'confirmed') {
-                    await fetchConfirmedQueryDetails(queryData.id)
+                    setConfirmedQuery(queryData)
                     await fetchSuppliers()
+                    
+                    // Fetch invoices for the overview bar summary
+                    try {
+                        const queryId = queryData.id
+                        const invPayload = {
+                            id: 0,
+                            queryId: parseInt(queryId),
+                            clientId: 0,
+                            invoiceNo: "string",
+                            invoiceDate: new Date().toISOString(),
+                            dueDate: new Date().toISOString(),
+                            currencyId: 0,
+                            isDomestic: true,
+                            totalAmount: 0,
+                            gst: 0,
+                            serviceCharge: 0,
+                            remittance: 0,
+                            rateOfExchange: 0,
+                            paymentMethod: "string",
+                            comments: "string",
+                            netAmount: 0,
+                            paymentStatus: "string",
+                            userId: 0,
+                            roleId: 0,
+                            isActive: true,
+                            isDeleted: false,
+                            createdBy: 0,
+                            modifiedBy: 0,
+                            spType: "R"
+                        }
+                        const invRes = await manageClientInvoice(invPayload)
+                        const invoices = invRes.data?.data || []
+                        queryData.totalInvoiced = invoices.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0)
+
+                        // Fetch supplier invoices for summary
+                        const supInvPayload = {
+                            id: 0,
+                            queryId: parseInt(queryId),
+                            supplierId: 0,
+                            serviceType: "string",
+                            supplierInvNo: "string",
+                            invoiceDate: new Date().toISOString(),
+                            dueDate: new Date().toISOString(),
+                            currencyId: 0,
+                            isDomestic: true,
+                            totalAmount: 0,
+                            gst: 0,
+                            serviceCharge: 0,
+                            bankName: "",
+                            bankDetails: "",
+                            remittance: 0,
+                            rateOfExchange: 0,
+                            paymentMethod: "string",
+                            comments: "string",
+                            netAmount: 0,
+                            paymentStatus: "string",
+                            userId: 0,
+                            roleId: 0,
+                            isActive: true,
+                            isDeleted: false,
+                            createdBy: 0,
+                            modifiedBy: 0,
+                            spType: "R"
+                        }
+                        const supInvRes = await manageSupplierInvoice(supInvPayload)
+                        const supInvoices = supInvRes.data?.data || []
+                        queryData.totalSupplierCost = supInvoices.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0)
+                        queryData.supplierInvoiceCount = supInvoices.length
+                    } catch (err) {
+                        console.error("Error calculating totals:", err)
+                        queryData.totalInvoiced = 0
+                        queryData.totalSupplierCost = 0
+                        queryData.supplierInvoiceCount = 0
+                    }
+                    setConfirmedQuery({ ...queryData })
                 }
             } else {
                 toast.error("Query not found")
@@ -171,138 +247,6 @@ const ViewQuery = () => {
         } catch (e) { console.error(e) }
     }
 
-    const fetchConfirmedQueryDetails = async (queryId) => {
-        try {
-            const payload = {
-                queryId: parseInt(queryId),
-                isVisaIncluded: true,
-                finalItinerary: "string",
-                miscellaneous: "string",
-                spType: "R",
-                tourLeads: [
-                    {
-                        leadName: "string",
-                        gender: "string",
-                        age: 0,
-                        visaStatus: "string"
-                    }
-                ],
-                services: [
-                    {
-                        countryId: 0,
-                        cityId: 0,
-                        serviceType: "string",
-                        serviceCharge: 0,
-                        currencyId: 0,
-                        supplierId: 0,
-                        supplierName: "string",
-                        serviceDate: new Date().toISOString(),
-                        description: "string",
-                        checkInDate: new Date().toISOString(),
-                        checkOutDate: new Date().toISOString(),
-                        pickupLocation: "string",
-                        dropLocation: "string",
-                        mealType: "string"
-                    }
-                ],
-                guides: [
-                    {
-                        supplierId: 0,
-                        supplierName: "string",
-                        guideName: "string",
-                        gender: "string",
-                        contactNumber: "string",
-                        language: "string"
-                    }
-                ]
-            }
-            const res = await manageConfirmQuery(payload)
-            console.log("Confirmed Query Response:", res.data)
-
-            // The API returns data directly in res.data.data, potentially as an array
-            const rawData = res.data?.data
-            const confirmedData = Array.isArray(rawData) ? rawData[0] : rawData
-
-            if (confirmedData) {
-                console.log("Setting confirmed query data:", confirmedData)
-                // Fetch invoices to sum up the invoiced amount for the overview bar
-                try {
-                    const invPayload = {
-                        id: 0,
-                        queryId: parseInt(queryId),
-                        clientId: 0,
-                        invoiceNo: "string",
-                        invoiceDate: new Date().toISOString(),
-                        dueDate: new Date().toISOString(),
-                        currencyId: 0,
-                        isDomestic: true,
-                        totalAmount: 0,
-                        gst: 0,
-                        serviceCharge: 0,
-                        remittance: 0,
-                        rateOfExchange: 0,
-                        paymentMethod: "string",
-                        comments: "string",
-                        netAmount: 0,
-                        paymentStatus: "string",
-                        userId: 0,
-                        roleId: 0,
-                        isActive: true,
-                        isDeleted: false,
-                        createdBy: 0,
-                        modifiedBy: 0,
-                        spType: "R"
-                    }
-                    const invRes = await manageClientInvoice(invPayload)
-                    const invoices = invRes.data?.data || []
-                    confirmedData.totalInvoiced = invoices.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0)
-
-                    // Fetch supplier invoices for summary
-                    const supInvPayload = {
-                        id: 0,
-                        queryId: parseInt(queryId),
-                        supplierId: 0,
-                        serviceType: "string",
-                        supplierInvNo: "string",
-                        invoiceDate: new Date().toISOString(),
-                        dueDate: new Date().toISOString(),
-                        currencyId: 0,
-                        isDomestic: true,
-                        totalAmount: 0,
-                        gst: 0,
-                        serviceCharge: 0,
-                        bankName: "",
-                        bankDetails: "",
-                        remittance: 0,
-                        rateOfExchange: 0,
-                        paymentMethod: "string",
-                        comments: "string",
-                        netAmount: 0,
-                        paymentStatus: "string",
-                        userId: 0,
-                        roleId: 0,
-                        isActive: true,
-                        isDeleted: false,
-                        createdBy: 0,
-                        modifiedBy: 0,
-                        spType: "R"
-                    }
-                    const supInvRes = await manageSupplierInvoice(supInvPayload)
-                    const supInvoices = supInvRes.data?.data || []
-                    confirmedData.totalSupplierCost = supInvoices.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0)
-                    confirmedData.supplierInvoiceCount = supInvoices.length
-                } catch (err) {
-                    console.error("Error calculating total invoiced/costs:", err)
-                    confirmedData.totalInvoiced = 0
-                    confirmedData.totalSupplierCost = 0
-                    confirmedData.supplierInvoiceCount = 0
-                }
-                setConfirmedQuery(confirmedData)
-            }
-        } catch (error) {
-            console.error("Error fetching confirmed query details:", error)
-        }
-    }
 
     const fetchSuppliers = async () => {
         try {
@@ -323,7 +267,8 @@ const ViewQuery = () => {
                 createdBy: 0,
                 modifiedBy: 0,
                 isActive: true,
-                spType: "R"
+                spType: "R",
+                officeCountryId: user?.officeId === 1 ? 0 : (user?.countryId || 0)
             }
             const res = await manageSupplier(payload)
             const data = res.data?.data || (Array.isArray(res.data) ? res.data : []) || []

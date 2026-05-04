@@ -7,12 +7,14 @@ import Select from '@components/Select'
 import { manageQuery, manageConfirmQuery } from '@api/query.api'
 import { toast } from 'react-hot-toast'
 import { manageClient, manageHandler, manageCountry, manageCity, manageSupplier, manageCurrency } from '@api/masters.api'
+import { useAuth } from '@hooks/useAuth'
 import Loader from '@components/Loader'
 import { Plus, Trash2, Calendar, User, Building, Users, Banknote, FileText, Briefcase } from 'lucide-react'
 
 const EditQuery = () => {
     const navigate = useNavigate()
     const { id } = useParams()
+    const { user } = useAuth()
     const [isLoading, setIsLoading] = useState(false)
 
     // Master Data States
@@ -61,12 +63,14 @@ const EditQuery = () => {
     const [isConfirmedDataLoading, setIsConfirmedDataLoading] = useState(false)
 
     useEffect(() => {
-        const init = async () => {
-            await fetchMasters()
-            fetchQueryDetails()
+        if (id && user) {
+            const init = async () => {
+                await fetchMasters()
+                fetchQueryDetails()
+            }
+            init()
         }
-        init()
-    }, [id])
+    }, [id, user])
 
     useEffect(() => {
         if (formData.travelDate && formData.returnDate) {
@@ -223,7 +227,8 @@ const EditQuery = () => {
                 createdBy: 0,
                 modifiedBy: 0,
                 isActive: true,
-                spType: "R"
+                spType: "R",
+                officeCountryId: user?.officeId === 1 ? 0 : (user?.countryId || 0)
             }
             const sRes = await manageSupplier(sPayload)
             const sData = sRes.data?.data || (Array.isArray(sRes.data) ? sRes.data : []) || []
@@ -244,12 +249,8 @@ const EditQuery = () => {
 
             // Fetch Currencies
             const currPayload = {
-                id: 0,
-                currencyName: "string",
-                currencySign: "string",
-                isActive: true,
-                isDeleted: false,
-                spType: "R"
+                spType: "R",
+                isActive: true
             }
             const currRes = await manageCurrency(currPayload)
             const currData = currRes.data?.data || (Array.isArray(currRes.data) ? currRes.data : []) || []
@@ -260,7 +261,8 @@ const EditQuery = () => {
                     currIds.add(c.id)
                     uniqueCurrencies.push({
                         value: String(c.id),
-                        label: `${c.currencyName} (${c.currencySign})`
+                        label: `${c.currencyName} (${c.currencySign})`,
+                        sign: c.currencySign
                     })
                 }
             })
@@ -508,7 +510,8 @@ const EditQuery = () => {
                 createdBy: 0,
                 modifiedBy: 0,
                 isActive: true,
-                spType: "R"
+                spType: "R",
+                officeCountryId: user?.officeId === 1 ? 0 : (user?.countryId || 0)
             }
             const res = await manageSupplier(payload)
             const data = res.data?.data || (Array.isArray(res.data) ? res.data : []) || []

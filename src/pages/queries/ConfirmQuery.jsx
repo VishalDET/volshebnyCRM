@@ -9,11 +9,13 @@ import { manageClient, manageHandler, manageSupplier, manageCurrency, manageCoun
 import { toast } from 'react-hot-toast'
 import Loader from '@components/Loader'
 import { Calendar, User, Building, Users, Banknote, FileText, Briefcase, Trash2, Import } from 'lucide-react'
+import { useAuth } from '@hooks/useAuth'
 import ImportTravellerModal from '@components/ImportTravellerModal'
 
 const ConfirmQuery = () => {
     const { id } = useParams()
     const navigate = useNavigate()
+    const { user } = useAuth()
     const [loading, setLoading] = useState(true)
     const [submitting, setSubmitting] = useState(false)
 
@@ -53,8 +55,10 @@ const ConfirmQuery = () => {
     };
 
     useEffect(() => {
-        fetchInitialData()
-    }, [id])
+        if (id && user) {
+            fetchInitialData()
+        }
+    }, [id, user])
 
     const fetchInitialData = async () => {
         setLoading(true)
@@ -116,6 +120,63 @@ const ConfirmQuery = () => {
             // 3. Fetch Location Maps
             fetchCountriesAndMap()
 
+            // Re-set query with potential extra names
+            setQuery({ ...qData })
+
+            // 6. Populate existing confirmed data if available
+            if (qData.tourLeads && qData.tourLeads.length > 0) {
+                setTourLeads(qData.tourLeads.map(tl => ({
+                    leadName: tl.leadName || '',
+                    gender: tl.gender || '',
+                    age: tl.age || '',
+                    passportNumber: tl.passportNumber || '',
+                    visaStatus: tl.visaStatus || ''
+                })))
+            }
+
+            if (qData.services && qData.services.length > 0) {
+                const grouped = {}
+                qData.services.forEach(srv => {
+                    // Find which destination index this service belongs to
+                    const dIdx = qData.destinations?.findIndex(d => 
+                        d.countryId === srv.countryId && d.cityId === srv.cityId
+                    )
+                    const destIndex = dIdx !== -1 ? dIdx : 0
+                    
+                    if (!grouped[destIndex]) grouped[destIndex] = []
+                    grouped[destIndex].push({
+                        ...srv,
+                        serviceCharge: srv.serviceCharge || '',
+                        serviceDate: srv.serviceDate ? srv.serviceDate.substring(0, 16) : '',
+                        checkInDate: srv.checkInDate ? srv.checkInDate.substring(0, 16) : '',
+                        checkOutDate: srv.checkOutDate ? srv.checkOutDate.substring(0, 16) : ''
+                    })
+                })
+                setServicesByDest(grouped)
+            }
+
+            if (qData.guides && qData.guides.length > 0) {
+                setGuides(qData.guides.map(g => ({
+                    ...g,
+                    supplierId: g.supplierId || '',
+                    supplierName: g.supplierName || ''
+                })))
+            }
+
+            setGeneralInfo({
+                isVisaIncluded: !!qData.isVisaIncluded,
+                finalItinerary: qData.finalItinerary || '',
+                miscellaneous: qData.miscellaneous || ''
+            })
+
+            // 5. Fetch Location Names (Countries)
+            const locRes = await manageCountry({ spType: "R" })
+            if (locRes.data?.data) {
+                const map = {}
+                locRes.data.data.forEach(c => map[`country_${c.countryId}`] = c.countryName)
+                setLocationNames(map)
+            }
+
             // 4. Fetch All Suppliers (for global use)
             const sPayload = {
                 id: 0,
@@ -133,7 +194,8 @@ const ConfirmQuery = () => {
                 createdBy: 0,
                 modifiedBy: 0,
                 isActive: true,
-                spType: "R"
+                spType: "R",
+                officeCountryId: user?.officeId === 1 ? 0 : (user?.countryId || 0)
             }
             const sRes = await manageSupplier(sPayload)
             const sData = sRes.data?.data || (Array.isArray(sRes.data) ? sRes.data : []) || []
@@ -161,79 +223,6 @@ const ConfirmQuery = () => {
                     destSuppliers[i] = await fetchSuppliersForDestination(dest.countryId, dest.cityId)
                 }
                 setSuppliersByDest(destSuppliers)
-            }
-
-            // 3. Fetch Currencies
-            await fetchCurrencies()
-
-            // 4. Fetch additional details for display (Client Name, Handler Name)
-            // Note: manageQuery might return names, but if not we fetch.
-            // Based on CreateQuery/ViewQuery, let's fetch lists or specific if needed.
-            // For now, let's trust we can get names if we fetch lists or if manageQuery has them.
-            // Actually, ViewQuery uses fetchClientDetails(id). Let's do that if clientName missing.
-
-            if (qData.clientId && !qData.clientName) {
-                const clPayload = {
-                    id: qData.clientId,
-                    firstName: "string",
-                    lastName: "string",
-                    mobileNo: "string",
-                    companyName: "string",
-                    emailId: "string",
-                    isGSTIN: true,
-                    gstNumber: "string",
-                    gstCertificate: "string",
-                    address: "string",
-                    landmark: "string",
-                    countryId: 0,
-                    stateId: 0,
-                    cityId: 0,
-                    pincode: "string",
-                    contacts: [],
-                    createdBy: 0,
-                    modifiedBy: 0,
-                    isActive: true,
-                    spType: "R"
-                }
-                const clRes = await manageClient(clPayload)
-                const clData = clRes.data?.data || (Array.isArray(clRes.data) ? clRes.data[0] : clRes.data)
-                // If specific fetch returns array of 1 or filtered list, handle it.
-                // If API ignores ID and returns all, we might need to find by ID. 
-                // But usually R with ID returns that item. Let's assume it returns items.
-                const actualClient = Array.isArray(clData) ? clData.find(c => c.id === qData.clientId) || clData[0] : clData
-
-                if (actualClient) qData.clientName = actualClient.companyName
-            }
-
-            if (qData.handlerId && !qData.handlerName) {
-                const hlPayload = {
-                    id: qData.handlerId,
-                    handlerId: "string",
-                    handlerName: "string",
-                    emailId: "string",
-                    mobileNo: "string",
-                    roleId: 0,
-                    createdBy: 0,
-                    modifiedBy: 0,
-                    isActive: true,
-                    spType: "R"
-                }
-                const hlRes = await manageHandler(hlPayload)
-                const hlData = hlRes.data?.data || (Array.isArray(hlRes.data) ? hlRes.data[0] : hlRes.data)
-                const actualHandler = Array.isArray(hlData) ? hlData.find(h => h.id === qData.handlerId) || hlData[0] : hlData
-
-                if (actualHandler) qData.handlerName = actualHandler.handlerName
-            }
-
-            // Re-set query with potential extra names
-            setQuery({ ...qData })
-
-            // 5. Fetch Location Names (Countries)
-            const locRes = await manageCountry({ spType: "R" })
-            if (locRes.data?.data) {
-                const map = {}
-                locRes.data.data.forEach(c => map[`country_${c.countryId}`] = c.countryName)
-                setLocationNames(map)
             }
 
         } catch (error) {
@@ -338,7 +327,8 @@ const ConfirmQuery = () => {
                 createdBy: 0,
                 modifiedBy: 0,
                 isActive: true,
-                spType: "R"
+                spType: "R",
+                officeCountryId: user?.officeId === 1 ? 0 : (user?.countryId || 0)
             }
             const res = await manageSupplier(payload)
             const data = res.data?.data || (Array.isArray(res.data) ? res.data : []) || []

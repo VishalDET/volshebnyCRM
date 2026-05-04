@@ -9,11 +9,13 @@ import { manageSupplier } from '@api/masters.api'
 import { Eye, Pencil, Plus } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import Loader from '@components/Loader'
+import { useAuth } from '@hooks/useAuth'
 import SupplierInvoiceViewModal from '@components/SupplierInvoiceViewModal'
 
 const SupplierInvoiceList = () => {
     const { queryId } = useParams()
     const navigate = useNavigate()
+    const { user } = useAuth()
 
     // State
     const [loading, setLoading] = useState(true)
@@ -25,9 +27,10 @@ const SupplierInvoiceList = () => {
 
     useEffect(() => {
         fetchAllData()
-    }, [queryId])
+    }, [queryId, user])
 
     const fetchAllData = async () => {
+        if (!user) return
         setLoading(true)
         try {
             await Promise.all([
@@ -48,8 +51,8 @@ const SupplierInvoiceList = () => {
             id: 0,
             queryId: queryId ? parseInt(queryId) : 0,
             supplierId: 0,
-            serviceType: "string",
-            supplierInvNo: "string",
+            serviceType: "",
+            supplierInvNo: "",
             invoiceDate: new Date().toISOString(),
             dueDate: new Date().toISOString(),
             currencyId: 0,
@@ -59,18 +62,19 @@ const SupplierInvoiceList = () => {
             serviceCharge: 0,
             remittance: 0,
             rateOfExchange: 0,
-            paymentMethod: "string",
-            comments: "string",
+            paymentMethod: "",
+            comments: "",
             netAmount: 0,
-            paymentStatus: "string",
-            bankName: "string",
-            bankDetails: "string",
-            userId: 0,
-            roleId: 0,
+            paymentStatus: "",
+            bankName: "",
+            bankDetails: "",
+            userId: user.userId || 0,
+            roleId: user.roleId || 0,
             isActive: true,
             isDeleted: false,
             createdBy: 0,
             modifiedBy: 0,
+            officeCountryId: user.officeId === 1 ? 0 : (user.countryId || 0),
             spType: "R"
         }
         const res = await manageSupplierInvoice(payload)
@@ -120,23 +124,16 @@ const SupplierInvoiceList = () => {
                 isGSTIN: true,
                 gstNumber: "string",
                 address: "string",
-                countryId: 0,
+                countryId: user.officeId === 1 ? 0 : (user.countryId || 0),
                 stateId: 0,
                 cityId: 0,
-                roleId: 0,
+                roleId: user.roleId || 0,
                 createdBy: 0,
                 modifiedBy: 0,
                 isActive: true,
                 spType: "R",
-                contacts: [{
-                    contactId: 0,
-                    supplierId: 0,
-                    contactName: "string",
-                    contactNumber: "string",
-                    contactEmail: "string",
-                    spType: "string"
-                }],
-                serviceIds: [0]
+                contacts: [],
+                serviceIds: []
             }
             const res = await manageSupplier(payload)
             setSuppliers(res.data?.data || [])

@@ -42,13 +42,13 @@ const MainLayout = ({ children }) => {
                 ...(user?.officeId === 1 ? [{ name: 'Service Bookings', href: '/service-bookings', icon: Ticket }] : []),
             ]
         },
-        ...(user?.officeId === 1 ? [{
+        {
             title: 'BILLING',
             items: [
-                { name: 'Client Invoices', href: '/invoices/client', icon: Receipt },
+                ...(user?.officeId === 1 ? [{ name: 'Client Invoices', href: '/invoices/client', icon: Receipt }] : []),
                 { name: 'Supplier Payments', href: '/invoices/supplier', icon: FileSignature },
             ]
-        }] : []),
+        },
         {
             title: 'ADMIN',
             items: [

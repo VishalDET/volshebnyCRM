@@ -3,9 +3,10 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import PageHeader from '@components/PageHeader'
 import Button from '@components/Button'
 import Table from '@components/Table'
-import { Eye, Pencil, Trash2, CheckCircle } from 'lucide-react'
+import { Eye, Pencil, Trash2, CheckCircle, Settings } from 'lucide-react'
 import ConfirmModal from '@components/ConfirmModal'
 import { manageQuery } from '@api/query.api'
+import { manageCountry } from '@api/masters.api'
 import { toast } from 'react-hot-toast'
 import { useAuth } from '@hooks/useAuth'
 
@@ -24,13 +25,32 @@ const QueryList = () => {
 
     const [queries, setQueries] = useState([])
     const [isLoading, setIsLoading] = useState(false)
-    const [filters, setFilters] = useState({ status: urlStatus || '' })
+    const [countries, setCountries] = useState([])
+    const [filters, setFilters] = useState({ 
+        status: urlStatus || '',
+        countryId: '' 
+    })
 
     useEffect(() => {
         if (urlStatus) {
-            setFilters({ status: urlStatus })
+            setFilters(prev => ({ ...prev, status: urlStatus }))
         }
     }, [urlStatus])
+
+    useEffect(() => {
+        if (user?.officeId === 1) {
+            fetchCountries()
+        }
+    }, [user])
+
+    const fetchCountries = async () => {
+        try {
+            const res = await manageCountry({ spType: 'R' })
+            setCountries(res.data?.data || [])
+        } catch (error) {
+            console.error("Error fetching countries:", error)
+        }
+    }
 
     const [deleteId, setDeleteId] = useState(null)
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
@@ -44,12 +64,23 @@ const QueryList = () => {
         
         setIsLoading(true)
         try {
+            // Determine the officeCountryId to pass
+            // For HQ (officeId 1), use the selected filter countryId or 0 for all
+            // For others, use their own countryId
+            const officeCountryId = user.officeId === 1 
+                ? (filters.countryId ? parseInt(filters.countryId) : 0) 
+                : (user.countryId || 0)
+
+            // Determine the status filter
+            // HQ can see all, branch offices only see Confirmed
+            const queryStatus = user.officeId === 1 ? filters.status : "Confirmed"
+
             const payload = {
                 id: 0,
                 queryNo: "",
                 handlerId: 0,
                 clientId: 0,
-                originCountryId: user.officeId === 1 ? 0 : (user.countryId || 0),
+                originCountryId: 0, // Using officeCountryId for filtering as per user request
                 originCityId: 0,
                 travelDate: null,
                 returnDate: null,
@@ -58,7 +89,7 @@ const QueryList = () => {
                 children: 0,
                 infants: 0,
                 budget: 0,
-                queryStatus: filters.status || "",
+                queryStatus: queryStatus || "",
                 specialRequirements: "",
                 createdBy: 0,
                 modifiedBy: 0,
@@ -66,7 +97,8 @@ const QueryList = () => {
                 spType: "R",
                 destinations: [],
                 childAges: [],
-                officeId: user.officeId === 1 ? 0 : (user.officeId || 0)
+                officeId: user.officeId === 1 ? 0 : (user.officeId || 0),
+                officeCountryId: officeCountryId
             }
 
             const response = await manageQuery(payload)
@@ -130,25 +162,36 @@ const QueryList = () => {
     }
 
     const columns = [
-        { key: 'queryNo', label: 'Query No', width: '15%' },
+        {
+            key: 'queryNo',
+            label: 'Query No',
+            width: '15%',
+            render: (val, row) => val || row.queryId || row.id || '-'
+        },
         {
             key: 'clientName',
             label: 'Client',
             width: '20%',
-            render: (_, row) => row.clientName || `Client #${row.clientId}`
+            render: (_, row) => row.clientName || row.tourLeads?.[0]?.leadName || `Client #${row.clientId || '-'}`
         },
         {
             key: 'travelDate',
             label: 'Travel Date',
             width: '15%',
-            render: (value) => formatDate(value)
+            render: (_, row) => {
+                const date = row.travelDate || row.services?.[0]?.serviceDate || row.services?.[0]?.checkInDate;
+                return formatDate(date);
+            }
         },
         { key: 'totalDays', label: 'Days', width: '10%' },
         {
             key: 'pax',
             label: 'Pax',
             width: '10%',
-            render: (_, row) => `${(row.adults || 0) + (row.children || 0)}`
+            render: (_, row) => {
+                if (row.adults !== undefined) return (row.adults || 0) + (row.children || 0);
+                return row.tourLeads?.length || 0;
+            }
         },
         {
             key: 'queryStatus',
@@ -167,40 +210,54 @@ const QueryList = () => {
             key: 'actions',
             label: 'Actions',
             width: '15%',
-            render: (_, row) => (
-                <div className="flex gap-2">
-                    <button
-                        onClick={() => navigate(`/queries/viewQuery/${row.id}`)}
-                        className="text-gray-600 hover:text-gray-800 p-1 rounded hover:bg-gray-50 transition-colors"
-                        title="View"
-                    >
-                        <Eye className="w-4 h-4" />
-                    </button>
-                    <button
-                        onClick={() => navigate(`/queries/edit/${row.id}`)}
-                        className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 transition-colors"
-                        title="Edit"
-                    >
-                        <Pencil className="w-4 h-4" />
-                    </button>
-                    <button
-                        onClick={() => handleDeleteClick(row.id)}
-                        className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 transition-colors"
-                        title="Delete"
-                    >
-                        <Trash2 className="w-4 h-4" />
-                    </button>
-                    {(!row.queryStatus || row.queryStatus === 'Pending') && (
+            render: (_, row) => {
+                const id = row.queryId || row.id;
+                return (
+                    <div className="flex gap-2">
                         <button
-                            onClick={() => navigate(`/queries/${row.id}/confirm`)}
-                            className="text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-50 transition-colors"
-                            title="Confirm Query"
+                            onClick={() => navigate(`/queries/viewQuery/${id}`)}
+                            className="text-gray-600 hover:text-gray-800 p-1 rounded hover:bg-gray-50 transition-colors"
+                            title="View"
                         >
-                            <CheckCircle className="w-4 h-4" />
+                            <Eye className="w-4 h-4" />
                         </button>
-                    )}
-                </div>
-            )
+                        <button
+                            onClick={() => navigate(`/queries/${id}/confirm`)}
+                            className="text-orange-600 hover:text-orange-800 p-1 rounded hover:bg-orange-50 transition-colors"
+                            title="Manage Services"
+                        >
+                            <Settings className="w-4 h-4" />
+                        </button>
+                        {user?.officeId === 1 && (
+                            <>
+                                <button
+                                    onClick={() => navigate(`/queries/edit/${id}`)}
+                                    className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 transition-colors"
+                                    title="Edit"
+                                >
+                                    <Pencil className="w-4 h-4" />
+                                </button>
+                                <button
+                                    onClick={() => handleDeleteClick(id)}
+                                    className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 transition-colors"
+                                    title="Delete"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
+                                {(!row.queryStatus || row.queryStatus === 'Pending') && (
+                                    <button
+                                        onClick={() => navigate(`/queries/${id}/confirm`)}
+                                        className="text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-50 transition-colors"
+                                        title="Confirm Query"
+                                    >
+                                        <CheckCircle className="w-4 h-4" />
+                                    </button>
+                                )}
+                            </>
+                        )}
+                    </div>
+                )
+            }
         },
     ]
 
@@ -214,24 +271,49 @@ const QueryList = () => {
                     { label: 'Queries' }
                 ]}
                 actions={
-                    <Button variant="primary" onClick={() => navigate('/queries/create')}>
-                        + Create Query
-                    </Button>
+                    user?.officeId === 1 && (
+                        <Button variant="primary" onClick={() => navigate('/queries/create')}>
+                            + Create Query
+                        </Button>
+                    )
                 }
             />
 
             <div className="card mt-4">
                 <div className="mb-4 flex gap-4 pt-0 pb-4 border-b">
-                    <select
-                        value={filters.status}
-                        onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                        className="input w-48"
-                    >
-                        <option value="">All Status</option>
-                        <option value="Pending">Pending</option>
-                        <option value="Confirmed">Confirmed</option>
-                        <option value="Cancelled">Cancelled</option>
-                    </select>
+                    {user?.officeId === 1 ? (
+                        <select
+                            value={filters.status}
+                            onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+                            className="input w-48"
+                        >
+                            <option value="">All Status</option>
+                            <option value="Pending">Pending</option>
+                            <option value="Confirmed">Confirmed</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
+                    ) : (
+                        <div className="flex items-center px-4 bg-green-50 rounded-lg border border-green-200 text-sm font-medium text-green-700">
+                            Status: Confirmed Only
+                        </div>
+                    )}
+
+                    {user?.officeId === 1 ? (
+                        <select
+                            value={filters.countryId}
+                            onChange={(e) => setFilters({ ...filters, countryId: e.target.value })}
+                            className="input w-48"
+                        >
+                            <option value="">All Countries</option>
+                            {countries.map(c => (
+                                <option key={c.id} value={c.id}>{c.countryName}</option>
+                            ))}
+                        </select>
+                    ) : (
+                        <div className="flex items-center px-4 bg-blue-50 rounded-lg border border-blue-200 text-sm font-medium text-blue-700">
+                            Office: {user?.countryName || user?.countryId || 'Your Country'}
+                        </div>
+                    )}
                 </div>
 
                 <Table

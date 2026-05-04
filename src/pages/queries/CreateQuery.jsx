@@ -8,9 +8,11 @@ import { toast } from 'react-hot-toast'
 import { CircleDollarSign, TrendingUp } from 'lucide-react'
 import { manageQuery } from '@api/query.api'
 import { manageClient, manageHandler, manageCountry, manageCity, manageCurrency } from '@api/masters.api'
+import { useAuth } from '@hooks/useAuth'
 
 const CreateQuery = () => {
     const navigate = useNavigate()
+    const { user } = useAuth()
     const [isLoading, setIsLoading] = useState(false)
 
     // Master Data States
@@ -46,9 +48,11 @@ const CreateQuery = () => {
     const [formData, setFormData] = useState(initialFormState)
 
     useEffect(() => {
-        fetchMasters()
-        generateQueryNumber()
-    }, [])
+        if (user) {
+            fetchMasters()
+            generateQueryNumber()
+        }
+    }, [user])
 
     const generateQueryNumber = async () => {
         try {
@@ -245,7 +249,6 @@ const CreateQuery = () => {
 
             // Fetch Currencies
             const currencyPayload = {
-                id: 0,
                 spType: "R",
                 isActive: true
             }
