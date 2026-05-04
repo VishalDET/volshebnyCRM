@@ -38,7 +38,7 @@ const QueryList = () => {
     }, [urlStatus])
 
     useEffect(() => {
-        if (user?.officeId === 1) {
+        if (user?.officeId === 1 || import.meta.env.DEV) {
             fetchCountries()
         }
     }, [user])
@@ -67,13 +67,13 @@ const QueryList = () => {
             // Determine the officeCountryId to pass
             // For HQ (officeId 1), use the selected filter countryId or 0 for all
             // For others, use their own countryId
-            const officeCountryId = user.officeId === 1 
+            const officeCountryId = (user.officeId === 1 || import.meta.env.DEV)
                 ? (filters.countryId ? parseInt(filters.countryId) : 0) 
                 : (user.countryId || 0)
 
             // Determine the status filter
             // HQ can see all, branch offices only see Confirmed
-            const queryStatus = user.officeId === 1 ? filters.status : "Confirmed"
+            const queryStatus = (user.officeId === 1 || import.meta.env.DEV) ? filters.status : "Confirmed"
 
             const payload = {
                 id: 0,
@@ -97,7 +97,7 @@ const QueryList = () => {
                 spType: "R",
                 destinations: [],
                 childAges: [],
-                officeId: user.officeId === 1 ? 0 : (user.officeId || 0),
+                officeId: (user.officeId === 1 || import.meta.env.DEV) ? 0 : (user.officeId || 0),
                 officeCountryId: officeCountryId
             }
 
@@ -228,7 +228,7 @@ const QueryList = () => {
                         >
                             <Settings className="w-4 h-4" />
                         </button>
-                        {user?.officeId === 1 && (
+                        {(user?.officeId === 1 || import.meta.env.DEV) && (
                             <>
                                 <button
                                     onClick={() => navigate(`/queries/edit/${id}`)}
@@ -271,7 +271,7 @@ const QueryList = () => {
                     { label: 'Queries' }
                 ]}
                 actions={
-                    user?.officeId === 1 && (
+                    (user?.officeId === 1 || import.meta.env.DEV) && (
                         <Button variant="primary" onClick={() => navigate('/queries/create')}>
                             + Create Query
                         </Button>

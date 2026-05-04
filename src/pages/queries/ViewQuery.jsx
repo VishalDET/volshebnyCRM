@@ -268,7 +268,7 @@ const ViewQuery = () => {
                 modifiedBy: 0,
                 isActive: true,
                 spType: "R",
-                officeCountryId: user?.officeId === 1 ? 0 : (user?.countryId || 0)
+                officeCountryId: (user?.officeId === 1 || import.meta.env.DEV) ? 0 : (user?.countryId || 0)
             }
             const res = await manageSupplier(payload)
             const data = res.data?.data || (Array.isArray(res.data) ? res.data : []) || []

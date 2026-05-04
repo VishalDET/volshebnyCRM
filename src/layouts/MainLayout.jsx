@@ -39,20 +39,20 @@ const MainLayout = ({ children }) => {
             title: 'OPERATIONS',
             items: [
                 { name: 'Queries', href: '/queries', icon: FileText },
-                ...(user?.officeId === 1 ? [{ name: 'Service Bookings', href: '/service-bookings', icon: Ticket }] : []),
+                ...((user?.officeId === 1 || import.meta.env.DEV) ? [{ name: 'Service Bookings', href: '/service-bookings', icon: Ticket }] : []),
             ]
         },
         {
             title: 'BILLING',
             items: [
-                ...(user?.officeId === 1 ? [{ name: 'Client Invoices', href: '/invoices/client', icon: Receipt }] : []),
+                ...((user?.officeId === 1 || import.meta.env.DEV) ? [{ name: 'Client Invoices', href: '/invoices/client', icon: Receipt }] : []),
                 { name: 'Supplier Payments', href: '/invoices/supplier', icon: FileSignature },
             ]
         },
         {
             title: 'ADMIN',
             items: [
-                ...(user?.officeId === 1 ? [{ name: 'Finance', href: '/finance', icon: Landmark }] : []),
+                ...((user?.officeId === 1 || import.meta.env.DEV) ? [{ name: 'Finance', href: '/finance', icon: Landmark }] : []),
                 {
                     name: 'Masters',
                     href: '/masters',

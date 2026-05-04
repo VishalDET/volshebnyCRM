@@ -82,8 +82,10 @@ const MastersDashboard = () => {
         }
     ]
 
+    const isHQ = user?.officeId === 1 || import.meta.env.DEV === true
+
     const masterModules = allModules.filter(module => {
-        if (user?.officeId === 1) return true
+        if (isHQ) return true
         return ['Destination Master', 'Service Types', 'Supplier Master'].includes(module.title)
     })
 

@@ -163,7 +163,7 @@ const CreateSupplierInvoice = () => {
                 queryNo: "",
                 handlerId: 0,
                 clientId: 0,
-                originCountryId: user?.officeId === 1 ? 0 : (user?.countryId || 0),
+                originCountryId: (user?.officeId === 1 || import.meta.env.DEV) ? 0 : (user?.countryId || 0),
                 originCityId: 0,
                 travelDate: null,
                 returnDate: null,
@@ -180,7 +180,7 @@ const CreateSupplierInvoice = () => {
                 spType: "R",
                 destinations: [],
                 childAges: [],
-                officeId: user?.officeId === 1 ? 0 : (user?.officeId || 0)
+                officeId: (user?.officeId === 1 || import.meta.env.DEV) ? 0 : (user?.officeId || 0)
             }
             const qRes = await manageQuery(qPayload)
             const qList = (qRes.data?.data || []).map(q => ({

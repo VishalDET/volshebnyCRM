@@ -18,8 +18,10 @@ const MastersNavigation = () => {
         { name: 'Users', path: '/masters/users' },
     ]
 
+    const isHQ = user?.officeId === 1 || import.meta.env.DEV === true
+
     const tabs = allTabs.filter(tab => {
-        if (user?.officeId === 1) return true
+        if (isHQ) return true
         return ['Destinations', 'Service Types', 'Suppliers'].includes(tab.name)
     })
 

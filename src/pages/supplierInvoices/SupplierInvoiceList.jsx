@@ -74,7 +74,7 @@ const SupplierInvoiceList = () => {
             isDeleted: false,
             createdBy: 0,
             modifiedBy: 0,
-            officeCountryId: user.officeId === 1 ? 0 : (user.countryId || 0),
+            officeCountryId: (user.officeId === 1 || import.meta.env.DEV) ? 0 : (user.countryId || 0),
             spType: "R"
         }
         const res = await manageSupplierInvoice(payload)
@@ -124,7 +124,7 @@ const SupplierInvoiceList = () => {
                 isGSTIN: true,
                 gstNumber: "string",
                 address: "string",
-                countryId: user.officeId === 1 ? 0 : (user.countryId || 0),
+                countryId: (user.officeId === 1 || import.meta.env.DEV) ? 0 : (user.countryId || 0),
                 stateId: 0,
                 cityId: 0,
                 roleId: user.roleId || 0,

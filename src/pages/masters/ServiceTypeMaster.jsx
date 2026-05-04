@@ -33,7 +33,7 @@ const ServiceTypeMaster = () => {
                 serviceId: 0,
                 serviceName: "string",
                 description: "string",
-                countryId: user?.officeId === 1 ? 0 : (user?.countryId || 0),
+                countryId: (user?.officeId === 1 || import.meta.env.DEV) ? 0 : (user?.countryId || 0),
                 isActive: true,
                 isDeleted: false,
                 roleId: 0,

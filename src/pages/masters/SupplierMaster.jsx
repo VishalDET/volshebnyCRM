@@ -174,7 +174,7 @@ const SupplierMaster = () => {
         try {
             // HQ (officeId 1) can see all or filter by country
             // Other offices are locked to their assigned countryId
-            const effectiveCountryId = user?.officeId === 1 
+            const effectiveCountryId = (user?.officeId === 1 || import.meta.env.DEV) 
                 ? (parseInt(filterCountryId) || 0) 
                 : (user?.countryId || 0)
 
@@ -511,7 +511,7 @@ const SupplierMaster = () => {
 
 
             <div className="card">
-                {user?.officeId === 1 && (
+                {(user?.officeId === 1 || import.meta.env.DEV) && (
                     <div className="flex justify-end pt-0 p-4 mb-2 bg-white rounded-lg shadow-none">
                         <div className="w-64">
                             <SearchableSelect
