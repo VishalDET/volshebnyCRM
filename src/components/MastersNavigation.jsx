@@ -18,7 +18,7 @@ const MastersNavigation = () => {
         { name: 'Users', path: '/masters/users' },
     ]
 
-    const isHQ = user?.officeId === 1 || import.meta.env.DEV === true
+    const isHQ = user?.officeId === 1
 
     const tabs = allTabs.filter(tab => {
         if (isHQ) return true

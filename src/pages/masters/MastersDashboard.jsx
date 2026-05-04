@@ -82,7 +82,7 @@ const MastersDashboard = () => {
         }
     ]
 
-    const isHQ = user?.officeId === 1 || import.meta.env.DEV === true
+    const isHQ = user?.officeId === 1
 
     const masterModules = allModules.filter(module => {
         if (isHQ) return true

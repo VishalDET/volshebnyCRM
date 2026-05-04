@@ -69,7 +69,7 @@ const Dashboard = () => {
         try {
             setIsRightColLoading(true)
             const [qRes, cRes, sRes] = await Promise.all([
-                manageQuery({ id: 0, queryNo: "", handlerId: 0, clientId: 0, originCountryId: (user.officeId === 1 || import.meta.env.DEV) ? 0 : (user.countryId || 0), originCityId: 0, travelDate: null, returnDate: null, totalDays: 0, adults: 0, children: 0, infants: 0, budget: 0, queryStatus: "", specialRequirements: "", createdBy: 0, modifiedBy: 0, isActive: true, spType: "R", destinations: [], childAges: [], officeId: (user.officeId === 1 || import.meta.env.DEV) ? 0 : (user.officeId || 0) }),
+                manageQuery({ id: 0, queryNo: "", handlerId: 0, clientId: 0, originCountryId: user.officeId === 1 ? 0 : (user.countryId || 0), originCityId: 0, travelDate: null, returnDate: null, totalDays: 0, adults: 0, children: 0, infants: 0, budget: 0, queryStatus: "", specialRequirements: "", createdBy: 0, modifiedBy: 0, isActive: true, spType: "R", destinations: [], childAges: [], officeId: user.officeId === 1 ? 0 : (user.officeId || 0) }),
                 manageClientInvoice({ id: 0, queryId: 0, clientId: 0, invoiceNo: "string", invoiceDate: new Date().toISOString(), dueDate: new Date().toISOString(), currencyId: 0, isDomestic: true, totalAmount: 0, gst: 0, serviceCharge: 0, remittance: 0, rateOfExchange: 0, paymentMethod: "string", comments: "string", netAmount: 0, paymentStatus: "string", userId: 0, roleId: 0, isActive: true, isDeleted: false, spType: "R" }),
                 manageSupplierInvoice({ id: 0, queryId: 0, supplierId: 0, serviceType: "", supplierInvNo: "", invoiceDate: new Date().toISOString(), dueDate: new Date().toISOString(), currencyId: 0, isDomestic: true, totalAmount: 0, gst: 0, serviceCharge: 0, bankName: "", bankDetails: "", remittance: 0, rateOfExchange: 0, paymentMethod: "", comments: "", netAmount: 0, paymentStatus: "", userId: 0, roleId: 0, isActive: true, isDeleted: false, spType: "R" })
             ])
@@ -233,10 +233,10 @@ const Dashboard = () => {
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <PageHeader
                         title="Dashboard"
-                        subtitle={(user?.officeId === 1 || import.meta.env.DEV) ? "VolshebnyCRM Performance Overview" : "Workspace Overview"}
+                        subtitle={user?.officeId === 1 ? "VolshebnyCRM Performance Overview" : "Workspace Overview"}
                         className="mb-0"
                     />
-                    {(user?.officeId === 1 || import.meta.env.DEV) && (
+                    {user?.officeId === 1 && (
                         <div className="flex items-center gap-3 bg-white p-2 rounded-xl border border-secondary-200 shadow-sm">
                             <Select
                                 className="w-32 border-0 bg-transparent"
@@ -279,7 +279,7 @@ const Dashboard = () => {
                 ) : (
                     <>
                         {/* Financial Stats - HQ ONLY */}
-                        {(user?.officeId === 1 || import.meta.env.DEV) && (
+                        {user?.officeId === 1 && (
                             <div className="
   grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 card
   rounded-2xl
@@ -315,7 +315,7 @@ const Dashboard = () => {
 
                         <div className="grid grid-cols-1 lg:grid-cols-5 gap-0  bg-gradient-to-br from-primary-600 to-primary-900 rounded-2xl shadow-xl overflow-hidden">
                             {/* Query Counter */}
-                            <div className={`${(user?.officeId === 1 || import.meta.env.DEV) ? 'lg:col-span-3' : 'lg:col-span-5'} p-0 border-0 text-white`}>
+                            <div className={`${user?.officeId === 1 ? 'lg:col-span-3' : 'lg:col-span-5'} p-0 border-0 text-white`}>
                                 <div className="p-4 border-b border-white/10 flex items-center justify-between">
                                     <div>
                                         <h3 className="text-lg font-semibold">Query Pipeline</h3>
@@ -342,7 +342,7 @@ const Dashboard = () => {
                             </div>
 
                             {/* Invoice Summary - HQ ONLY */}
-                            {(user?.officeId === 1 || import.meta.env.DEV) && (
+                            {user?.officeId === 1 && (
                                 <div className="card lg:col-span-2 rounded-2xl border-0 bg-gradient-to-br from-primary-600 to-primary-900 text-white shadow-xl relative overflow-hidden">
                                     <div className="relative z-10 h-full flex flex-col justify-between">
                                         <div className="space-y-4">
@@ -381,7 +381,7 @@ const Dashboard = () => {
                             )}
                         </div>
 
-                        {(user?.officeId === 1 || import.meta.env.DEV) ? (
+                        {user?.officeId === 1 ? (
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                 {/* Top Clients by Revenue */}
                                 <div className="rounded-2xl bg-white border border-secondary-100 shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden">

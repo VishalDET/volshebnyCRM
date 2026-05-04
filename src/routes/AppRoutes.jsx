@@ -89,7 +89,7 @@ const AdminRoute = ({ children }) => {
         return <Navigate to="/login" replace />
     }
 
-    if (user?.officeId !== 1 && !import.meta.env.DEV) {
+    if (user?.officeId !== 1) {
         return <Navigate to="/dashboard" replace />
     }
 

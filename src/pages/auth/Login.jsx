@@ -78,7 +78,7 @@ const Login = () => {
             email: 'dev@volshebnyCRM.com',
             emailId: 'dev@volshebnyCRM.com',
             roleId: 1,        // 1 = SuperAdmin (sees Finance tab, all offices)
-            officeId: 0,
+            officeId: 1,
             countryId: 0,
         }
         const mockToken = 'dev-bypass-token'
