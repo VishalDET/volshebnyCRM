@@ -305,8 +305,8 @@ const QueryList = () => {
                             className="input w-48"
                         >
                             <option value="">All Countries</option>
-                            {countries.map(c => (
-                                <option key={c.id} value={c.id}>{c.countryName}</option>
+                            {countries.map((c, idx) => (
+                                <option key={c.id || c.countryId || idx} value={c.id || c.countryId}>{c.countryName}</option>
                             ))}
                         </select>
                     ) : (

@@ -109,15 +109,37 @@ const ViewQuery = () => {
 
                 // Initialize confirmed query details from the main query data if status is Confirmed
                 if (queryData.queryStatus?.toLowerCase() === 'confirmed') {
-                    setConfirmedQuery(queryData)
+                    let confirmData = { ...queryData }
+                    try {
+                        const confirmPayload = {
+                            queryId: parseInt(id),
+                            isVisaIncluded: true,
+                            finalItinerary: "",
+                            miscellaneous: "",
+                            spType: "E",
+                            userId: 0,
+                            roleId: 0,
+                            officeCountryId: 0,
+                            tourLeads: [],
+                            services: [],
+                            guides: []
+                        }
+                        const confirmRes = await manageConfirmQuery(confirmPayload)
+                        if (confirmRes.data?.data) {
+                            confirmData = { ...confirmData, ...confirmRes.data.data }
+                        }
+                    } catch (err) {
+                        console.error("Error fetching confirm query details:", err)
+                    }
+
                     await fetchSuppliers()
                     
                     // Fetch invoices for the overview bar summary
                     try {
-                        const queryId = queryData.id
+                        const qId = parseInt(id)
                         const invPayload = {
                             id: 0,
-                            queryId: parseInt(queryId),
+                            queryId: qId,
                             clientId: 0,
                             invoiceNo: "string",
                             invoiceDate: new Date().toISOString(),
@@ -143,12 +165,12 @@ const ViewQuery = () => {
                         }
                         const invRes = await manageClientInvoice(invPayload)
                         const invoices = invRes.data?.data || []
-                        queryData.totalInvoiced = invoices.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0)
+                        confirmData.totalInvoiced = invoices.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0)
 
                         // Fetch supplier invoices for summary
                         const supInvPayload = {
                             id: 0,
-                            queryId: parseInt(queryId),
+                            queryId: qId,
                             supplierId: 0,
                             serviceType: "string",
                             supplierInvNo: "string",
@@ -177,15 +199,15 @@ const ViewQuery = () => {
                         }
                         const supInvRes = await manageSupplierInvoice(supInvPayload)
                         const supInvoices = supInvRes.data?.data || []
-                        queryData.totalSupplierCost = supInvoices.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0)
-                        queryData.supplierInvoiceCount = supInvoices.length
+                        confirmData.totalSupplierCost = supInvoices.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0)
+                        confirmData.supplierInvoiceCount = supInvoices.length
                     } catch (err) {
                         console.error("Error calculating totals:", err)
-                        queryData.totalInvoiced = 0
-                        queryData.totalSupplierCost = 0
-                        queryData.supplierInvoiceCount = 0
+                        confirmData.totalInvoiced = 0
+                        confirmData.totalSupplierCost = 0
+                        confirmData.supplierInvoiceCount = 0
                     }
-                    setConfirmedQuery({ ...queryData })
+                    setConfirmedQuery(confirmData)
                 }
             } else {
                 toast.error("Query not found")
@@ -292,7 +314,18 @@ const ViewQuery = () => {
 
     const fetchCurrencies = async () => {
         try {
-            const res = await manageCurrency({ spType: "R", isActive: true })
+            const payload = {
+                id: 0,
+                roleId: 0,
+                createdBy: 0,
+                modifiedBy: 0,
+                currencyName: "string",
+                currencySign: "string",
+                isActive: true,
+                isDeleted: false,
+                spType: "E"
+            }
+            const res = await manageCurrency(payload)
             const data = res.data?.data || (Array.isArray(res.data) ? res.data : []) || []
             setCurrencies(data)
         } catch (error) {
@@ -551,7 +584,7 @@ const ViewQuery = () => {
                                                     <div className="space-y-3">
                                                         {destServices.map((srv, sIdx) => {
                                                             const supplier = suppliers.find(s => s.value === srv.supplierId)
-                                                            const currency = currencies.find(c => c.value === srv.currencyId)
+                                                            const currency = currencies.find(c => c.id === srv.currencyId)
 
                                                             return (
                                                                 <div key={sIdx} className="bg-white p-3 rounded border">
@@ -570,7 +603,7 @@ const ViewQuery = () => {
                                                                         </div>
                                                                         <div>
                                                                             <dt className="text-xs text-secondary-600">Currency</dt>
-                                                                            <dd className="font-medium text-sm">{currency?.label || '-'}</dd>
+                                                                            <dd className="font-medium text-sm">{currency?.currencyName || '-'}</dd>
                                                                         </div>
                                                                     </div>
 
