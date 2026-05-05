@@ -520,7 +520,7 @@ const EditQuery = () => {
             const sIds = new Set()
             data.forEach(s => {
                 const matchesCountry = !countryId || s.countryId === countryId
-                const matchesCity = !cityId || s.cityId === cityId
+                const matchesCity = !cityId || !s.cityId || s.cityId === cityId
 
                 if (matchesCountry && matchesCity && !sIds.has(s.id)) {
                     sIds.add(s.id)
@@ -1091,7 +1091,7 @@ const EditQuery = () => {
                                                                     label="Supplier"
                                                                     value={service.supplierId}
                                                                     onChange={(e) => updateService(dIdx, sIdx, 'supplierId', e.target.value)}
-                                                                    options={suppliersByDest[dIdx] || []}
+                                                                    options={(suppliersByDest[dIdx] && suppliersByDest[dIdx].length > 0) ? suppliersByDest[dIdx] : suppliers}
                                                                 />
                                                                 <Input
                                                                     label="Charge"

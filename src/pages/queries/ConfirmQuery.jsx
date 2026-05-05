@@ -119,6 +119,7 @@ const ConfirmQuery = () => {
 
             // 3. Fetch Location Maps
             fetchCountriesAndMap()
+            fetchCurrencies()
 
             // Re-set query with potential extra names
             setQuery({ ...qData })
@@ -339,7 +340,7 @@ const ConfirmQuery = () => {
             data.forEach(s => {
                 // Match by country and optionally city
                 const matchesCountry = !countryId || s.countryId === countryId
-                const matchesCity = !cityId || s.cityId === cityId
+                const matchesCity = !cityId || !s.cityId || s.cityId === cityId
 
                 if (matchesCountry && matchesCity && !sIds.has(s.id)) {
                     sIds.add(s.id)
@@ -770,7 +771,7 @@ const ConfirmQuery = () => {
                                             />
                                             <Select label="Supplier" value={srv.supplierId}
                                                 onChange={e => updateService(dIdx, sIdx, 'supplierId', e.target.value)}
-                                                options={suppliersByDest[dIdx] || suppliers}
+                                                options={(suppliersByDest[dIdx] && suppliersByDest[dIdx].length > 0) ? suppliersByDest[dIdx] : suppliers}
                                                 placeholder="Select Supplier"
                                             />
                                             <Select label="Currency" value={srv.currencyId}
