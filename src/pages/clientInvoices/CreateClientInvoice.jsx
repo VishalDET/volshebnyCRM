@@ -256,7 +256,7 @@ const CreateClientInvoice = () => {
                 childAges: []
             }
             const res = await manageQuery(payload)
-            const qData = Array.isArray(res.data?.data) ? res.data.data[0] : res.data?.data
+            const qData = res.data?.data?.[0] || res.data?.[0] || res.data?.data
             console.log("Fetched Query Details for Invoice:", qData)
             if (qData) {
                 setQuery(qData)
@@ -310,8 +310,8 @@ const CreateClientInvoice = () => {
                 queryId: parseInt(qId),
                 clientId: 0,
                 invoiceNo: "string",
-                invoiceDate: new Date().toISOString(),
-                dueDate: new Date().toISOString(),
+                invoiceDate: null,
+                dueDate: null,
                 currencyId: 0,
                 isDomestic: true,
                 totalAmount: 0,
@@ -342,7 +342,7 @@ const CreateClientInvoice = () => {
 
     const currentInvoiceAmount = parseFloat(formData.totalAmount) || 0
     const totalInvoiced = existingInvoices.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0)
-    const queryBudget = query?.budget || 0
+    const queryBudget = query?.totalBudget || query?.budget || 0
     const totalProjected = totalInvoiced + currentInvoiceAmount
     const remainingBalance = queryBudget - totalProjected
 
@@ -481,7 +481,9 @@ const CreateClientInvoice = () => {
                                     value={paymentMethod}
                                     options={[
                                         { value: 'Bank Account in India', label: 'Bank Account in India' },
-                                        { value: 'Bank account overseas', label: 'Bank Account Overseas' }
+                                        { value: 'Bank account overseas', label: 'Bank Account Overseas' },
+                                        { value: 'Cash Received in India', label: 'Cash Received in India' },
+                                        { value: 'Cash Received Overseas', label: 'Cash Received Overseas' }
                                     ]}
                                     onChange={(e) => setPaymentMethod(e.target.value)}
                                 />
@@ -673,7 +675,7 @@ const CreateClientInvoice = () => {
                         </div>
                         <div className="pt-4">
                             <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Client Information</h4>
-                            <p className="font-bold text-gray-900">{client?.firstName} {client?.lastName}</p>
+                            <p className="font-bold text-gray-900">{client?.companyName}</p>
                             <p className="text-sm text-gray-600">{client?.emailId}</p>
                             <p className="text-sm text-gray-600">{client?.mobileNo}</p>
                         </div>

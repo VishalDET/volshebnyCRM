@@ -610,7 +610,7 @@ const CreateSupplierInvoice = () => {
                             />
                             <Input
                                 type="number"
-                                label="GST"
+                                label="GST/VAT"
                                 name="gst"
                                 value={formData.gst}
                                 onChange={handleInputChange}

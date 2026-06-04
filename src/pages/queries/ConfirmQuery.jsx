@@ -29,7 +29,7 @@ const ConfirmQuery = () => {
 
     // Form State
     const [tourLeads, setTourLeads] = useState([
-        { leadName: '', gender: '', age: '', passportNumber: '', visaStatus: '' }
+        { leadName: '', gender: '', age: '', passportNumber: '', visaStatus: '', contactNumber: '' }
     ])
     const [isImportModalOpen, setIsImportModalOpen] = useState(false)
 
@@ -121,25 +121,52 @@ const ConfirmQuery = () => {
             fetchCountriesAndMap()
             fetchCurrencies()
 
+            // Fetch confirm details if they exist
+            let confirmData = null;
+            try {
+                const confirmPayload = {
+                    queryId: parseInt(id),
+                    isVisaIncluded: true,
+                    finalItinerary: "",
+                    miscellaneous: "",
+                    spType: "E",
+                    userId: 0,
+                    roleId: 0,
+                    officeCountryId: 0,
+                    tourLeads: [],
+                    services: [],
+                    guides: []
+                };
+                const confirmRes = await manageConfirmQuery(confirmPayload);
+                if (confirmRes.data?.data) {
+                    confirmData = confirmRes.data.data;
+                }
+            } catch (err) {
+                console.error("Error fetching confirm query details:", err);
+            }
+
+            const mergedData = confirmData ? { ...qData, ...confirmData } : qData;
+
             // Re-set query with potential extra names
-            setQuery({ ...qData })
+            setQuery(mergedData)
 
             // 6. Populate existing confirmed data if available
-            if (qData.tourLeads && qData.tourLeads.length > 0) {
-                setTourLeads(qData.tourLeads.map(tl => ({
+            if (mergedData.tourLeads && mergedData.tourLeads.length > 0) {
+                setTourLeads(mergedData.tourLeads.map(tl => ({
                     leadName: tl.leadName || '',
                     gender: tl.gender || '',
                     age: tl.age || '',
                     passportNumber: tl.passportNumber || '',
-                    visaStatus: tl.visaStatus || ''
+                    visaStatus: tl.visaStatus || '',
+                    contactNumber: tl.contactNumber || ''
                 })))
             }
 
-            if (qData.services && qData.services.length > 0) {
+            if (mergedData.services && mergedData.services.length > 0) {
                 const grouped = {}
-                qData.services.forEach(srv => {
+                mergedData.services.forEach(srv => {
                     // Find which destination index this service belongs to
-                    const dIdx = qData.destinations?.findIndex(d => 
+                    const dIdx = mergedData.destinations?.findIndex(d => 
                         d.countryId === srv.countryId && d.cityId === srv.cityId
                     )
                     const destIndex = dIdx !== -1 ? dIdx : 0
@@ -150,14 +177,15 @@ const ConfirmQuery = () => {
                         serviceCharge: srv.serviceCharge || '',
                         serviceDate: srv.serviceDate ? srv.serviceDate.substring(0, 16) : '',
                         checkInDate: srv.checkInDate ? srv.checkInDate.substring(0, 16) : '',
-                        checkOutDate: srv.checkOutDate ? srv.checkOutDate.substring(0, 16) : ''
+                        checkOutDate: srv.checkOutDate ? srv.checkOutDate.substring(0, 16) : '',
+                        mealType: srv.mealTypes ? srv.mealTypes.join(',') : (srv.mealType || '')
                     })
                 })
                 setServicesByDest(grouped)
             }
 
-            if (qData.guides && qData.guides.length > 0) {
-                setGuides(qData.guides.map(g => ({
+            if (mergedData.guides && mergedData.guides.length > 0) {
+                setGuides(mergedData.guides.map(g => ({
                     ...g,
                     supplierId: g.supplierId || '',
                     supplierName: g.supplierName || ''
@@ -165,9 +193,9 @@ const ConfirmQuery = () => {
             }
 
             setGeneralInfo({
-                isVisaIncluded: !!qData.isVisaIncluded,
-                finalItinerary: qData.finalItinerary || '',
-                miscellaneous: qData.miscellaneous || ''
+                isVisaIncluded: !!mergedData.isVisaIncluded,
+                finalItinerary: mergedData.finalItinerary || '',
+                miscellaneous: mergedData.miscellaneous || ''
             })
 
             // 5. Fetch Location Names (Countries)
@@ -365,7 +393,7 @@ const ConfirmQuery = () => {
             toast.error(`Cannot add more than ${totalPax} travellers`)
             return
         }
-        setTourLeads([...tourLeads, { leadName: '', gender: '', age: '', passportNumber: '', visaStatus: '' }])
+        setTourLeads([...tourLeads, { leadName: '', gender: '', age: '', passportNumber: '', visaStatus: '', contactNumber: '' }])
     }
     const removeTourLead = (index) => {
         if (tourLeads.length > 1) {
@@ -509,9 +537,16 @@ const ConfirmQuery = () => {
                     gender: tl.gender || "",
                     age: parseInt(tl.age) || 0,
                     passportNumber: tl.passportNumber || "",
-                    visaStatus: tl.visaStatus || ""
+                    visaStatus: tl.visaStatus || "",
+                    contactNumber: tl.contactNumber || ""
                 })),
-                services: flatServices.filter(s => s.serviceType && s.supplierId),
+                services: flatServices.filter(s => s.serviceType && s.supplierId).map(s => {
+                    const { mealType, ...rest } = s;
+                    return {
+                        ...rest,
+                        mealTypes: mealType ? mealType.split(',').map(m => m.trim()).filter(Boolean) : []
+                    };
+                }),
                 guides: guides.filter(g => g.supplierId).map(g => ({
                     supplierId: parseInt(g.supplierId) || 0,
                     supplierName: g.supplierName || "",
@@ -725,12 +760,20 @@ const ConfirmQuery = () => {
                                         options={[{ value: 'Male', label: 'Male' }, { value: 'Female', label: 'Female' }, { value: 'Other', label: 'Other' }]}
                                     />
                                 </div>
-                                <div className="col-span-12 md:col-span-2">
+                                <div className="col-span-12 md:col-span-3">
                                     <Input
                                         type="number"
                                         label="Age"
                                         value={lead.age}
                                         onChange={e => updateTourLead(idx, 'age', e.target.value)}
+                                    />
+                                </div>
+                                <div className="col-span-12 md:col-span-3">
+                                    <Input
+                                        label="Contact Number"
+                                        placeholder="Enter Contact Number"
+                                        value={lead.contactNumber}
+                                        onChange={e => updateTourLead(idx, 'contactNumber', e.target.value)}
                                     />
                                 </div>
                             </div>
@@ -801,8 +844,38 @@ const ConfirmQuery = () => {
                                             {srv.serviceType === 'Meal' && (
                                                 <>
                                                     <Input type="datetime-local" label="Date" value={srv.serviceDate} onChange={e => updateService(dIdx, sIdx, 'serviceDate', e.target.value)} />
-                                                    <Select label="Meal Type" value={srv.mealType} onChange={e => updateService(dIdx, sIdx, 'mealType', e.target.value)}
-                                                        options={[{ value: 'BF', label: 'Breakfast' }, { value: 'LN', label: 'Lunch' }, { value: 'DN', label: 'Dinner' }]} />
+                                                    <div className="flex flex-col gap-1 md:col-span-2">
+                                                        <label className="block text-sm font-medium text-secondary-700">Meal Types</label>
+                                                        <div className="flex flex-wrap items-center gap-4 mt-2">
+                                                            {[
+                                                                { id: 'BF', label: 'Breakfast' },
+                                                                { id: 'LN', label: 'Lunch' },
+                                                                { id: 'DN', label: 'Dinner' },
+                                                                { id: 'HT', label: 'Hi-Tea' }
+                                                            ].map(meal => {
+                                                                const isChecked = (srv.mealType || '').includes(meal.id);
+                                                                return (
+                                                                    <label key={meal.id} className="flex items-center gap-1.5 text-sm cursor-pointer text-secondary-700 hover:text-primary-600 transition-colors">
+                                                                        <input 
+                                                                            type="checkbox" 
+                                                                            checked={isChecked}
+                                                                            onChange={(e) => {
+                                                                                let currentMeals = (srv.mealType || '').split(',').map(m => m.trim()).filter(Boolean);
+                                                                                if (e.target.checked) {
+                                                                                    if (!currentMeals.includes(meal.id)) currentMeals.push(meal.id);
+                                                                                } else {
+                                                                                    currentMeals = currentMeals.filter(m => m !== meal.id);
+                                                                                }
+                                                                                updateService(dIdx, sIdx, 'mealType', currentMeals.join(','));
+                                                                            }}
+                                                                            className="rounded border-secondary-300 text-primary-600 focus:ring-primary-500 w-4 h-4 cursor-pointer"
+                                                                        />
+                                                                        {meal.label}
+                                                                    </label>
+                                                                )
+                                                            })}
+                                                        </div>
+                                                    </div>
                                                 </>
                                             )}
                                             {(srv.serviceType === 'Sightseeing' || srv.serviceType === 'Others') && (

@@ -74,8 +74,7 @@ export const getAllUsers = async () => {
 export const getAllRoles = async () => {
     return await manageRole({
         roleId: 0,
-        spType: 'R',
-        isActive: true
+        spType: 'R'
     })
 }
 

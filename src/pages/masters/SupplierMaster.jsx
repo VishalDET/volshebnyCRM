@@ -240,9 +240,35 @@ const SupplierMaster = () => {
         try {
             const payload = {
                 id: row.id,
-                createdBy: user?.id || 0,
+                fullName: "string",
+                companyContactNo: "string",
+                companyEmailId: "string",
+                companyName: "string",
+                gstCertificate: "string",
+                isGSTIN: true,
+                gstNumber: "string",
+                address: "string",
+                countryId: 0,
+                stateId: 0,
+                cityId: 0,
+                cityIds: [0],
                 roleId: user?.roleId || 0,
-                spType: "E"
+                createdBy: user?.id || 0,
+                modifiedBy: 0,
+                isActive: true,
+                officeCountryId: 0,
+                spType: "E",
+                contacts: [
+                    {
+                        contactId: 0,
+                        supplierId: 0,
+                        contactName: "string",
+                        contactNumber: "string",
+                        contactEmail: "string",
+                        spType: "string"
+                    }
+                ],
+                serviceIds: [0]
             }
             const response = await manageSupplier(payload)
 
@@ -273,9 +299,35 @@ const SupplierMaster = () => {
             // Fetch detailed supplier info
             const payload = {
                 id: row.id,
-                createdBy: user?.id || 0,
+                fullName: "string",
+                companyContactNo: "string",
+                companyEmailId: "string",
+                companyName: "string",
+                gstCertificate: "string",
+                isGSTIN: true,
+                gstNumber: "string",
+                address: "string",
+                countryId: 0,
+                stateId: 0,
+                cityId: 0,
+                cityIds: [0],
                 roleId: user?.roleId || 0,
-                spType: "E"
+                createdBy: user?.id || 0,
+                modifiedBy: 0,
+                isActive: true,
+                officeCountryId: 0,
+                spType: "E",
+                contacts: [
+                    {
+                        contactId: 0,
+                        supplierId: 0,
+                        contactName: "string",
+                        contactNumber: "string",
+                        contactEmail: "string",
+                        spType: "string"
+                    }
+                ],
+                serviceIds: [0]
             }
             const response = await manageSupplier(payload)
             console.log("EDIT FETCH RES:", response)

@@ -105,11 +105,10 @@ const ViewQuery = () => {
                 // Fetch location names (updates the map with full data)
                 fetchCountriesAndMap(queryData)
 
-                await fetchCurrencies()
-
+                let confirmData = null;
                 // Initialize confirmed query details from the main query data if status is Confirmed
                 if (queryData.queryStatus?.toLowerCase() === 'confirmed') {
-                    let confirmData = { ...queryData }
+                    confirmData = { ...queryData }
                     try {
                         const confirmPayload = {
                             queryId: parseInt(id),
@@ -133,7 +132,19 @@ const ViewQuery = () => {
                     }
 
                     await fetchSuppliers()
-                    
+                }
+
+                const cIds = new Set();
+                if (queryData.currencyId) cIds.add(queryData.currencyId);
+                if (confirmData?.services) {
+                    confirmData.services.forEach(s => {
+                        if (s.currencyId) cIds.add(s.currencyId);
+                    });
+                }
+                await fetchCurrencies(Array.from(cIds));
+
+                if (confirmData) {
+
                     // Fetch invoices for the overview bar summary
                     try {
                         const qId = parseInt(id)
@@ -312,21 +323,28 @@ const ViewQuery = () => {
         }
     }
 
-    const fetchCurrencies = async () => {
+    const fetchCurrencies = async (currencyIds) => {
         try {
-            const payload = {
-                id: 0,
-                roleId: 0,
-                createdBy: 0,
-                modifiedBy: 0,
-                currencyName: "string",
-                currencySign: "string",
-                isActive: true,
-                isDeleted: false,
-                spType: "E"
-            }
-            const res = await manageCurrency(payload)
-            const data = res.data?.data || (Array.isArray(res.data) ? res.data : []) || []
+            if (!currencyIds || currencyIds.length === 0) return;
+            const promises = currencyIds.map(id => {
+                const payload = {
+                    id: parseInt(id),
+                    roleId: 0,
+                    createdBy: 0,
+                    modifiedBy: 0,
+                    currencyName: "string",
+                    currencySign: "string",
+                    isActive: true,
+                    isDeleted: false,
+                    spType: "E"
+                };
+                return manageCurrency(payload);
+            });
+            const results = await Promise.all(promises);
+            const data = results.map(res => {
+                const arr = res.data?.data || (Array.isArray(res.data) ? res.data : []);
+                return arr.length > 0 ? arr[0] : null;
+            }).filter(Boolean);
             setCurrencies(data)
         } catch (error) {
             console.error("Error fetching currencies:", error)
@@ -334,7 +352,7 @@ const ViewQuery = () => {
     }
 
     const getCurrencySign = () => {
-        const currency = currencies.find(c => c.id === query?.currencyId)
+        const currency = currencies.find(c => String(c.id) === String(query?.currencyId))
         return currency ? currency.currencySign : '$'
     }
 
@@ -499,10 +517,10 @@ const ViewQuery = () => {
                             </div>
                         </dl>
 
-                        {query.specialRequirements && (
-                            <div className="mt-4 pt-4">
+                        {(query.specialRequirements || query.specialRequirement) && (
+                            <div className="mt-4 pt-4 border-t col-span-full">
                                 <dt className="text-sm text-secondary-600 mb-1">Special Requirements</dt>
-                                <dd className="font-medium text-sm bg-gray-50 p-3 rounded">{query.specialRequirements}</dd>
+                                <dd className="font-medium text-sm bg-gray-50 p-3 rounded">{query.specialRequirements || query.specialRequirement}</dd>
                             </div>
                         )}
                     </div>
@@ -584,7 +602,7 @@ const ViewQuery = () => {
                                                     <div className="space-y-3">
                                                         {destServices.map((srv, sIdx) => {
                                                             const supplier = suppliers.find(s => s.value === srv.supplierId)
-                                                            const currency = currencies.find(c => c.id === srv.currencyId)
+                                                            const currency = currencies.find(c => String(c.id) === String(srv.currencyId))
 
                                                             return (
                                                                 <div key={sIdx} className="bg-white p-3 rounded border">
@@ -603,7 +621,7 @@ const ViewQuery = () => {
                                                                         </div>
                                                                         <div>
                                                                             <dt className="text-xs text-secondary-600">Currency</dt>
-                                                                            <dd className="font-medium text-sm">{currency?.currencyName || '-'}</dd>
+                                                                            <dd className="font-medium text-sm">{currency?.currencySign || '-'}</dd>
                                                                         </div>
                                                                     </div>
 
@@ -638,7 +656,7 @@ const ViewQuery = () => {
                                                                         </div>
                                                                     )}
 
-                                                                    {srv.serviceType === 'Restaurants' && (
+                                                                    {(srv.serviceType === 'Meal' || srv.serviceType === 'Restaurants') && (
                                                                         <div className="grid grid-cols-2 gap-3 mt-2 pt-2 border-t">
                                                                             <div>
                                                                                 <dt className="text-xs text-secondary-600">Date</dt>
@@ -646,7 +664,12 @@ const ViewQuery = () => {
                                                                             </div>
                                                                             <div>
                                                                                 <dt className="text-xs text-secondary-600">Meal Type</dt>
-                                                                                <dd className="text-sm">{srv.mealType || '-'}</dd>
+                                                                                <dd className="text-sm">
+                                                                                    {(srv.mealTypes || (srv.mealType ? srv.mealType.split(',') : [])).map(m => m.trim()).filter(Boolean).map(m => {
+                                                                                        const map = { 'BF': 'Breakfast', 'LN': 'Lunch', 'DN': 'Dinner', 'HT': 'Hi-Tea' };
+                                                                                        return map[m] || m;
+                                                                                    }).join(', ') || '-'}
+                                                                                </dd>
                                                                             </div>
                                                                         </div>
                                                                     )}
@@ -706,7 +729,7 @@ const ViewQuery = () => {
                             )}
 
                             {/* Final Itinerary */}
-                            {(confirmedQuery.finalItinerary || confirmedQuery.isVisaIncluded !== undefined) && (
+                            {(confirmedQuery.finalItinerary || confirmedQuery.miscellaneous || confirmedQuery.isVisaIncluded !== undefined) && (
                                 <div className="card">
                                     <h3 className="text-lg font-semibold mb-4 border-b pb-2">Final Details</h3>
                                     {confirmedQuery.isVisaIncluded !== undefined && (
@@ -720,9 +743,15 @@ const ViewQuery = () => {
                                         </div>
                                     )}
                                     {confirmedQuery.finalItinerary && (
-                                        <div>
+                                        <div className="mb-4">
                                             <dt className="text-sm font-medium text-secondary-600 mb-2">Final Itinerary</dt>
                                             <dd className="text-sm bg-gray-50 p-4 rounded whitespace-pre-wrap">{confirmedQuery.finalItinerary}</dd>
+                                        </div>
+                                    )}
+                                    {confirmedQuery.miscellaneous && (
+                                        <div>
+                                            <dt className="text-sm font-medium text-secondary-600 mb-2">Miscellaneous Info</dt>
+                                            <dd className="text-sm bg-gray-50 p-4 rounded whitespace-pre-wrap">{confirmedQuery.miscellaneous}</dd>
                                         </div>
                                     )}
                                 </div>

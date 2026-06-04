@@ -4,9 +4,10 @@ import PageHeader from '@components/PageHeader'
 import Button from '@components/Button'
 import Table from '@components/Table'
 import { Eye, Pencil, Trash2, Printer } from 'lucide-react'
-import { getAllServiceBookings, getServiceBookingById } from '@api/booking.api'
+import { getAllServiceBookings, getServiceBookingById, manageMiscService } from '@api/booking.api'
 import { toast } from 'react-hot-toast'
 import ServiceBookingViewModal from '@components/ServiceBookingViewModal'
+import ConfirmModal from '@components/ConfirmModal'
 
 const ServiceBookingList = () => {
     const navigate = useNavigate()
@@ -15,6 +16,9 @@ const ServiceBookingList = () => {
     const [viewModalOpen, setViewModalOpen] = useState(false)
     const [selectedBooking, setSelectedBooking] = useState(null)
     const [isFetchingDetail, setIsFetchingDetail] = useState(false)
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+    const [deleteId, setDeleteId] = useState(null)
+    const [isDeleting, setIsDeleting] = useState(false)
 
     useEffect(() => {
         fetchBookings()
@@ -49,6 +53,42 @@ const ServiceBookingList = () => {
             toast.error("Error loading booking details")
         } finally {
             setIsFetchingDetail(false)
+        }
+    }
+
+    const handleDeleteClick = (id) => {
+        setDeleteId(id)
+        setIsDeleteModalOpen(true)
+    }
+
+    const confirmDelete = async () => {
+        if (!deleteId) return
+        
+        const booking = bookings.find(b => b.serviceId === deleteId)
+        
+        setIsDeleting(true)
+        try {
+            // Using ManageMiscService with spType: "D" for deletion
+            // Including bookingId as requested
+            const response = await manageMiscService({
+                serviceId: deleteId,
+                bookingId: booking?.bookingId || "",
+                spType: "D"
+            })
+            
+            if (response.data?.success) {
+                toast.success("Booking deleted successfully")
+                fetchBookings()
+            } else {
+                toast.error(response.data?.message || "Failed to delete booking")
+            }
+        } catch (error) {
+            console.error("Error deleting service booking:", error)
+            toast.error("An error occurred while deleting the booking")
+        } finally {
+            setIsDeleting(false)
+            setIsDeleteModalOpen(false)
+            setDeleteId(null)
         }
     }
 
@@ -117,7 +157,8 @@ const ServiceBookingList = () => {
                     <button
                         className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 transition-colors"
                         title="Delete"
-                        onClick={() => toast.error("Delete functionality not yet implemented")}
+                        onClick={() => handleDeleteClick(row.serviceId)}
+                        disabled={isDeleting}
                     >
                         <Trash2 className="w-4 h-4" />
                     </button>
@@ -155,6 +196,15 @@ const ServiceBookingList = () => {
                 isOpen={viewModalOpen}
                 onClose={() => setViewModalOpen(false)}
                 booking={selectedBooking}
+            />
+
+            <ConfirmModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                onConfirm={confirmDelete}
+                title="Delete Service Booking"
+                message="Are you sure you want to delete this service booking? This action cannot be undone."
+                isLoading={isDeleting}
             />
         </div>
     )

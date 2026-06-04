@@ -360,6 +360,7 @@ const EditQuery = () => {
                     queryNo: queryData.queryNo || '',
                     handlerId: queryData.handlerId || '',
                     clientId: queryData.clientId || '',
+                    currencyId: queryData.currencyId || '',
                     clientName: queryData.clientName || '',
                     originCountryId: queryData.originCountryId || '',
                     originCityId: queryData.originCityId || '',
@@ -387,7 +388,7 @@ const EditQuery = () => {
                     adultBudget: queryData.adultBudget || 0,
                     childBudget: queryData.childBudget || 0,
                     queryStatus: queryData.queryStatus || 'Pending',
-                    specialRequirements: queryData.specialRequirements || ''
+                    specialRequirements: queryData.specialRequirements || queryData.specialRequirement || ''
                 })
 
                 // If confirmed, fetch confirmation details
@@ -443,7 +444,7 @@ const EditQuery = () => {
                 isVisaIncluded: true,
                 finalItinerary: "string",
                 miscellaneous: "string",
-                spType: "R", // Read
+                spType: "E", // Extract/Edit
                 tourLeads: [],
                 services: [],
                 guides: []
@@ -453,12 +454,12 @@ const EditQuery = () => {
             const confirmedData = Array.isArray(rawData) ? rawData[0] : rawData
 
             if (confirmedData) {
-                setTourLeads(confirmedData.tourLeads?.length > 0 ? confirmedData.tourLeads : [{ leadName: '', gender: '', age: '', visaStatus: '' }])
+                setTourLeads(confirmedData.tourLeads?.length > 0 ? confirmedData.tourLeads : [{ leadName: '', gender: '', age: '', visaStatus: '', passportNumber: '', contactNumber: '' }])
                 setGuides(confirmedData.guides?.length > 0 ? confirmedData.guides : [{ supplierId: '', supplierName: '', guideName: '', gender: '', contactNumber: '', language: '' }])
                 setGeneralInfo({
                     isVisaIncluded: confirmedData.isVisaIncluded || false,
                     finalItinerary: confirmedData.finalItinerary || '',
-                    miscellaneous: ''
+                    miscellaneous: confirmedData.miscellaneous || ''
                 })
 
                 // Group services by destination index
@@ -472,7 +473,8 @@ const EditQuery = () => {
                             ...srv,
                             serviceDate: srv.serviceDate ? srv.serviceDate.split('T')[0] : '',
                             checkInDate: srv.checkInDate ? srv.checkInDate.split('T')[0] : '',
-                            checkOutDate: srv.checkOutDate ? srv.checkOutDate.split('T')[0] : ''
+                            checkOutDate: srv.checkOutDate ? srv.checkOutDate.split('T')[0] : '',
+                            mealType: srv.mealTypes ? srv.mealTypes.join(',') : (srv.mealType || '')
                         }))
                         grouped[dIdx] = destServices
                         // Also fetch suppliers for each destination for the selects
@@ -537,7 +539,7 @@ const EditQuery = () => {
     }
 
     // --- Tour Leads Handlers ---
-    const addTourLead = () => setTourLeads([...tourLeads, { leadName: '', gender: '', age: '', visaStatus: '' }])
+    const addTourLead = () => setTourLeads([...tourLeads, { leadName: '', gender: '', age: '', visaStatus: '', passportNumber: '', contactNumber: '' }])
     const removeTourLead = (index) => tourLeads.length > 1 && setTourLeads(tourLeads.filter((_, i) => i !== index))
     const updateTourLead = (index, field, value) => {
         const updated = [...tourLeads]
@@ -659,6 +661,7 @@ const EditQuery = () => {
                 queryNo: formData.queryNo,
                 handlerId: parseInt(formData.handlerId),
                 clientId: parseInt(formData.clientId),
+                currencyId: parseInt(formData.currencyId) || 0,
                 originCountryId: parseInt(formData.originCountryId) || 0,
                 originCityId: parseInt(formData.originCityId) || 0,
                 travelDate: formData.travelDate ? new Date(formData.travelDate).toISOString() : null,
@@ -718,7 +721,7 @@ const EditQuery = () => {
                                 checkOutDate: srv.checkOutDate ? new Date(srv.checkOutDate).toISOString() : null,
                                 pickupLocation: srv.pickupLocation || "",
                                 dropLocation: srv.dropLocation || "",
-                                mealType: srv.mealType || ""
+                                mealTypes: srv.mealType ? srv.mealType.split(',').map(m => m.trim()).filter(Boolean) : []
                             })
                         })
                     })
@@ -727,12 +730,15 @@ const EditQuery = () => {
                         queryId: parseInt(id),
                         isVisaIncluded: generalInfo.isVisaIncluded,
                         finalItinerary: generalInfo.finalItinerary || "",
+                        miscellaneous: generalInfo.miscellaneous || "",
                         spType: "U", // Update
                         tourLeads: tourLeads.map(tl => ({
                             leadName: tl.leadName || "",
                             gender: tl.gender || "",
                             age: parseInt(tl.age) || 0,
-                            visaStatus: tl.visaStatus || ""
+                            visaStatus: tl.visaStatus || "",
+                            passportNumber: tl.passportNumber || "",
+                            contactNumber: tl.contactNumber || ""
                         })),
                         services: flatServices,
                         guides: guides.map(g => ({
@@ -764,6 +770,15 @@ const EditQuery = () => {
         } finally {
             setIsLoading(false)
         }
+    }
+
+    const getSelectedCurrency = () => {
+        return currencies.find(c => c.value === String(formData.currencyId))
+    }
+
+    const getCurrencySign = () => {
+        const selected = getSelectedCurrency()
+        return selected ? selected.sign : '$'
     }
 
     return (
@@ -909,7 +924,7 @@ const EditQuery = () => {
                                     onChange={handleInputChange}
                                 />
                                 <Input
-                                    label="Adult Charge ($)"
+                                    label={`Adult Charge (${getCurrencySign()})`}
                                     name="adultBudget"
                                     type="number"
                                     value={formData.adultBudget}
@@ -917,8 +932,8 @@ const EditQuery = () => {
                                     placeholder="Charge per adult"
                                 />
                                 <div className="flex flex-col justify-end">
-                                    <label className="text-sm font-bold text-gray-500 mb-1">Total Budget</label>
-                                    <div className="p-2 bg-gray-100 rounded text-center font-bold">${formData.adultBudget * formData.adults}</div>
+                                    <label className="text-sm font-bold text-gray-500 mb-1">Total</label>
+                                    <div className="p-2 bg-gray-100 rounded text-center font-normal">{getCurrencySign()}{formData.adultBudget * formData.adults}</div>
                                 </div>
                             </div>
 
@@ -932,7 +947,7 @@ const EditQuery = () => {
                                     onChange={handleInputChange}
                                 />
                                 <Input
-                                    label="Child Charge ($)"
+                                    label={`Child Charge (${getCurrencySign()})`}
                                     name="childBudget"
                                     type="number"
                                     value={formData.childBudget}
@@ -940,9 +955,10 @@ const EditQuery = () => {
                                     placeholder="Charge per child"
                                 />
                                 <div className="flex flex-col justify-end">
-                                    <label className="text-sm font-bold text-gray-500 mb-1">Total Budget</label>
-                                    <div className="p-2 bg-gray-100 rounded text-center font-bold">${formData.childBudget * formData.children}</div>
+                                    <label className="text-sm font-bold text-gray-500 mb-1">Total</label>
+                                    <div className="p-2 bg-gray-100 rounded text-center font-normal">{getCurrencySign()}{formData.childBudget * formData.children}</div>
                                 </div>
+
                                 <Input
                                     label="Infants (no. of)"
                                     name="infants"
@@ -952,12 +968,44 @@ const EditQuery = () => {
                                     onChange={handleInputChange}
                                 />
                             </div>
+
                         </div>
 
-                        <div className="md:col-span-4 flex flex-col items-center justify-center bg-primary-50 rounded-lg border-2 border-primary-100 p-6">
-                            <span className="text-primary-700 font-bold uppercase tracking-wider text-sm mb-2">Total Budget</span>
-                            <div className="text-4xl font-black text-primary-900">
-                                ${formData.budget?.toLocaleString() || 0}
+                        <div className="md:col-span-4 flex flex-col bg-white rounded-2xl border border-primary-100 shadow-sm overflow-hidden min-h-[220px]">
+                            {/* Header Partition */}
+                            <div className="bg-primary-600 p-4 text-white">
+                                <div className="flex items-center justify-between mb-3">
+                                    <span className="font-normal uppercase tracking-wider text-sm tracking-tight">Select Currency</span>
+                                    {getSelectedCurrency() && (
+                                        <span className="text-[10px] font-bold bg-white/20 px-2 py-1 rounded text-white uppercase">
+                                            {getSelectedCurrency()?.label.split(' (')[0]}
+                                        </span>
+                                    )}
+                                </div>
+                                <Select
+                                    label=""
+                                    name="currencyId"
+                                    value={formData.currencyId}
+                                    onChange={handleInputChange}
+                                    options={currencies}
+                                    required
+                                    className="!bg-white/10 !border-white/20 !text-white placeholder-white/60 focus:ring-white/30 rounded-xl h-11"
+                                    style={{ colorScheme: 'dark' }}
+                                />
+                            </div>
+
+                            {/* Main Body */}
+                            <div className="p-5 flex flex-col items-center justify-center flex-1 bg-gradient-to-b from-primary-50/30 to-white">
+                                <div className="flex items-center gap-1.5 px-3 py-0 bg-none text-primary-700 rounded-full mb-3 shadow-none border-none border-primary-200/50">
+                                    <span className="text-[12px] font-bold uppercase tracking-widest">Sale Price</span>
+                                </div>
+
+                                <div className="flex items-baseline gap-1">
+                                    <span className="text-lg font-normal text-primary-600 mb-1">{getCurrencySign()}</span>
+                                    <span className="text-2xl font-black text-secondary-900 tracking-tighter">
+                                        {formData.budget?.toLocaleString() || 0}
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1000,7 +1048,7 @@ const EditQuery = () => {
                                 </div>
                                 <div className="space-y-4">
                                     {tourLeads.map((lead, index) => (
-                                        <div key={index} className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 border rounded-lg bg-gray-50 relative group">
+                                        <div key={index} className="grid grid-cols-1 md:grid-cols-7 gap-4 p-4 border rounded-lg bg-gray-50 relative group">
                                             <Input
                                                 label="Lead Name"
                                                 value={lead.leadName}
@@ -1020,16 +1068,23 @@ const EditQuery = () => {
                                                 onChange={(e) => updateTourLead(index, 'age', e.target.value)}
                                                 placeholder="Age"
                                             />
-                                            <Select
+                                            <Input
                                                 label="Visa Status"
                                                 value={lead.visaStatus}
                                                 onChange={(e) => updateTourLead(index, 'visaStatus', e.target.value)}
-                                                options={[
-                                                    { value: 'Applied', label: 'Applied' },
-                                                    { value: 'Approved', label: 'Approved' },
-                                                    { value: 'Pending', label: 'Pending' },
-                                                    { value: 'Not Required', label: 'Not Required' }
-                                                ]}
+                                                placeholder="Visa Status"
+                                            />
+                                            <Input
+                                                label="Passport No"
+                                                value={lead.passportNumber}
+                                                onChange={(e) => updateTourLead(index, 'passportNumber', e.target.value)}
+                                                placeholder="Passport Number"
+                                            />
+                                            <Input
+                                                label="Contact No"
+                                                value={lead.contactNumber}
+                                                onChange={(e) => updateTourLead(index, 'contactNumber', e.target.value)}
+                                                placeholder="Contact Number"
                                             />
                                             <div className="flex items-end justify-center pb-2">
                                                 {tourLeads.length > 1 && (
@@ -1117,12 +1172,38 @@ const EditQuery = () => {
                                                                 ) : service.serviceType === 'Meal' ? (
                                                                     <>
                                                                         <Input label="Date" type="date" value={service.serviceDate} onChange={(e) => updateService(dIdx, sIdx, 'serviceDate', e.target.value)} />
-                                                                        <Select
-                                                                            label="Meal Type"
-                                                                            value={service.mealType}
-                                                                            onChange={(e) => updateService(dIdx, sIdx, 'mealType', e.target.value)}
-                                                                            options={[{ value: 'BF', label: 'Breakfast' }, { value: 'LN', label: 'Lunch' }, { value: 'DN', label: 'Dinner' }]}
-                                                                        />
+                                                                        <div className="flex flex-col gap-1 md:col-span-2">
+                                                                            <label className="block text-sm font-medium text-secondary-700">Meal Types</label>
+                                                                            <div className="flex flex-wrap items-center gap-4 mt-2">
+                                                                                {[
+                                                                                    { id: 'BF', label: 'Breakfast' },
+                                                                                    { id: 'LN', label: 'Lunch' },
+                                                                                    { id: 'DN', label: 'Dinner' },
+                                                                                    { id: 'HT', label: 'Hi-Tea' }
+                                                                                ].map(meal => {
+                                                                                    const isChecked = (service.mealType || '').includes(meal.id);
+                                                                                    return (
+                                                                                        <label key={meal.id} className="flex items-center gap-1.5 text-sm cursor-pointer text-secondary-700 hover:text-primary-600 transition-colors">
+                                                                                            <input 
+                                                                                                type="checkbox" 
+                                                                                                checked={isChecked}
+                                                                                                onChange={(e) => {
+                                                                                                    let currentMeals = (service.mealType || '').split(',').map(m => m.trim()).filter(Boolean);
+                                                                                                    if (e.target.checked) {
+                                                                                                        if (!currentMeals.includes(meal.id)) currentMeals.push(meal.id);
+                                                                                                    } else {
+                                                                                                        currentMeals = currentMeals.filter(m => m !== meal.id);
+                                                                                                    }
+                                                                                                    updateService(dIdx, sIdx, 'mealType', currentMeals.join(','));
+                                                                                                }}
+                                                                                                className="rounded border-secondary-300 text-primary-600 focus:ring-primary-500 w-4 h-4 cursor-pointer"
+                                                                                            />
+                                                                                            {meal.label}
+                                                                                        </label>
+                                                                                    )
+                                                                                })}
+                                                                            </div>
+                                                                        </div>
                                                                     </>
                                                                 ) : (
                                                                     <>

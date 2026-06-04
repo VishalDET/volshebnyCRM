@@ -109,7 +109,10 @@ const defaultOfficePayload = {
 
 /**
  * Manage Office (Create, Read, Update, Delete)
- * @param {Object} data - Payload with spType (C, R, U, D)
+ * @param {Object} data - Payload with spType
+ *   spType 'R' = fetch all offices
+ *   spType 'E' = fetch single office by officeId
+ *   spType 'C' = create, 'U' = update, 'D' = delete
  */
 export const manageOffice = async (data) => {
     const payload = { ...defaultOfficePayload, ...data }

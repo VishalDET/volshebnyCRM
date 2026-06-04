@@ -83,12 +83,12 @@ const CreateQuery = () => {
             const res = await manageQuery(payload)
             const queries = res.data?.data || []
 
-            const currentYear = new Date().getFullYear().toString()
+            const fullYear = new Date().getFullYear().toString()
+            const yearSuffix = fullYear.slice(-3) // e.g., "026" for 2026
             const prefix = `VH`
 
-            // Filter queries matching the current year's pattern: VH{seq}{Year}
-            // Pattern regex: ^VH(\d{3})2025$ (dynamically)
-            const pattern = new RegExp(`^VH(\\d{3})${currentYear}$`)
+            // Pattern regex to capture any number of digits before the year suffix (4-digit or 3-digit)
+            const pattern = new RegExp(`^VH(\\d+)(?:${fullYear}|${yearSuffix})$`)
 
             let maxSeq = 0
             queries.forEach(q => {
@@ -101,15 +101,15 @@ const CreateQuery = () => {
                 }
             })
 
-            const nextSeq = (maxSeq + 1).toString().padStart(3, '0')
-            const newQueryNo = `${prefix}${nextSeq}${currentYear}`
+            const nextSeq = (maxSeq + 1).toString().padStart(4, '0')
+            const newQueryNo = `${prefix}${nextSeq}${yearSuffix}`
 
             setFormData(prev => ({ ...prev, queryNo: newQueryNo }))
         } catch (error) {
             console.error("Error generating query number:", error)
-            // Fallback or leave empty? Maybe set a default starting point if fetch fails
-            const currentYear = new Date().getFullYear().toString()
-            setFormData(prev => ({ ...prev, queryNo: `VH001${currentYear}` }))
+            const fullYear = new Date().getFullYear().toString()
+            const yearSuffix = fullYear.slice(-3)
+            setFormData(prev => ({ ...prev, queryNo: `VH0001${yearSuffix}` }))
         }
     }
 
@@ -536,7 +536,7 @@ const CreateQuery = () => {
                             value={formData.travelDate}
                             onChange={handleInputChange}
                             required
-                            min={new Date().toISOString().split('T')[0]}
+                            min="2026-01-01"
                         />
                         <Input
                             label="Return Date"
@@ -545,7 +545,7 @@ const CreateQuery = () => {
                             value={formData.returnDate}
                             onChange={handleInputChange}
                             required
-                            min={formData.travelDate || new Date().toISOString().split('T')[0]}
+                            min={formData.travelDate || '2026-01-01'}
                         />
                         <div className="flex flex-col justify-end">
                             <label className="text-sm font-bold text-gray-500 mb-1">Total Days</label>

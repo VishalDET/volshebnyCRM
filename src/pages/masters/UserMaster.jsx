@@ -8,7 +8,7 @@ import Select from '@components/Select'
 import { Pencil, Trash2, Eye, Mail, Phone, Building, Shield } from 'lucide-react'
 import MastersNavigation from '@components/MastersNavigation'
 import ConfirmModal from '@components/ConfirmModal'
-import { manageUser, manageUserRoleMapping, getAllRoles } from '@api/userRole.api'
+import { manageUser, getAllRoles } from '@api/userRole.api'
 import { manageCountry, manageCity, manageOffice } from '@api/masters.api'
 import { toast } from 'react-hot-toast'
 import { useAuth } from '@hooks/useAuth'
@@ -43,7 +43,7 @@ const UserMaster = () => {
         stateId: 0,
         cityId: '',
         pincode: '',
-        roleId: '', // For manageUserRoleMapping
+        roleId: '',
         isActive: true,
         password: '',
         passwordHash: '',
@@ -65,16 +65,17 @@ const UserMaster = () => {
                 setCountries(countryRes.data.data.map(c => ({ value: c.countryId, label: c.countryName })))
             }
 
-            // Fetch Offices
+            // Fetch Offices — spType 'R' = fetch all, spType 'E' = fetch single by officeId
             const officeRes = await manageOffice({ spType: 'R', isActive: true })
             if (officeRes.data?.data) {
-                setOffices(officeRes.data.data.map(o => ({ value: o.officeId, label: o.officeName })))
+                setOffices(officeRes.data.data.map(o => ({ value: o.officeId, label: o.officeName.trim() })))
             }
 
             // Fetch Roles
             const roleRes = await getAllRoles()
-            if (roleRes.data?.data) {
-                setRoles(roleRes.data.data.map(r => ({ value: r.roleId, label: r.roleName })))
+            const roleData = roleRes.data?.data || roleRes.data || []
+            if (Array.isArray(roleData)) {
+                setRoles(roleData.map(r => ({ value: r.roleId, label: r.roleName })))
             }
         } catch (error) {
             console.error('Error fetching dependency data:', error)
@@ -96,25 +97,9 @@ const UserMaster = () => {
     const fetchUsers = async () => {
         setIsLoading(true)
         try {
+            // roleId and authority are returned directly by ManageUser API
             const response = await manageUser({ spType: 'R', isActive: true })
-            const userData = response.data?.data || []
-
-            // Combine with role info
-            const enrichedUsers = await Promise.all(userData.map(async (u) => {
-                try {
-                    const roleMap = await manageUserRoleMapping({ userId: u.id, spType: 'R' })
-                    const roleInfo = roleMap.data?.data?.[0]
-                    return {
-                        ...u,
-                        roleName: roleInfo?.roleName || 'N/A',
-                        roleId: roleInfo?.roleId || 0
-                    }
-                } catch {
-                    return { ...u, roleName: 'N/A', roleId: 0 }
-                }
-            }))
-
-            setUsers(enrichedUsers)
+            setUsers(response.data?.data || [])
         } catch (error) {
             toast.error('Failed to load users')
             console.error(error)
@@ -176,6 +161,8 @@ const UserMaster = () => {
             const payload = {
                 ...formData,
                 id: editingId || 0,
+                password: (editingId && !formData.password) ? null : formData.password,
+                passwordHash: (editingId && !formData.password) ? null : formData.password,
                 officeId: parseInt(formData.officeId) || 0,
                 countryId: parseInt(formData.countryId) || 0,
                 cityId: parseInt(formData.cityId) || 0,
@@ -187,19 +174,8 @@ const UserMaster = () => {
                 spType: editingId ? 'U' : 'C'
             }
 
-            const response = await manageUser(payload)
-            const newUserId = editingId || response.data?.data?.[0]?.id || response.data?.data?.id
-
-            // Save role mapping if roleId is selected
-            if (formData.roleId && newUserId) {
-                await manageUserRoleMapping({
-                    userRoleId: 0,
-                    userId: newUserId,
-                    roleId: parseInt(formData.roleId),
-                    spType: editingId ? 'U' : 'C',
-                    createdBy: currentUser?.id || 0
-                })
-            }
+            // roleId is sent directly with the user payload — no separate role mapping call needed
+            await manageUser(payload)
 
             toast.success(`User ${editingId ? 'updated' : 'added'} successfully`)
             closeModal()
@@ -225,7 +201,7 @@ const UserMaster = () => {
             render: (_, row) => (
                 <div className="flex flex-col">
                     <span className="font-medium text-secondary-900">{row.firstName} {row.lastName}</span>
-                    <span className="text-xs text-secondary-500 flex items-center gap-1"><Building size={12} /> {row.companyName || 'No Company'}</span>
+                    <span className="text-xs text-secondary-500 flex items-center gap-1"><Building size={12} /> {row.officeName || 'No Company'}</span>
                 </div>
             )
         },
@@ -244,9 +220,9 @@ const UserMaster = () => {
             label: 'Office & Role',
             render: (_, row) => (
                 <div className="flex flex-col text-sm">
-                    <span className="font-medium">{offices.find(o => o.value === row.officeId)?.label || 'No Office'}</span>
+                    <span className="font-medium">{offices.find(o => o.value === parseInt(row.officeId))?.label || 'No Office'}</span>
                     <span className="text-xs px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full w-fit mt-1 flex items-center gap-1">
-                        <Shield size={10} /> {row.roleName}
+                        <Shield size={10} /> {{ 1: 'SuperAdmin', 2: 'Handler' }[row.roleId] || 'N/A'}
                     </span>
                 </div>
             )
@@ -455,7 +431,7 @@ const UserMaster = () => {
                             </div>
                             <div>
                                 <label className="text-secondary-500 block">Office</label>
-                                <span className="font-medium">{offices.find(o => o.value === viewData.officeId)?.label || 'N/A'}</span>
+                                <span className="font-medium">{offices.find(o => o.value === parseInt(viewData.officeId))?.label || 'N/A'}</span>
                             </div>
                             <div className="col-span-2">
                                 <label className="text-secondary-500 block">Address</label>

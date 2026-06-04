@@ -26,9 +26,9 @@ const QueryList = () => {
     const [queries, setQueries] = useState([])
     const [isLoading, setIsLoading] = useState(false)
     const [countries, setCountries] = useState([])
-    const [filters, setFilters] = useState({ 
+    const [filters, setFilters] = useState({
         status: urlStatus || '',
-        countryId: '' 
+        countryId: ''
     })
 
     useEffect(() => {
@@ -61,14 +61,14 @@ const QueryList = () => {
 
     const fetchQueries = async () => {
         if (!user) return
-        
+
         setIsLoading(true)
         try {
             // Determine the officeCountryId to pass
             // For HQ (officeId 1), use the selected filter countryId or 0 for all
             // For others, use their own countryId
             const officeCountryId = user.officeId === 1
-                ? (filters.countryId ? parseInt(filters.countryId) : 0) 
+                ? (filters.countryId ? parseInt(filters.countryId) : 0)
                 : (user.countryId || 0)
 
             // Determine the status filter
@@ -169,10 +169,10 @@ const QueryList = () => {
             render: (val, row) => val || row.queryId || row.id || '-'
         },
         {
-            key: 'clientName',
-            label: 'Client',
+            key: 'companyName',
+            label: 'Company',
             width: '20%',
-            render: (_, row) => row.clientName || row.tourLeads?.[0]?.leadName || `Client #${row.clientId || '-'}`
+            render: (_, row) => row.companyName || row.clientName || row.tourLeads?.[0]?.leadName || `Company #${row.clientId || '-'}`
         },
         {
             key: 'travelDate',

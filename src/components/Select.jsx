@@ -43,15 +43,19 @@ const Select = ({
                 {...props}
             >
                 <option value="">{placeholder}</option>
-                {options.map((option, index) => (
-                    <option
-                        key={`${option.value || option.id}-${index}`}
-                        value={option.value || option.id}
-                        className="text-slate-900 bg-white"
-                    >
-                        {option.label || option.name}
-                    </option>
-                ))}
+                {options.map((option, index) => {
+                    const optValue = option.value !== undefined ? option.value : option.id;
+                    const optLabel = option.label || option.name;
+                    return (
+                        <option
+                            key={`${optValue}-${index}`}
+                            value={optValue}
+                            className="text-gray-900 bg-white"
+                        >
+                            {optLabel}
+                        </option>
+                    );
+                })}
             </select>
 
             {error && touched && (
