@@ -27,6 +27,7 @@ const ClientMaster = () => {
 
     const initialFormState = {
         companyName: '',
+        contactPersonName: '',
         mobileNo: '',
         emailId: '',
         isGSTIN: true,
@@ -130,7 +131,7 @@ const ClientMaster = () => {
         try {
             const payload = {
                 id: 0,
-                firstName: "string",
+                contactPersonName: "string",
                 lastName: "string",
                 mobileNo: "string",
                 companyName: "string",
@@ -213,7 +214,7 @@ const ClientMaster = () => {
         try {
             const payload = {
                 id: row.id,
-                firstName: "string",
+                contactPersonName: "string",
                 lastName: "string",
                 mobileNo: "string",
                 companyName: "string",
@@ -262,7 +263,7 @@ const ClientMaster = () => {
         try {
             const payload = {
                 id: row.id,
-                firstName: "string",
+                contactPersonName: "string",
                 lastName: "string",
                 mobileNo: "string",
                 companyName: "string",
@@ -298,6 +299,7 @@ const ClientMaster = () => {
 
             setFormData({
                 companyName: clientData.companyName || '',
+                contactPersonName: clientData.contactPersonName || '',
                 mobileNo: clientData.mobileNo || '',
                 emailId: clientData.emailId || '',
                 isGSTIN: clientData.isGSTIN || false,
@@ -341,32 +343,33 @@ const ClientMaster = () => {
         try {
             const payload = {
                 id: editingId || 0,
-                firstName: "",
+                contactPersonName: formData.contactPersonName || "",
                 lastName: "",
-                mobileNo: formData.mobileNo,
-                companyName: formData.companyName,
-                emailId: formData.emailId,
-                isGSTIN: formData.isGSTIN,
-                gstNumber: formData.gstNumber,
-                gstCertificate: formData.gstCertificate,
-                address: formData.address,
-                landmark: formData.landmark,
+                mobileNo: formData.mobileNo || "",
+                companyName: formData.companyName || "",
+                emailId: formData.emailId || "",
+                isGSTIN: !!formData.isGSTIN,
+                gstNumber: formData.gstNumber || "",
+                gstCertificate: formData.gstCertificate || "",
+                address: formData.address || "",
+                landmark: formData.landmark || "",
                 countryId: parseInt(formData.countryId) || 0,
                 stateId: parseInt(formData.stateId) || 0,
                 cityId: parseInt(formData.cityId) || 0,
-                pincode: formData.pincode,
-                contacts: formData.contacts.map(c => ({
+                pincode: formData.pincode || "",
+                contacts: (formData.contacts || []).map(c => ({
                     contactId: c.contactId || 0,
                     clientId: editingId || 0,
-                    contactName: c.contactName || c.name || "", // Fallback for UI state discrepancy
+                    contactName: c.contactName || c.name || "",
                     contactNumber: c.contactNumber || c.number || "",
                     contactEmail: c.contactEmail || c.email || "",
-                    spType: editingId && c.contactId ? "U" : "C"
+                    spType: c.spType || (editingId && c.contactId ? "U" : "C")
                 })),
-                createdBy: user?.id || 0,
                 roleId: user?.roleId || 0,
+                createdBy: user?.id || 0,
                 modifiedBy: user?.id || 0,
-                isActive: formData.isActive,
+                isActive: formData.isActive ?? true,
+                officeCountryId: user?.countryId || 0,
                 spType: editingId ? "U" : "C"
             }
 
@@ -449,13 +452,19 @@ const ClientMaster = () => {
                     {/* Company Details */}
                     <div className="space-y-4">
                         <h3 className="text-sm font-bold text-secondary-900 border-b pb-2">Company Details</h3>
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-4 gap-4">
                             <Input
                                 label="Company Name"
                                 value={formData.companyName}
                                 onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
                                 placeholder="Enter company name"
                                 required
+                            />
+                            <Input
+                                label="Contact Person"
+                                value={formData.contactPersonName}
+                                onChange={(e) => setFormData({ ...formData, contactPersonName: e.target.value })}
+                                placeholder="Contact Person Name"
                             />
                             <Input
                                 label="Mobile No"
@@ -613,10 +622,26 @@ const ClientMaster = () => {
                     {viewClient && (
                         <>
                             <div className="grid grid-cols-2 gap-4">
-                                <div><label className="text-xs font-bold text-gray-500">Company</label><p>{viewClient.companyName}</p></div>
-                                <div><label className="text-xs font-bold text-gray-500">Mobile</label><p>{viewClient.mobileNo}</p></div>
-                                <div><label className="text-xs font-bold text-gray-500">Email</label><p>{viewClient.emailId}</p></div>
-                                <div><label className="text-xs font-bold text-gray-500">Address</label><p>{viewClient.address}</p></div>
+                                <div>
+                                    <label className="text-xs font-bold text-gray-500">Company</label>
+                                    <p>{viewClient.companyName}</p>
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-gray-500">Contact Person</label>
+                                    <p>{viewClient.contactPersonName || 'N/A'}</p>
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-gray-500">Mobile</label>
+                                    <p>{viewClient.mobileNo}</p>
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-gray-500">Email</label>
+                                    <p>{viewClient.emailId}</p>
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-gray-500">Address</label>
+                                    <p>{viewClient.address}</p>
+                                </div>
                                 <div>
                                     <label className="text-xs font-bold text-gray-500">City</label>
                                     <p>{cityOptions.find(c => c.value === viewClient.cityId)?.label || viewClient.cityId}</p>

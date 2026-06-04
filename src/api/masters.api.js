@@ -73,6 +73,14 @@ export const manageClient = async (data) => {
     return await axiosInstance.post('/api/Client/ManageClient', data)
 }
 
+/**
+ * Manage Bank Account (Create, Read, Update, Delete)
+ * @param {Object} data - Payload with spType (C, R, U, D, E)
+ */
+export const manageBankAccount = async (data) => {
+    return await axiosInstance.post('/api/BankAccount/ManageBankAccount', data)
+}
+
 
 
 

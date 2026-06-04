@@ -17,14 +17,17 @@ const SearchableSelect = ({
     disabled = false,
     error,
     touched,
-    className = ''
+    className = '',
+    multiSelect = false
 }) => {
     const [isOpen, setIsOpen] = useState(false)
     const [search, setSearch] = useState('')
     const containerRef = useRef(null)
     const searchRef = useRef(null)
 
-    const selectedOption = options.find(o => String(o.value) === String(value))
+    const selectedOptions = multiSelect
+        ? (Array.isArray(value) ? options.filter(o => value.map(v => String(v)).includes(String(o.value))) : [])
+        : (options.find(o => String(o.value) === String(value)) ? [options.find(o => String(o.value) === String(value))] : [])
 
     const filtered = options.filter(o =>
         o.label?.toLowerCase().includes(search.toLowerCase())
@@ -50,14 +53,25 @@ const SearchableSelect = ({
     }, [isOpen])
 
     const handleSelect = (option) => {
-        onChange({ target: { name, value: option.value } })
-        setIsOpen(false)
+        if (multiSelect) {
+            const current = Array.isArray(value) ? [...value] : []
+            const idx = current.findIndex(v => String(v) === String(option.value))
+            if (idx > -1) {
+                current.splice(idx, 1)
+            } else {
+                current.push(option.value)
+            }
+            onChange({ target: { name, value: current } })
+        } else {
+            onChange({ target: { name, value: option.value } })
+            setIsOpen(false)
+        }
         setSearch('')
     }
 
     const handleClear = (e) => {
         e.stopPropagation()
-        onChange({ target: { name, value: '' } })
+        onChange({ target: { name, value: multiSelect ? [] : '' } })
         setSearch('')
     }
 
@@ -86,11 +100,13 @@ const SearchableSelect = ({
                     ${isOpen ? 'ring-2 ring-primary-500 border-primary-500' : ''}
                 `.trim().replace(/\s+/g, ' ')}
             >
-                <span className={selectedOption ? 'text-secondary-900' : 'text-secondary-400'}>
-                    {selectedOption ? selectedOption.label : placeholder}
+                <span className={selectedOptions && selectedOptions.length > 0 ? 'text-secondary-900' : 'text-secondary-400'}>
+                    {selectedOptions && selectedOptions.length > 0
+                        ? (multiSelect ? selectedOptions.map(o => o.label).join(', ') : selectedOptions[0].label)
+                        : placeholder}
                 </span>
                 <div className="flex items-center gap-1 shrink-0">
-                    {selectedOption && !disabled && (
+                    {selectedOptions && selectedOptions.length > 0 && !disabled && (
                         <span
                             onClick={handleClear}
                             className="p-0.5 rounded hover:bg-secondary-200 transition-colors text-secondary-400 hover:text-secondary-700"
@@ -134,9 +150,9 @@ const SearchableSelect = ({
                                     onClick={() => handleSelect(option)}
                                     className={`
                                         px-3 py-2 text-sm cursor-pointer transition-colors
-                                        ${String(option.value) === String(value)
-                                            ? 'bg-primary-50 text-primary-700 font-medium'
-                                            : 'text-secondary-800 hover:bg-secondary-50'
+                                        ${multiSelect
+                                            ? (Array.isArray(value) && value.map(v => String(v)).includes(String(option.value)) ? 'bg-primary-50 text-primary-700 font-medium' : 'text-secondary-800 hover:bg-secondary-50')
+                                            : (String(option.value) === String(value) ? 'bg-primary-50 text-primary-700 font-medium' : 'text-secondary-800 hover:bg-secondary-50')
                                         }
                                     `.trim().replace(/\s+/g, ' ')}
                                 >

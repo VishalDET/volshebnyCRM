@@ -57,6 +57,7 @@ const ClientMaster = lazy(() => import('@pages/masters/ClientMaster'))
 const HandlerMaster = lazy(() => import('@pages/masters/HandlerMaster'))
 const UserMaster = lazy(() => import('@pages/masters/UserMaster'))
 const OfficeMaster = lazy(() => import('@pages/offices/OfficeList'))
+const BankAccountMaster = lazy(() => import('@pages/masters/BankAccountMaster'))
 
 /**
  * Protected Route Component
@@ -176,6 +177,7 @@ const AppRoutes = () => {
                 <Route path="/masters/clients" element={<AdminRoute><ClientMaster /></AdminRoute>} />
                 <Route path="/masters/handlers" element={<AdminRoute><HandlerMaster /></AdminRoute>} />
                 <Route path="/masters/offices" element={<AdminRoute><OfficeMaster /></AdminRoute>} />
+                <Route path="/masters/bank-accounts" element={<AdminRoute><BankAccountMaster /></AdminRoute>} />
                 <Route path="/masters/users" element={<AdminRoute><UserMaster /></AdminRoute>} />
 
                 {/* Default Route */}

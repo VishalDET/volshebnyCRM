@@ -127,7 +127,8 @@ const HandlerMaster = () => {
                 emailId: formData.emailId,
                 mobileNo: formData.mobileNo || "",
                 handlerId: formData.handlerId,
-                roleId: user?.roleId || 0,
+                // roleId is fixed to 1 for create/update operations
+                roleId: 1,
                 createdBy: user?.id || 0,
                 modifiedBy: user?.id || 0,
                 isActive: true,
@@ -256,6 +257,7 @@ const HandlerMaster = () => {
                         onChange={(e) => setFormData({ ...formData, handlerId: e.target.value })}
                         placeholder="e.g. EMP123"
                     />
+                    {/* Role ID is fixed and managed by backend; hide input for now
                     <Input
                         label="Role ID"
                         type="number"
@@ -263,6 +265,7 @@ const HandlerMaster = () => {
                         onChange={(e) => setFormData({ ...formData, roleId: e.target.value })}
                         placeholder="0"
                     />
+                    */}
                 </div>
                 <div className="flex gap-3 justify-end mt-6">
                     <Button variant="secondary" onClick={closeModal}>Cancel</Button>

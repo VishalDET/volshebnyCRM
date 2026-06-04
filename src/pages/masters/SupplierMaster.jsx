@@ -38,6 +38,7 @@ const SupplierMaster = () => {
         gstNumber: '',
         address: '',
         countryId: '',
+        countryIds: [],
         stateId: 0,
         cityId: '', // Keep for backward compatibility if needed, but primary is cityIds
         cityIds: [],
@@ -240,35 +241,27 @@ const SupplierMaster = () => {
         try {
             const payload = {
                 id: row.id,
-                fullName: "string",
-                companyContactNo: "string",
-                companyEmailId: "string",
-                companyName: "string",
-                gstCertificate: "string",
-                isGSTIN: true,
-                gstNumber: "string",
-                address: "string",
+                fullName: "",
+                companyContactNo: "",
+                companyEmailId: "",
+                companyName: "",
+                gstCertificate: "",
+                isGSTIN: false,
+                gstNumber: "",
+                address: "",
                 countryId: 0,
                 stateId: 0,
                 cityId: 0,
-                cityIds: [0],
+                cityIds: [],
+                countryIds: [],
                 roleId: user?.roleId || 0,
                 createdBy: user?.id || 0,
-                modifiedBy: 0,
+                modifiedBy: user?.id || 0,
                 isActive: true,
                 officeCountryId: 0,
                 spType: "E",
-                contacts: [
-                    {
-                        contactId: 0,
-                        supplierId: 0,
-                        contactName: "string",
-                        contactNumber: "string",
-                        contactEmail: "string",
-                        spType: "string"
-                    }
-                ],
-                serviceIds: [0]
+                contacts: [],
+                serviceIds: []
             }
             const response = await manageSupplier(payload)
 
@@ -299,35 +292,27 @@ const SupplierMaster = () => {
             // Fetch detailed supplier info
             const payload = {
                 id: row.id,
-                fullName: "string",
-                companyContactNo: "string",
-                companyEmailId: "string",
-                companyName: "string",
-                gstCertificate: "string",
-                isGSTIN: true,
-                gstNumber: "string",
-                address: "string",
+                fullName: "",
+                companyContactNo: "",
+                companyEmailId: "",
+                companyName: "",
+                gstCertificate: "",
+                isGSTIN: false,
+                gstNumber: "",
+                address: "",
                 countryId: 0,
                 stateId: 0,
                 cityId: 0,
-                cityIds: [0],
+                cityIds: [],
+                countryIds: [],
                 roleId: user?.roleId || 0,
                 createdBy: user?.id || 0,
-                modifiedBy: 0,
+                modifiedBy: user?.id || 0,
                 isActive: true,
                 officeCountryId: 0,
                 spType: "E",
-                contacts: [
-                    {
-                        contactId: 0,
-                        supplierId: 0,
-                        contactName: "string",
-                        contactNumber: "string",
-                        contactEmail: "string",
-                        spType: "string"
-                    }
-                ],
-                serviceIds: [0]
+                contacts: [],
+                serviceIds: []
             }
             const response = await manageSupplier(payload)
             console.log("EDIT FETCH RES:", response)
@@ -362,7 +347,8 @@ const SupplierMaster = () => {
                 isGSTIN: supplierData.isGSTIN || false,
                 gstNumber: supplierData.gstNumber || '',
                 address: supplierData.address || '',
-                countryId: supplierData.countryId || '',
+                countryId: supplierData.countryId || (supplierData.countryIds && supplierData.countryIds.length > 0 ? supplierData.countryIds[0] : ''),
+                countryIds: supplierData.countryIds || (supplierData.countryId ? [supplierData.countryId] : []),
                 stateId: supplierData.stateId || 0,
                 cityId: supplierData.cityId || '',
                 cityIds: currentCityIds,
@@ -426,10 +412,14 @@ const SupplierMaster = () => {
                 isGSTIN: !!formData.isGSTIN,
                 gstNumber: formData.gstNumber || "",
                 address: formData.address || "",
-                countryId: parseInt(formData.countryId) || 0,
+                // API expects multiple countries in `countryIds`. Send selected country(s) as array.
+                countryIds: (formData.countryIds && formData.countryIds.length > 0)
+                    ? formData.countryIds.map(id => parseInt(id))
+                    : (formData.countryId ? [parseInt(formData.countryId)] : []),
+                // We no longer need to send city details — send null/empty to keep payload minimal
+                cityId: null,
+                cityIds: [],
                 stateId: parseInt(formData.stateId) || 0,
-                cityId: (formData.cityIds && formData.cityIds.length > 0) ? formData.cityIds[0] : 0, // Send first as primary if API requires single
-                cityIds: formData.cityIds || [],
                 createdBy: user?.id || 0,
                 roleId: user?.roleId || 0,
                 modifiedBy: user?.id || 0,
@@ -612,20 +602,23 @@ const SupplierMaster = () => {
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                        <Select
-                            label="Country *"
-                            name="countryId"
-                            value={formData.countryId}
+                        <SearchableSelect
+                            label="Country(s) *"
+                            name="countryIds"
+                            value={formData.countryIds}
                             onChange={(e) => {
-                                const newCountryId = e.target.value;
-                                setFormData({ ...formData, countryId: newCountryId, cityId: '', cityIds: [] })
-                                fetchCities(newCountryId)
+                                const val = e.target.value
+                                // value will be an array of ids when multiSelect — store as numbers
+                                const ids = Array.isArray(val) ? val.map(v => parseInt(v)) : (val ? [parseInt(val)] : [])
+                                setFormData({ ...formData, countryIds: ids, countryId: ids.length > 0 ? ids[0] : '', cityId: '', cityIds: [] })
+                                // Preload cities for first country if needed
+                                if (ids.length > 0) fetchCities(ids[0])
                             }}
                             options={countries}
-                            placeholder="Select Country"
+                            placeholder="Select Country(ies)"
+                            multiSelect={true}
                         />
-                        {/* Custom Multi-Select for City */}
-                        <div className="relative">
+                        {/*<div className="relative d-none ">
                             <label className="block text-sm font-medium text-secondary-700 mb-1">City</label>
                             <div
                                 className={`input min-h-[42px] h-auto flex flex-wrap items-center gap-1 cursor-pointer ${!formData.countryId ? 'bg-gray-100 cursor-not-allowed' : ''}`}
@@ -654,7 +647,6 @@ const SupplierMaster = () => {
                                 </div>
                             </div>
 
-                            {/* Dropdown Menu */}
                             {cityDropdownOpen && formData.countryId && (
                                 <div className="absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
                                     {cityOptions.length === 0 ? (
@@ -681,7 +673,7 @@ const SupplierMaster = () => {
                             {cityDropdownOpen && (
                                 <div className="fixed inset-0 z-40" onClick={() => setCityDropdownOpen(false)}></div>
                             )}
-                        </div>
+                        </div>*/}
                     </div>
 
                     <Input

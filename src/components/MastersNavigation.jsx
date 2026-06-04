@@ -10,6 +10,7 @@ const MastersNavigation = () => {
         { name: 'Destinations', path: '/masters/destinations' },
         { name: 'Currencies', path: '/masters/currencies' },
         { name: 'Credit Cards', path: '/masters/credit-cards' },
+        { name: 'Bank Accounts', path: '/masters/bank-accounts' },
         { name: 'Service Types', path: '/masters/service-types' },
         { name: 'Suppliers', path: '/masters/suppliers' },
         { name: 'Clients', path: '/masters/clients' },

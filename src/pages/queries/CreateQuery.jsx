@@ -117,9 +117,12 @@ const CreateQuery = () => {
         if (formData.travelDate && formData.returnDate) {
             const start = new Date(formData.travelDate)
             const end = new Date(formData.returnDate)
-            const diffTime = Math.abs(end - start)
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-            setFormData(prev => ({ ...prev, totalDays: diffDays }))
+            const msPerDay = 1000 * 60 * 60 * 24
+            // Calculate full days difference and make it inclusive (start and end counted)
+            const diffTime = end - start
+            const diffDays = Math.floor(diffTime / msPerDay) + 1
+            const total = diffDays > 0 ? diffDays : 0
+            setFormData(prev => ({ ...prev, totalDays: total }))
         }
     }, [formData.travelDate, formData.returnDate])
 

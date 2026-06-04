@@ -19,6 +19,7 @@ const ServiceVoucher = () => {
     const [voucherData, setVoucherData] = useState(null)
     const [confirmedQuery, setConfirmedQuery] = useState(null)
     const [locationNames, setLocationNames] = useState({})
+    const [placardName, setPlacardName] = useState('')
 
     useEffect(() => {
         if (id) {
@@ -144,6 +145,14 @@ const ServiceVoucher = () => {
         } catch (e) { console.error(e) }
     }
 
+    // Initialize placard name from voucher or confirmed query, but don't overwrite user edits
+    useEffect(() => {
+        if (!placardName && (voucherData || confirmedQuery)) {
+            const initial = voucherData?.guestNames || confirmedQuery?.tourLeads?.[0]?.leadName || 'VOLSHEBNY GUESTS'
+            setPlacardName(initial)
+        }
+    }, [voucherData, confirmedQuery])
+
     const handlePrint = () => {
         window.print()
     }
@@ -231,7 +240,13 @@ const ServiceVoucher = () => {
                             <span className="font-bold text-xs uppercase">Placard Name:</span>
                         </div>
                         <div className="p-4 text-xl font-black text-center text-blue-900 uppercase">
-                            {voucherData?.guestNames || confirmedQuery?.tourLeads?.[0]?.leadName || 'VOLSHEBNY GUESTS'}
+                            <input
+                                type="text"
+                                value={placardName}
+                                onChange={(e) => setPlacardName(e.target.value)}
+                                className="w-full text-center font-black text-xl text-blue-900 uppercase bg-transparent border-0 focus:outline-none"
+                                aria-label="Placard Name"
+                            />
                         </div>
                     </div>
                 </div>
@@ -263,9 +278,13 @@ const ServiceVoucher = () => {
                 <div className="mb-8">
                     <h3 className="bg-blue-900 text-white px-4 py-2 font-bold text-xs uppercase mb-3">Service Itinerary & Program Details</h3>
                     {confirmedQuery?.finalItinerary ? (
-                        <div className="border-2 border-gray-800 p-4 text-sm leading-relaxed whitespace-pre-line text-gray-700 min-h-[200px]">
-                            {confirmedQuery.finalItinerary}
-                        </div>
+                        /<\/?(table|tr|td|th|div|p|br|span)/i.test(confirmedQuery.finalItinerary) ? (
+                            <div className="border-2 border-gray-800 p-4 text-sm leading-relaxed text-gray-700 min-h-[200px]" dangerouslySetInnerHTML={{ __html: confirmedQuery.finalItinerary }} />
+                        ) : (
+                            <div className="border-2 border-gray-800 p-4 text-sm leading-relaxed whitespace-pre-line text-gray-700 min-h-[200px]">
+                                {confirmedQuery.finalItinerary}
+                            </div>
+                        )
                     ) : (
                         <div className="border-2 border-gray-800 border-dashed p-8 text-center text-gray-400 italic">
                             Refer to Detailed Program Document
@@ -273,40 +292,32 @@ const ServiceVoucher = () => {
                     )}
                 </div>
 
-                {/* Transportation & Guides (The new details requested) */}
-                {(confirmedQuery?.services?.some(s => s.serviceType === 'Transportation') || confirmedQuery?.guides?.length > 0) && (
-                    <div className="mb-8 grid grid-cols-2 gap-4">
-                        <div>
-                            <h3 className="bg-blue-900 text-white px-4 py-2 font-bold text-xs uppercase mb-2">Transport Services</h3>
-                            <div className="border border-gray-800 divide-y divide-gray-200">
-                                {confirmedQuery.services.filter(s => s.serviceType === 'Transportation').map((srv, i) => (
-                                    <div key={i} className="p-3 text-sm">
-                                        <div className="font-bold text-blue-900">{srv.description || 'General Transfer'}</div>
-                                        <div className="text-gray-600 text-xs mt-1">
-                                            {srv.pickupLocation} → {srv.dropLocation}
-                                        </div>
+                {/* Meals Details */}
+                <div className="mb-8">
+                    <h3 className="bg-blue-900 text-white px-4 py-2 font-bold text-xs uppercase mb-3">Meals Details</h3>
+                    {((confirmedQuery?.services && confirmedQuery.services.length) || (voucherData?.services && voucherData.services.length)) ? (
+                        <div className="border-2 border-gray-800 p-4 text-sm">
+                            <div className="grid grid-cols-4 gap-2 font-semibold text-xs uppercase bg-gray-100 p-2">
+                                <div>Date</div>
+                                <div>Location</div>
+                                <div>Service</div>
+                                <div>Meals</div>
+                            </div>
+                            <div className="divide-y divide-gray-200">
+                                {(confirmedQuery?.services || voucherData?.services || []).map((s, idx) => (
+                                    <div key={idx} className="grid grid-cols-4 gap-2 p-2 items-center text-sm">
+                                        <div>{s?.serviceDate ? new Date(s.serviceDate).toLocaleDateString('en-GB') : '-'}</div>
+                                        <div>{s?.countryName || locationNames[`country_${s?.countryId}`] || '-'}</div>
+                                        <div>{s?.supplierName || s?.description || '-'}</div>
+                                        <div>{s?.mealType || '-'}</div>
                                     </div>
                                 ))}
                             </div>
                         </div>
-                        <div>
-                            <h3 className="bg-blue-900 text-white px-4 py-2 font-bold text-xs uppercase mb-2">Guide Details</h3>
-                            <div className="border border-gray-800 divide-y divide-gray-200">
-                                {confirmedQuery.guides?.map((guide, i) => (
-                                    <div key={i} className="p-3 text-sm">
-                                        <div className="font-bold text-blue-900">{guide.guideName} ({guide.language})</div>
-                                        <div className="text-gray-600 text-xs mt-1">
-                                            Contact: {guide.contactNumber}
-                                        </div>
-                                    </div>
-                                ))}
-                                {(!confirmedQuery.guides || confirmedQuery.guides.length === 0) && (
-                                    <div className="p-3 text-sm text-gray-400 italic text-center">TBA / Driver as Guide</div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                )}
+                    ) : (
+                        <div className="border-2 border-gray-800 border-dashed p-8 text-center text-gray-400 italic">No meal details available</div>
+                    )}
+                </div>
 
                 {/* Footer Terms */}
                 <div className="mt-auto pt-10 border-t border-gray-200 text-[10px] text-gray-500 italic">

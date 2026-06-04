@@ -4,9 +4,28 @@ import Button from '@components/Button'
 const SupplierViewModal = ({ isOpen, onClose, supplier, countries, cities, serviceTypes }) => {
     if (!supplier) return null
 
-    const getCountryName = (countryId) => {
-        const country = countries.find(c => c.value === countryId)
-        return country ? country.label : 'N/A'
+    const getCountryName = (countryInput) => {
+        if (!countryInput) return 'N/A'
+
+        const ids = Array.isArray(countryInput) ? countryInput : [countryInput]
+
+        const names = ids.map(id => {
+            // Try normalized options first (value/label)
+            let country = countries?.find(c => c.value === id)
+            if (country) return country.label
+
+            // Try backend-shaped country objects (countryId/countryName)
+            country = countries?.find(c => c.countryId === id)
+            if (country) return country.countryName
+
+            // Fallback to supplier-provided countries array if present
+            const fromSupplier = supplier?.countries?.find(c => c.countryId === id)
+            if (fromSupplier) return fromSupplier.countryName
+
+            return null
+        }).filter(Boolean)
+
+        return names.length ? names.join(', ') : 'N/A'
     }
 
     const getCityNames = (cityIds, singleCityId) => {
@@ -64,8 +83,8 @@ const SupplierViewModal = ({ isOpen, onClose, supplier, countries, cities, servi
                     <h3 className="text-lg font-semibold text-secondary-800 mb-3">Location</h3>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-secondary-600 mb-1">Country</label>
-                            <p className="text-secondary-900">{getCountryName(supplier.countryId)}</p>
+                            <label className="block text-sm font-medium text-secondary-600 mb-1">Country(s)</label>
+                            <p className="text-secondary-900">{getCountryName(supplier.countryIds || supplier.countryId)}</p>
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-secondary-600 mb-1">Cities</label>
